@@ -1,0 +1,3 @@
+#!/bin/bash
+docker pull docker.socialwifi.com/sw-cli
+docker run --rm -v /usr/bin:/installation docker.socialwifi.com/sw-cli install_alias

@@ -1,10 +1,14 @@
+import collections
 import contextlib
+import os
 import pathlib
 import shutil
 
-import collections
+import jinja2
 
 templates_directory = pathlib.Path(__file__).parent / 'templates'
+jinja_loader = jinja2.FileSystemLoader('/')
+jinja_environment = jinja2.Environment(loader=jinja_loader)
 
 
 def copy_template(template, destination):
@@ -14,12 +18,19 @@ def copy_template(template, destination):
         if path.is_dir():
             DirectoryTemplate(path, environment).render()
         else:
-            file_template = FileTemplate(path, environment)
+            if path.match('*.template'):
+                file_template = TemplateFileTemplate(path, environment)
+            else:
+                file_template = SimpleFileTemplate(path, environment)
             if file_template.destination.exists():
                 print('file {} already exists. Skipping.'.format(str(file_template.destination)))
             else:
                 file_template.render()
 
+
+def recursive_chown(directory, uid):
+    for path in traverse(directory):
+        os.chown(str(path), uid=uid, gid=-1)
 
 
 def traverse(path : pathlib.Path):
@@ -51,6 +62,22 @@ class DirectoryTemplate(BaseTemplate):
             self.destination.mkdir()
 
 
-class FileTemplate(BaseTemplate):
+class SimpleFileTemplate(BaseTemplate):
     def render(self):
         shutil.copy(str(self.source), str(self.destination))
+
+
+class TemplateFileTemplate(BaseTemplate):
+    def render(self):
+        template = jinja_environment.get_template(str(self.source))
+        rendered = template.render(
+            image_name='tmp',
+            service_name='tmp',
+            service_port='tmp',
+        )
+        with self.destination.open('w') as destination_file:
+            destination_file.write(rendered)
+
+    @property
+    def destination(self):
+        return super().destination.with_suffix('')

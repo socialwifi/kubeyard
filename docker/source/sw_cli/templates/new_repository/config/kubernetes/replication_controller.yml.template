@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: {{ service_name }}
+spec:
+  replicas: 2
+  selector:
+    app: {{ service_name }}
+  template:
+    metadata:
+      labels:
+        app: {{ service_name }}
+    spec:
+      containers:
+      - name: {{ service_name }}
+        image: "docker.socialwifi.com/{{ image_name }}"
+        imagePullPolicy: Always
+        ports:
+        - containerPort: {{ service_port }}
+      imagePullSecrets:
+      - name: docker.socialwifi.com
