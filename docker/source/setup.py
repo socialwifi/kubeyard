@@ -12,6 +12,8 @@ setup(
     entry_points={
         'console_scripts': [
             'install_alias = sw_cli.commands.install_alias:run',
+            'install_bash_completion = sw_cli.commands.install_bash_completion:run',
+            'bash_completion = sw_cli.commands.bash_completion:run',
             'init_repo = sw_cli.commands.init_repo:run',
         ],
     },
