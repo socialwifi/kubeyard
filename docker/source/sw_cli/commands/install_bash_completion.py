@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import pathlib
 import sw_cli.flies_generator
 
@@ -9,6 +7,3 @@ def run():
     sw_cli.flies_generator.copy_template('sw-cli-completion.sh', sw_cli_dst)
     sw_cli_dst.chmod(0o644)
     print('done')
-
-if __name__ == '__main__':
-    run()

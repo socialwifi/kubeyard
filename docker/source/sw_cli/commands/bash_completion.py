@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-
-import pkg_resources
 import sys
 
 def run():
@@ -8,9 +5,6 @@ def run():
 
 
 def get_script_names():
-    for console_script in pkg_resources.iter_entry_points(group='console_scripts'):
-        yield console_script.name
-
-
-if __name__ == '__main__':
-    run()
+    from sw_cli import commands
+    for command in commands.commands:
+        yield command.name

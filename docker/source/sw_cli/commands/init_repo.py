@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 from optparse import OptionParser
 import os
 import pathlib
@@ -21,7 +19,3 @@ def parse_arguments():
     parser = OptionParser()
     parser.add_option("--directory", dest="directory", default=".", help="Select project root directory.")
     return parser.parse_args()
-
-
-if __name__ == '__main__':
-    run()

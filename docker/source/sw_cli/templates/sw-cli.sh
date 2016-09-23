@@ -5,4 +5,4 @@ docker run --rm -i $DOCKER_OPTIONS \
     -v /:/hostfs \
     -w="/hostfs$PWD" \
     -e HOST_UID=$UID \
-    docker.socialwifi.com/sw-cli "$@"
+    docker.socialwifi.com/sw-cli cli "$@"
