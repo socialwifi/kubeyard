@@ -11,9 +11,10 @@ jinja_loader = jinja2.FileSystemLoader('/')
 jinja_environment = jinja2.Environment(loader=jinja_loader)
 
 
-def copy_template(template, destination):
+def copy_template(template, destination, context=None):
+    context = context or {}
     source = templates_directory / template
-    environment = CopyEnvironment(source, destination)
+    environment = CopyEnvironment(source, destination, context)
     for path in traverse(source):
         if path.is_dir():
             DirectoryTemplate(path, environment).render()
@@ -39,7 +40,7 @@ def traverse(path : pathlib.Path):
         for sub in path.iterdir():
             yield from traverse(sub)
 
-CopyEnvironment = collections.namedtuple('CopyEnvironment', ['source_root', 'destination_root'])
+CopyEnvironment = collections.namedtuple('CopyEnvironment', ['source_root', 'destination_root', 'context'])
 
 
 class BaseTemplate:
@@ -70,11 +71,7 @@ class SimpleFileTemplate(BaseTemplate):
 class TemplateFileTemplate(BaseTemplate):
     def render(self):
         template = jinja_environment.get_template(str(self.source))
-        rendered = template.render(
-            image_name='tmp',
-            service_name='tmp',
-            service_port='tmp',
-        )
+        rendered = template.render(self.environment.context)
         with self.destination.open('w') as destination_file:
             destination_file.write(rendered)
 
