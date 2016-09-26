@@ -11,7 +11,7 @@ jinja_loader = jinja2.FileSystemLoader('/')
 jinja_environment = jinja2.Environment(loader=jinja_loader)
 
 
-def copy_template(template, destination, context=None):
+def copy_template(template, destination, context=None, *, replace=False):
     context = context or {}
     source = templates_directory / template
     environment = CopyEnvironment(source, destination, context)
@@ -23,7 +23,7 @@ def copy_template(template, destination, context=None):
                 file_template = TemplateFileTemplate(path, environment)
             else:
                 file_template = SimpleFileTemplate(path, environment)
-            if file_template.destination.exists():
+            if file_template.destination.exists() and not replace:
                 print('file {} already exists. Skipping.'.format(str(file_template.destination)))
             else:
                 file_template.render()

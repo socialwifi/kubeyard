@@ -10,9 +10,8 @@ def run():
         print("installing sw-cli")
         options, args = parse_arguments()
         sw_cli_destination = installation_directory / 'sw-cli'
-        sw_cli.files_generator.copy_template('sw-cli.sh.template', sw_cli_destination, {
-            'development_directory': options.development_directory,
-        })
+        context = {'development_directory': options.development_directory,}
+        sw_cli.files_generator.copy_template('sw-cli.sh.template', sw_cli_destination, context=context, replace=True)
         sw_cli_destination.chmod(0o755)
         print('done')
     else:
