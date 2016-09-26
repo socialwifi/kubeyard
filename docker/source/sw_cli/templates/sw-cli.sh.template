@@ -1,8 +1,11 @@
 #!/bin/bash -e
 if [ -t 0 ] ; then DOCKER_OPTIONS="$DOCKER_OPTIONS -t"; fi
-docker pull docker.socialwifi.com/sw-cli
+{% if not development_directory %}
+    docker pull docker.socialwifi.com/sw-cli
+{% endif %}
 docker run --rm -i $DOCKER_OPTIONS \
     -v /:/hostfs \
     -w="/hostfs$PWD" \
     -e HOST_UID=$UID \
+    {% if development_directory %} -v {{ development_directory }}:/package {% endif %} \
     docker.socialwifi.com/sw-cli cli "$@"
