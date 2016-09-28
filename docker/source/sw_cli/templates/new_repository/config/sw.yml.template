@@ -1,3 +1,0 @@
-image_name: {{ service_name }}
-service_name: {{ service_name }}
-service_port: {{ service_port }}

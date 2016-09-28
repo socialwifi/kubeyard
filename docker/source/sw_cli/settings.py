@@ -1,0 +1,8 @@
+DEFAULT_SWCLI_PROJECT_DIR = '.'
+DEFAULT_SWCLI_CONTEXT_FILEPATH = 'config/sw_cli.yml'
+DEFAULT_JENKINS_URL = 'https://jenkins.socialwifi.com'
+DEFAULT_JENKINS_EMAIL_RECIPIENTS = 'developers@socialwifi.com'
+DEFAULT_JENKINS_JOB_CONFIG_FILEPATH = 'config/jenkins_job.xml'
+DEFAULT_KUBE_SERVICE_NAME = 'tmp'
+DEFAULT_KUBE_SERVICE_PORT = 'tmp'
+

@@ -1,21 +1,21 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: {{ service_name }}
+  name: {{ KUBE_SERVICE_NAME }}
 spec:
   replicas: 2
   selector:
-    app: {{ service_name }}
+    app: {{ KUBE_SERVICE_NAME }}
   template:
     metadata:
       labels:
-        app: {{ service_name }}
+        app: {{ KUBE_SERVICE_NAME }}
     spec:
       containers:
-      - name: {{ service_name }}
-        image: "docker.socialwifi.com/{{ image_name }}"
+      - name: {{ KUBE_SERVICE_NAME }}
+        image: "docker.socialwifi.com/{{ DOCKER_IMAGE_NAME }}"
         imagePullPolicy: Always
         ports:
-        - containerPort: {{ service_port }}
+        - containerPort: {{ KUBE_SERVICE_PORT }}
       imagePullSecrets:
       - name: docker.socialwifi.com
