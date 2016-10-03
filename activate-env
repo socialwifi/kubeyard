@@ -1,3 +1,0 @@
-#!/bin/bash
-MAIN_DIRECTORY=$(pushd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null; git rev-parse --show-toplevel; popd > /dev/null)
-export PATH=$MAIN_DIRECTORY/scripts/dev:$PATH
