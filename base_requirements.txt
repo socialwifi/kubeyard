@@ -1,5 +1,5 @@
 jinja2
-jenkins
+python-jenkins
 pyYAML
 GitPython
 cached-property
