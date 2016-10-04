@@ -42,10 +42,18 @@ class BaseContextFactory:
 class EmptyRepoContextFactory(BaseContextFactory):
     @cached_property
     def project_context(self):
+        docker_image = self.git_info['GIT_REPO_NAME']
+
+        service_name = input('service name [%s]: ' % settings.DEFAULT_KUBE_SERVICE_NAME_PATTERN.format(docker_image))
+        service_name = service_name or settings.DEFAULT_KUBE_SERVICE_NAME_PATTERN.format(docker_image)
+
+        service_port = input('service port [%s]: ' % settings.DEFAULT_KUBE_SERVICE_PORT)
+        service_port = service_port or settings.DEFAULT_KUBE_SERVICE_PORT
+
         return dict(
-            DOCKER_IMAGE_NAME=self.git_info['GIT_REPO_NAME'],
-            KUBE_SERVICE_NAME=input('service name: '),
-            KUBE_SERVICE_PORT=input('service port: '),
+            DOCKER_IMAGE_NAME=docker_image,
+            KUBE_SERVICE_NAME=service_name,
+            KUBE_SERVICE_PORT=service_port
         )
 
 
@@ -61,7 +69,10 @@ class InitialisedRepoContextFactory(BaseContextFactory):
     def project_context(self):
         context = {
             'PROJECT_DIR': str(self.project_dir),
-            'SWCLI_CONTEXT_FILEPATH': self.context_filepath
+            'SWCLI_CONTEXT_FILEPATH': self.context_filepath,
+            'SWCLI_DEVEL_BUILD_SCRIPT_PATH': settings.DEFAULT_SWCLI_DEVEL_BUILD_SCRIPT_PATH,
+            'SWCLI_DEVEL_TEST_SCRIPT_PATH': settings.DEFAULT_SWCLI_DEVEL_TEST_SCRIPT_PATH,
+            'SWCLI_DEVEL_DEPLOY_SCRIPT_PATH': settings.DEFAULT_SWCLI_DEVEL_DEPLOY_SCRIPT_PATH
         }
         context.update(self.saved_context)
         return context

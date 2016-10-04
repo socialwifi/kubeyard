@@ -3,3 +3,4 @@ python-jenkins
 pyYAML
 GitPython
 cached-property
+sh
