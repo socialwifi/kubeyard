@@ -36,13 +36,14 @@ class DevelCommand(base_command.BaseCommand):
         if status.strip().lower() == 'stopped':
             print("Starting minikube...")
             sh.minikube('start')
+        self.context.update(self.docker_env)
 
     def _run_script(self, script_name):
         filepath = self.project_dir / self.context.get('SWCLI_DEVEL_%s_SCRIPT_PATH' % script_name.upper())
         if not filepath.exists():
-            raise CommandException("Could not execute %s command, file does't exist: %s" % (script_name, filepath))
+            raise CommandException("Could not execute %s command, file doesn't exist: %s" % (script_name, filepath))
         env = os.environ.copy()
-        env.update(self.docker_env)
+        env.update(self.context)
         script = sh.Command(str(filepath))
         for line in script(_env=env, _iter=True):
             print(line)

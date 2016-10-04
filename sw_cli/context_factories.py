@@ -12,7 +12,7 @@ class BaseContextFactory:
         self.project_dir = project_dir
 
     def get(self):
-        context = os.environ.copy()
+        context = {}
         context.update(self.git_info)
         context.update(self.jenkins_info)
         context.update(self.project_context)
