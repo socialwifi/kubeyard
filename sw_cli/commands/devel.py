@@ -14,6 +14,15 @@ class DevelCommand(base_command.BaseCommand):
         super(DevelCommand, self).__init__()
         self._prepare_minikube()
 
+    def build(self):
+        self._run_script('build')
+
+    def test(self):
+        self._run_script('test')
+
+    def deploy(self):
+        self._run_script('deploy')
+
     def _prepare_minikube(self):
         status = sh.minikube('status')
         if status.strip().lower() == 'stopped':
@@ -26,18 +35,9 @@ class DevelCommand(base_command.BaseCommand):
     def _run_script(self, script_name):
         filepath = self.project_dir / self.context.get('SWCLI_DEVEL_%s_SCRIPT_PATH' % script_name.upper())
         if not filepath.exists():
-            raise CommandException("Could not execute build command, file does't exist: %s" % filepath)
+            raise CommandException("Could not execute %s command, file does't exist: %s" % (script_name, filepath))
         for line in sh.bash(filepath, _iter=True):
             print(line)
-
-    def build(self):
-        self._run_script('build')
-
-    def test(self):
-        self._run_script('test')
-
-    def deploy(self):
-        self._run_script('deploy')
 
 
 def build():
