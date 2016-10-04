@@ -1,6 +1,7 @@
-import sys
+import os
 
 import sh
+from cached_property import cached_property
 
 from sw_cli import base_command
 from sw_cli.base_command import CommandException
@@ -23,20 +24,27 @@ class DevelCommand(base_command.BaseCommand):
     def deploy(self):
         self._run_script('deploy')
 
+    @cached_property
+    def docker_env(self):
+        variables = map(lambda x: '$' + x, DOCKER_ENV_KEYS)
+        result = sh.bash('-c', 'eval $(minikube docker-env); echo "%s"' % '|'.join(variables))
+        values = result.strip("\n").split('|')
+        return dict(zip(DOCKER_ENV_KEYS, values))
+
     def _prepare_minikube(self):
         status = sh.minikube('status')
         if status.strip().lower() == 'stopped':
             print("Starting minikube...")
             sh.minikube('start')
-        print("Mounting docker...")
-        for key in DOCKER_ENV_KEYS:
-            self.context[key] = sh.bash('-c', 'eval $(minikube docker-env); echo $%s')
 
     def _run_script(self, script_name):
         filepath = self.project_dir / self.context.get('SWCLI_DEVEL_%s_SCRIPT_PATH' % script_name.upper())
         if not filepath.exists():
             raise CommandException("Could not execute %s command, file does't exist: %s" % (script_name, filepath))
-        for line in sh.bash(filepath, _iter=True):
+        env = os.environ.copy()
+        env.update(self.docker_env)
+        script = sh.Command(str(filepath))
+        for line in script(_env=env, _iter=True):
             print(line)
 
 
