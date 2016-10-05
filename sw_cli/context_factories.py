@@ -1,5 +1,6 @@
 import os
 
+import pathlib
 from cached_property import cached_property
 import yaml
 import git
@@ -7,15 +8,49 @@ import git
 from sw_cli import settings
 
 
-class BaseContextFactory:
+class GlobalContextFactory:
+    def __init__(self):
+        self.user_context_path = pathlib.Path.home() / settings.DEFAULT_SWCLI_USER_CONTEXT_FILEPATH
+
+    def get(self):
+        context = {}
+        context.update(self.jenkins_info)
+        context.update(self.base_user_context)
+        context.update(self.user_context)
+        return upper_keys(context)
+
+    @cached_property
+    def jenkins_info(self):
+        return {
+            'JENKINS_URL': settings.DEFAULT_JENKINS_URL,
+            'JENKINS_EMAIL_RECIPIENTS': settings.DEFAULT_JENKINS_EMAIL_RECIPIENTS,
+        }
+
+    @cached_property
+    def base_user_context(self):
+        return {
+            'SWCLI_USER_CONTEXT_FILEPATH': str(self.user_context_path),
+            'SWCLI_MODE': 'production'
+        }
+
+    @cached_property
+    def user_context(self):
+        if self.user_context_path.exists():
+            return load_context(self.user_context_path)
+        else:
+            return {}
+
+
+class BaseRepoContextFactory:
     def __init__(self, project_dir):
         self.project_dir = project_dir
+        self.user_context_path = pathlib.Path.home() / settings.DEFAULT_SWCLI_USER_CONTEXT_FILEPATH
 
     def get(self):
         context = {}
         context.update(self.git_info)
-        context.update(self.jenkins_info)
         context.update(self.project_context)
+        context.update(GlobalContextFactory().get())
         return upper_keys(context)
 
     @property
@@ -31,15 +66,8 @@ class BaseContextFactory:
             'GIT_REPO_NAME': origin_url.split('/')[-1]
         }
 
-    @cached_property
-    def jenkins_info(self):
-        return {
-            'JENKINS_URL': settings.DEFAULT_JENKINS_URL,
-            'JENKINS_EMAIL_RECIPIENTS': settings.DEFAULT_JENKINS_EMAIL_RECIPIENTS,
-        }
 
-
-class EmptyRepoContextFactory(BaseContextFactory):
+class EmptyRepoContextFactory(BaseRepoContextFactory):
     @cached_property
     def project_context(self):
         docker_image = self.git_info['GIT_REPO_NAME']
@@ -57,7 +85,7 @@ class EmptyRepoContextFactory(BaseContextFactory):
         )
 
 
-class InitialisedRepoContextFactory(BaseContextFactory):
+class InitialisedRepoContextFactory(BaseRepoContextFactory):
     def __init__(self, project_dir, context_filepath=settings.DEFAULT_SWCLI_CONTEXT_FILEPATH):
         super().__init__(project_dir)
         self.context_filepath = context_filepath
@@ -79,8 +107,12 @@ class InitialisedRepoContextFactory(BaseContextFactory):
 
     @cached_property
     def saved_context(self):
-        with self.filename.open() as fp:
-            return upper_keys(yaml.load(fp))
+        return load_context(self.filename)
+
+
+def load_context(path):
+    with path.open() as fp:
+        return upper_keys(yaml.load(fp))
 
 
 def upper_keys(d):
