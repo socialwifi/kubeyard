@@ -1,5 +1,8 @@
+import pathlib
 from collections import namedtuple
 
+from sw_cli import settings
+from sw_cli.commands import custom_script
 from . import bash_completion
 from . import debug
 from . import devel
@@ -25,3 +28,18 @@ commands = [
     CommandDeclaration('deploy', devel.deploy),
     CommandDeclaration('setup', global_commands.setup),
 ]
+
+
+def get_all_commands():
+    cmds = commands.copy()
+
+    def cmd_exists(name):
+        return any(cmd.name == name for cmd in cmds)
+
+    scripts_dir = pathlib.Path(settings.DEFAULT_SWCLI_SCRIPTS_DIR).resolve()
+    if scripts_dir.exists():
+        for filepath in scripts_dir.glob("*"):
+            if filepath.is_file() and not cmd_exists(filepath.name):
+                cmds.append(CommandDeclaration(filepath.name, lambda: custom_script.run(filepath.name)))
+
+    return cmds

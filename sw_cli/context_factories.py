@@ -94,6 +94,7 @@ class InitialisedRepoContextFactory(BaseRepoContextFactory):
         context = {
             'PROJECT_DIR': str(self.project_dir),
             'SWCLI_CONTEXT_FILEPATH': self.context_filepath,
+            'SWCLI_SCRIPTS_DIR': settings.DEFAULT_SWCLI_SCRIPTS_DIR,
             'SWCLI_DEVEL_BUILD_SCRIPT_PATH': settings.DEFAULT_SWCLI_DEVEL_BUILD_SCRIPT_PATH,
             'SWCLI_DEVEL_TEST_SCRIPT_PATH': settings.DEFAULT_SWCLI_DEVEL_TEST_SCRIPT_PATH,
             'SWCLI_DEVEL_DEPLOY_SCRIPT_PATH': settings.DEFAULT_SWCLI_DEVEL_DEPLOY_SCRIPT_PATH
