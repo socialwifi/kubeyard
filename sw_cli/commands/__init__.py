@@ -7,7 +7,6 @@ from . import global_commands
 from . import init_repo
 from . import install_bash_completion
 from . import jenkins
-from . import kubernetes
 
 
 CommandDeclaration = namedtuple('CommandDeclaration', ['name', 'source'])
@@ -24,6 +23,5 @@ commands = [
     CommandDeclaration('build', devel.build),
     CommandDeclaration('test', devel.test),
     CommandDeclaration('deploy', devel.deploy),
-    CommandDeclaration('setup_cluster_context', kubernetes.setup_cluster_context),
-    CommandDeclaration('configure_user_context', global_commands.configure_user_context),
+    CommandDeclaration('setup', global_commands.setup),
 ]

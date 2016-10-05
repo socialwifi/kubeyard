@@ -7,19 +7,13 @@ from sw_cli import base_command
 from sw_cli import minikube
 
 
-def setup_cluster_context():
-    KubernetesCommand().setup_cluster_context()
-
-
-class KubernetesCommand(base_command.BaseCommand):
+class Kubernetes:
     def setup_cluster_context(self):
-        print("only development environment is currently supported!")
         monolith_host = self._get_my_ip_address()
         minikube.ensure_minikube_started()
         with contextlib.suppress(sh.ErrorReturnCode):
             sh.kubectl('delete', 'configmap', 'monolith')
         sh.kubectl('create', 'configmap', 'monolith', '--from-literal', 'host={}'.format(monolith_host))
-        print('done')
 
     @staticmethod
     def _get_my_ip_address():
