@@ -2,8 +2,8 @@ import os
 
 import sh
 
-from sw_cli import minikube
 from sw_cli import base_command
+from sw_cli import minikube
 from sw_cli.commands import custom_script
 
 
@@ -15,7 +15,7 @@ class DevelCommand(custom_script.CustomScriptCommand):
     def build(self):
         try:
             self.run('build')
-        except base_command.CommandException:
+        except custom_script.CustomScriptCommandException:
             docker_image = self.context.get("DOCKER_IMAGE")
             docker_dir = "{0}/docker".format(self.project_dir)
             for line in sh.docker('build', '-t', docker_image, docker_dir, _iter=True):
@@ -24,7 +24,7 @@ class DevelCommand(custom_script.CustomScriptCommand):
     def test(self):
         try:
             self.run('test')
-        except base_command.CommandException:
+        except custom_script.CustomScriptCommandException:
             docker_image = self.context.get("DOCKER_IMAGE")
             for line in sh.docker('run', '--rm', docker_image, 'run_tests', _iter=True):
                 print(line)

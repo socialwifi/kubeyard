@@ -5,6 +5,10 @@ import sh
 from sw_cli import base_command
 
 
+class CustomScriptCommandException(Exception):
+    pass
+
+
 def run(script_name):
     print("Starting command %s" % script_name)
     cmd = CustomScriptCommand()
@@ -20,7 +24,7 @@ class CustomScriptCommand(base_command.BaseCommand):
     def run(self, script_name):
         filepath = self.project_dir / self.context.get('SWCLI_SCRIPTS_DIR') / script_name
         if not filepath.exists():
-            raise base_command.CommandException(
+            raise CustomScriptCommandException(
                 "Could not execute %s command, script doesn't exist: %s" % (script_name, filepath))
         if not os.access(str(filepath), os.X_OK):
             raise PermissionError(
