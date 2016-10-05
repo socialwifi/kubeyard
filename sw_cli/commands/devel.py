@@ -16,15 +16,18 @@ class DevelCommand(custom_script.CustomScriptCommand):
         try:
             self.run('build')
         except base_command.CommandException:
-            main_directory = sh.bash('-c', 'echo $(pushd "$(dirname "${BASH_SOURCE[0]}")" > '
-                                     '/dev/null; git rev-parse --show-toplevel; popd > /dev/null)').strip()
-            docker_image = self.context["DOCKER_IMAGE"]
-            docker_dir = "{0}/docker".format(main_directory)
+            docker_image = self.context.get("DOCKER_IMAGE")
+            docker_dir = "{0}/docker".format(self.project_dir)
             for line in sh.docker('build', '-t', docker_image, docker_dir, _iter=True):
                 print(line)
 
     def test(self):
-        self.run('test')
+        try:
+            self.run('test')
+        except base_command.CommandException:
+            docker_image = self.context.get("DOCKER_IMAGE")
+            for line in sh.docker('run', '--rm', docker_image, 'run_tests', _iter=True):
+                print(line)
 
     def deploy(self):
         self.run('deploy')
