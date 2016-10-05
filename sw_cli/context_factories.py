@@ -1,10 +1,9 @@
-import os
-
 import pathlib
 from cached_property import cached_property
 import yaml
 import git
 
+from sw_cli import io_utils
 from sw_cli import settings
 
 
@@ -72,11 +71,8 @@ class EmptyRepoContextFactory(BaseRepoContextFactory):
     def project_context(self):
         docker_image = self.git_info['GIT_REPO_NAME']
 
-        service_name = input('service name [%s]: ' % settings.DEFAULT_KUBE_SERVICE_NAME_PATTERN.format(docker_image))
-        service_name = service_name or settings.DEFAULT_KUBE_SERVICE_NAME_PATTERN.format(docker_image)
-
-        service_port = input('service port [%s]: ' % settings.DEFAULT_KUBE_SERVICE_PORT)
-        service_port = service_port or settings.DEFAULT_KUBE_SERVICE_PORT
+        service_name = io_utils.default_input('service name', settings.DEFAULT_KUBE_SERVICE_NAME_PATTERN.format(docker_image))
+        service_port = io_utils.default_input('service port', settings.DEFAULT_KUBE_SERVICE_PORT)
 
         return dict(
             DOCKER_IMAGE_NAME=docker_image,
