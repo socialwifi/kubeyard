@@ -1,11 +1,12 @@
 from collections import namedtuple
 
 from . import bash_completion
-from . import install_bash_completion
-from . import init_repo
-from . import jenkins
 from . import debug
 from . import devel
+from . import init_repo
+from . import install_bash_completion
+from . import jenkins
+from . import kubernetes
 
 
 CommandDeclaration = namedtuple('CommandDeclaration', ['name', 'source'])
@@ -21,5 +22,6 @@ commands = [
     CommandDeclaration('variables', debug.variables),
     CommandDeclaration('build', devel.build),
     CommandDeclaration('test', devel.test),
-    CommandDeclaration('deploy', devel.deploy)
+    CommandDeclaration('deploy', devel.deploy),
+    CommandDeclaration('setup_cluster_context', kubernetes.setup_cluster_context),
 ]
