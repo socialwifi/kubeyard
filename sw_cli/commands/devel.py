@@ -2,20 +2,21 @@ import kubepy.appliers
 import kubepy.base_commands
 import sh
 
+from sw_cli import base_command
 from sw_cli import minikube
 from sw_cli import settings
 from sw_cli.commands import custom_script
 
 
-class BaseDevelCommand(custom_script.CustomScriptCommand):
+class BaseDevelCommand(base_command.BaseCommand):
     def __init__(self):
         super().__init__()
         self._prepare_minikube()
 
     def run(self):
         try:
-            super().run(self.custom_script_name)
-        except custom_script.CustomScriptCommandException:
+            custom_script.CustomScriptRunner(self.project_dir, self.context).run(self.custom_script_name)
+        except custom_script.CustomScriptException:
             self.run_default()
 
     def _prepare_minikube(self):
