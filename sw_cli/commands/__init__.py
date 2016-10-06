@@ -25,6 +25,7 @@ commands = [
     CommandDeclaration('variables', debug.variables),
     CommandDeclaration('build', devel.build),
     CommandDeclaration('test', devel.test),
+    CommandDeclaration('push', devel.push),
     CommandDeclaration('deploy', devel.deploy),
     CommandDeclaration('setup', global_commands.setup),
 ]

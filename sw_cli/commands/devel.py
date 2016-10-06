@@ -113,6 +113,13 @@ def test():
     print("Done.")
 
 
+def push():
+    print("Starting command push")
+    cmd = PushCommand()
+    cmd.run()
+    print("Done.")
+
+
 def deploy():
     print("Starting command test")
     cmd = DeployCommand()
