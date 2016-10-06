@@ -33,7 +33,11 @@ class BaseDevelCommand(base_command.BaseCommand):
 
     @property
     def image(self):
-        return '{}:{}'. format(self.context["DOCKER_IMAGE_NAME"], self.tag)
+        return '{}:{}'.format(self.context["DOCKER_IMAGE_NAME"], self.tag)
+
+    @property
+    def latest_image(self):
+        return '{}:latest'.format(self.context["DOCKER_IMAGE_NAME"])
 
     @property
     def tag(self):
@@ -69,6 +73,19 @@ class TestCommand(BaseDevelCommand):
     def run_default(self):
         for line in sh.docker('run', '--rm', self.image, 'run_tests', _iter=True):
             print(line)
+
+
+class PushCommand(BaseDevelCommand):
+    custom_script_name = 'push'
+
+    def run_default(self):
+        for line in sh.docker('push', self.image, _iter=True):
+            print(line)
+        for line in sh.docker('tag', self.image, self.latest_image, _iter=True):
+            print(line)
+        for line in sh.docker('push', self.latest_image, _iter=True):
+            print(line)
+
 
 KubepyOptions = collections.namedtuple('KubepyOptions', ['build_tag'])
 
