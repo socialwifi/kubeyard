@@ -17,10 +17,6 @@ def run(script_name):
 
 
 class CustomScriptCommand(base_command.BaseCommand):
-
-    def __init__(self):
-        super(CustomScriptCommand, self).__init__()
-
     def run(self, script_name):
         filepath = self.project_dir / self.context.get('SWCLI_SCRIPTS_DIR') / script_name
         if not filepath.exists():
