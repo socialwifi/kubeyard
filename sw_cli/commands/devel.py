@@ -11,7 +11,8 @@ from sw_cli.commands import custom_script
 class BaseDevelCommand(base_command.BaseCommand):
     def __init__(self):
         super().__init__()
-        self._prepare_minikube()
+        if self.context['SWCLI_MODE'] == 'development':
+            self._prepare_minikube()
 
     def run(self):
         try:
