@@ -34,7 +34,7 @@ class BuildCommand(BaseDevelCommand):
     custom_script_name = 'build'
 
     def run_default(self):
-        docker_image = self.context.get("DOCKER_IMAGE")
+        docker_image = self.context["DOCKER_IMAGE_NAME"]
         docker_dir = "{0}/docker".format(self.project_dir)
         for line in sh.docker('build', '-t', docker_image, docker_dir, _iter=True):
             print(line)
@@ -44,7 +44,7 @@ class TestCommand(BaseDevelCommand):
     custom_script_name = 'test'
 
     def run_default(self):
-        docker_image = self.context.get("DOCKER_IMAGE")
+        docker_image = self.context["DOCKER_IMAGE_NAME"]
         for line in sh.docker('run', '--rm', docker_image, 'run_tests', _iter=True):
             print(line)
 
