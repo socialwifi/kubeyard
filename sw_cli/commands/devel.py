@@ -1,3 +1,4 @@
+import collections
 import kubepy.appliers
 import kubepy.base_commands
 import sh
@@ -24,6 +25,27 @@ class BaseDevelCommand(base_command.BaseCommand):
         minikube.ensure_minikube_started()
         self.context.update(minikube.docker_env())
 
+    def get_parser(self):
+        parser = super().get_parser()
+        parser.add_option(
+            '--tag', dest='tag', action='store', default=None, help='used image tag')
+        return parser
+
+    @property
+    def image(self):
+        return '{}:{}'. format(self.context["DOCKER_IMAGE_NAME"], self.tag)
+
+    @property
+    def tag(self):
+        return self.options.tag or self.default_tag
+
+    @property
+    def default_tag(self):
+        if self.context['SWCLI_MODE'] == 'development':
+            return 'dev'
+        else:
+            return 'latest'
+
     def run_default(self):
         raise NotImplementedError
 
@@ -36,9 +58,8 @@ class BuildCommand(BaseDevelCommand):
     custom_script_name = 'build'
 
     def run_default(self):
-        docker_image = self.context["DOCKER_IMAGE_NAME"]
         docker_dir = "{0}/docker".format(self.project_dir)
-        for line in sh.docker('build', '-t', docker_image, docker_dir, _iter=True):
+        for line in sh.docker('build', '-t', self.image, docker_dir, _iter=True):
             print(line)
 
 
@@ -46,9 +67,10 @@ class TestCommand(BaseDevelCommand):
     custom_script_name = 'test'
 
     def run_default(self):
-        docker_image = self.context["DOCKER_IMAGE_NAME"]
-        for line in sh.docker('run', '--rm', docker_image, 'run_tests', _iter=True):
+        for line in sh.docker('run', '--rm', self.image, 'run_tests', _iter=True):
             print(line)
+
+KubepyOptions = collections.namedtuple('KubepyOptions', ['build_tag'])
 
 
 class DeployCommand(BaseDevelCommand):
@@ -56,12 +78,8 @@ class DeployCommand(BaseDevelCommand):
 
     def run_default(self):
         kubernetes_dir = self.project_dir / settings.DEFAULT_KUBERNETES_DIR_PATH
-        kubepy.appliers.DirectoryApplier(kubernetes_dir, self.options).apply_all()
-
-    def get_parser(self):
-        parser = super().get_parser()
-        kubepy.base_commands.add_container_options(parser)
-        return parser
+        options = KubepyOptions(self.tag)
+        kubepy.appliers.DirectoryApplier(kubernetes_dir, options).apply_all()
 
 
 def build():
