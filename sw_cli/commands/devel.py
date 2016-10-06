@@ -121,7 +121,7 @@ def push():
 
 
 def deploy():
-    print("Starting command test")
+    print("Starting command deploy")
     cmd = DeployCommand()
     cmd.run()
     print("Done.")
