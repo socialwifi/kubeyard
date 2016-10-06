@@ -12,8 +12,8 @@ class CommandException(Exception):
 class BaseCommand(object):
     def __init__(self):
         parser = self.get_parser()
-        options, args = parser.parse_args()
-        self.project_dir = pathlib.Path(options.directory).resolve()
+        self.options, self.args = parser.parse_args()
+        self.project_dir = pathlib.Path(self.options.directory).resolve()
         try:
             self.context = context_factories.InitialisedRepoContextFactory(self.project_dir).get()
         except FileNotFoundError:

@@ -1,4 +1,5 @@
 jinja2
+kubepy
 python-jenkins
 pyYAML
 GitPython

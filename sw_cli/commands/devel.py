@@ -1,6 +1,9 @@
+import kubepy.appliers
+import kubepy.base_commands
 import sh
 
 from sw_cli import minikube
+from sw_cli import settings
 from sw_cli.commands import custom_script
 
 
@@ -50,7 +53,13 @@ class DeployCommand(BaseDevelCommand):
     custom_script_name = 'deploy'
 
     def run_default(self):
-        print('Under construction')
+        kubernetes_dir = self.project_dir / settings.DEFAULT_KUBERNETES_DIR_PATH
+        kubepy.appliers.DirectoryApplier(kubernetes_dir, self.options).apply_all()
+
+    def get_parser(self):
+        parser = super().get_parser()
+        kubepy.base_commands.add_container_options(parser)
+        return parser
 
 
 def build():
