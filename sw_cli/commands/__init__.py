@@ -42,6 +42,7 @@ def get_all_commands():
         scripts_dir = scripts_dir.resolve()
         for filepath in scripts_dir.glob("*"):
             if filepath.is_file() and not cmd_exists(filepath.name):
-                cmds.append(CommandDeclaration(filepath.name, lambda: custom_script.run(filepath.name)))
+                command = custom_script.CustomScriptCommand(filepath)
+                cmds.append(CommandDeclaration(filepath.name, command.run))
 
     return cmds

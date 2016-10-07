@@ -9,19 +9,19 @@ class CustomScriptException(Exception):
     pass
 
 
-def run(script_name):
-    print("Starting command %s" % script_name)
-    cmd = CustomScriptCommand()
-    cmd.run(script_name)
-    print("Done.")
-
-
 class CustomScriptCommand(base_command.BaseCommand):
-    def run(self, script_name):
+    def __init__(self, script_name):
+        super().__init__()
+        self.script_name = script_name
+
+    def run(self):
+        print("Starting command %s" % self.script_name)
         try:
-            CustomScriptRunner(self.project_dir, self.context).run(script_name)
+            CustomScriptRunner(self.project_dir, self.context).run(self.script_name)
         except CustomScriptException as e:
             raise base_command.CommandException(*e.args)
+        else:
+            print("Done.")
 
 
 class CustomScriptRunner:
