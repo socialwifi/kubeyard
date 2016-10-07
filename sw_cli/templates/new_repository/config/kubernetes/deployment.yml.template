@@ -12,7 +12,6 @@ spec:
       containers:
       - name: {{ KUBE_SERVICE_NAME }}
         image: "docker.socialwifi.com/{{ DOCKER_IMAGE_NAME }}"
-        imagePullPolicy: Always
         ports:
         - containerPort: {{ KUBE_SERVICE_PORT }}
       imagePullSecrets:
