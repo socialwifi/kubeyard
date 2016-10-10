@@ -6,8 +6,8 @@ DOCKER_ENV_KEYS = ['DOCKER_TLS_VERIFY', 'DOCKER_HOST', 'DOCKER_CERT_PATH', 'DOCK
 
 
 def ensure_minikube_started():
-    status = sh.minikube('status')
-    if status.strip().lower() == 'stopped':
+    status = sh.minikube('status', '--format={{.MinikubeStatus}}')
+    if status.strip().lower() != 'running':
         print("Starting minikube...")
         sh.minikube('start')
 
