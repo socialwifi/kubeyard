@@ -1,6 +1,8 @@
 from optparse import OptionParser
-
 import pathlib
+
+from cached_property import cached_property
+
 from sw_cli import settings
 from sw_cli import context_factories
 
@@ -10,15 +12,30 @@ class CommandException(Exception):
 
 
 class BaseCommand(object):
-    def __init__(self):
-        parser = self.get_parser()
-        self.options, self.args = parser.parse_args()
-        self.project_dir = pathlib.Path(self.options.directory).resolve()
+    @cached_property
+    def context(self):
         try:
-            self.context = context_factories.InitialisedRepoContextFactory(self.project_dir).get()
+            return context_factories.InitialisedRepoContextFactory(self.project_dir).get()
         except FileNotFoundError:
             print("Invalid project root directory: %s. Exiting.." % self.project_dir)
             exit(1)
+
+    @cached_property
+    def project_dir(self):
+        return pathlib.Path(self.options.directory).resolve()
+
+    @property
+    def options(self):
+        return self._parser_results[0]
+
+    @property
+    def args(self):
+        return self._parser_results[1]
+
+    @cached_property
+    def _parser_results(self):
+        parser = self.get_parser()
+        return parser.parse_args()
 
     def get_parser(self):
         parser = OptionParser()
