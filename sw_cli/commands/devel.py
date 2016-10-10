@@ -35,7 +35,7 @@ class BaseDevelCommand(base_command.BaseCommand):
 
     @property
     def image(self):
-        return '{}:{}'.format(self.context["DOCKER_IMAGE_NAME"], self.tag)
+        return 'docker.socialwifi.com/{}:{}'.format(self.context["DOCKER_IMAGE_NAME"], self.tag)
 
     @property
     def latest_image(self):
