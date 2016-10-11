@@ -12,6 +12,8 @@ from sw_cli.commands import custom_script
 
 
 class BaseDevelCommand(base_command.BaseCommand):
+    docker_repository = 'docker.socialwifi.com'
+
     def __init__(self):
         super().__init__()
         if self.context['SWCLI_MODE'] == 'development':
@@ -35,11 +37,12 @@ class BaseDevelCommand(base_command.BaseCommand):
 
     @property
     def image(self):
-        return 'docker.socialwifi.com/{}:{}'.format(self.context["DOCKER_IMAGE_NAME"], self.tag)
+        return '{}/{}:{}'.format(self.docker_repository, self.context["DOCKER_IMAGE_NAME"], self.tag)
 
     @property
     def latest_image(self):
-        return '{}:latest'.format(self.context["DOCKER_IMAGE_NAME"])
+
+        return '{}/{}:latest'.format(self.docker_repository, self.context["DOCKER_IMAGE_NAME"])
 
     @property
     def tag(self):
