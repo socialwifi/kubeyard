@@ -8,7 +8,6 @@ from . import debug
 from . import devel
 from . import global_commands
 from . import init_repo
-from . import install_bash_completion
 from . import jenkins
 
 
@@ -16,7 +15,7 @@ CommandDeclaration = namedtuple('CommandDeclaration', ['name', 'source'])
 
 commands = [
     CommandDeclaration('init_repo', init_repo.run),
-    CommandDeclaration('install_bash_completion', install_bash_completion.run),
+    CommandDeclaration('install_bash_completion', bash_completion.install),
     CommandDeclaration('bash_completion', bash_completion.run),
     CommandDeclaration('jenkins_init', jenkins.init),
     CommandDeclaration('jenkins_build', jenkins.build),
