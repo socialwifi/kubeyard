@@ -95,6 +95,7 @@ class InitialisedRepoContextFactory(BaseRepoContextFactory):
             'PROJECT_DIR': str(self.project_dir),
             'SWCLI_CONTEXT_FILEPATH': self.context_filepath,
             'SWCLI_SCRIPTS_DIR': settings.DEFAULT_SWCLI_SCRIPTS_DIR,
+            'KUBERNETES_DEV_SECRETS_DIR': settings.DEFAULT_KUBERNETES_DEV_SECRETS_DIR,
         }
         context.update(self.saved_context)
         return context

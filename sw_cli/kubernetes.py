@@ -1,17 +1,37 @@
 import contextlib
 import socket
 
+import pathlib
+
+import collections
 import sh
+import yaml
 
 from sw_cli import base_command
 from sw_cli import minikube
 
 
 def setup_cluster_context(context):
+    _get_kubernetes_commands(context).context_setup()
+
+
+def install_secrets(context):
+    _get_kubernetes_commands(context).install_secrets()
+
+
+def _get_kubernetes_commands(context):
     if context['SWCLI_MODE'] == 'development':
-        DevelopmentKubernetesContext().setup()
+        return KubernetesCommands(
+            context_setup=DevelopmentKubernetesContext().setup,
+            install_secrets=DevelopmentKubernetesSecretsInstaller(context).install,
+        )
     else:
-        ProductionKubernetesContext().setup()
+        return KubernetesCommands(
+            context_setup=ProductionKubernetesContext().setup,
+            install_secrets=ProductionKubernetesSecretsInstaller(context).install,
+        )
+
+KubernetesCommands = collections.namedtuple('KubernetesCommand', ['context_setup', 'install_secrets'])
 
 
 class BaseKubernetesContext:
@@ -39,3 +59,50 @@ class DevelopmentKubernetesContext(BaseKubernetesContext):
 
 class ProductionKubernetesContext(BaseKubernetesContext):
     monolith_host = 'socialwifi.com'
+
+
+class BaseKubernetesSecretsInstaller:
+    def __init__(self, context):
+        self.context = context
+
+    def install(self):
+        command = ['create', 'secret', 'generic', self.context['KUBE_SERVICE_NAME'], '--dry-run', '-o', 'yaml']
+        literal_secrets = list(self._get_literal_secrets())
+        file_secrets = list(self._get_file_secrets())
+        if literal_secrets or file_secrets:
+            for key, value in literal_secrets:
+                command.append('--from-literal={}={}'.format(key, value))
+            for subpath in file_secrets:
+                command.append('--from-file={}'.format(subpath))
+            sh.kubectl(sh.kubectl(*command), 'apply', '--record', '-f', '-')
+
+
+    @property
+    def yml_source_path(self):
+        return self.secrets_path / 'secrets.yml'
+
+    @property
+    def secrets_path(self):
+        raise NotImplementedError
+
+    def _get_literal_secrets(self):
+        if self.yml_source_path.exists():
+            with self.yml_source_path.open() as yml_source:
+                yield from yaml.load(yml_source).items()
+
+    def _get_file_secrets(self):
+        for subpath in self.secrets_path.iterdir():
+            if subpath != self.yml_source_path:
+                yield subpath
+
+
+class DevelopmentKubernetesSecretsInstaller(BaseKubernetesSecretsInstaller):
+    @property
+    def secrets_path(self):
+        return pathlib.Path(self.context['PROJECT_DIR'])/self.context['KUBERNETES_DEV_SECRETS_DIR']
+
+
+class ProductionKubernetesSecretsInstaller(BaseKubernetesSecretsInstaller):
+    @property
+    def secrets_path(self):
+        return pathlib.Path.home() / 'kubernetes_secrets' / self.context['KUBE_SERVICE_NAME']

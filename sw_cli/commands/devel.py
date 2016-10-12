@@ -6,6 +6,7 @@ import sh
 from cached_property import cached_property
 
 from sw_cli import base_command
+from sw_cli import kubernetes
 from sw_cli import minikube
 from sw_cli import settings
 from sw_cli.commands import custom_script
@@ -107,6 +108,7 @@ class DeployCommand(BaseDevelCommand):
     def run_default(self):
         kubernetes_dir = self.project_dir / settings.DEFAULT_KUBERNETES_DIR_PATH
         options = KubepyOptions(self.tag)
+        kubernetes.install_secrets(self.context)
         kubepy.appliers.DirectoryApplier(kubernetes_dir, options).apply_all()
 
 
