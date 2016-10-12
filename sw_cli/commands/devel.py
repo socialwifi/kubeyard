@@ -112,7 +112,7 @@ class DeployCommand(BaseDevelCommand):
     custom_script_name = 'deploy'
 
     def run_default(self):
-        kubernetes_dir = self.project_dir / settings.DEFAULT_KUBERNETES_DIR_PATH
+        kubernetes_dir = self.project_dir / settings.DEFAULT_KUBERNETES_DEPLOY_DIR
         options = KubepyOptions(self.tag)
         kubernetes.install_secrets(self.context)
         kubepy.appliers.DirectoryApplier(kubernetes_dir, options).apply_all()
