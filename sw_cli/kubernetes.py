@@ -7,7 +7,7 @@ import collections
 import sh
 import yaml
 
-from sw_cli import base_command
+from sw_cli import settings
 from sw_cli import minikube
 
 
@@ -105,4 +105,4 @@ class DevelopmentKubernetesSecretsInstaller(BaseKubernetesSecretsInstaller):
 class ProductionKubernetesSecretsInstaller(BaseKubernetesSecretsInstaller):
     @property
     def secrets_path(self):
-        return pathlib.Path.home() / 'kubernetes_secrets' / self.context['KUBE_SERVICE_NAME']
+        return pathlib.Path.home() / settings.KUBERNETES_PROD_SECRETS_DIR / self.context['KUBE_SERVICE_NAME']
