@@ -21,10 +21,13 @@ class BaseDevelCommand(base_command.BaseCommand):
             self._prepare_minikube()
 
     def run(self):
-        try:
-            custom_script.CustomScriptRunner(self.project_dir, self.context).run(self.custom_script_name)
-        except custom_script.CustomScriptException:
+        if self.options.default:
             self.run_default()
+        else:
+            try:
+                custom_script.CustomScriptRunner(self.project_dir, self.context).run(self.custom_script_name)
+            except custom_script.CustomScriptException:
+                self.run_default()
 
     def _prepare_minikube(self):
         minikube.ensure_minikube_started()
@@ -34,6 +37,9 @@ class BaseDevelCommand(base_command.BaseCommand):
         parser = super().get_parser()
         parser.add_option(
             '--tag', dest='tag', action='store', default=None, help='used image tag')
+        parser.add_option(
+            '--default', dest='default', action='store_true', default=False,
+            help='Don\'t try to execute custom script. Useful when you need original behaviour in overridden method')
         return parser
 
     @property
