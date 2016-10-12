@@ -15,6 +15,7 @@ class GlobalCommand(object):
         self.context = context_factories.GlobalContextFactory().get()
         parser = self.get_parser()
         self.options, self.args = parser.parse_args()
+        self.context['SWCLI_MODE'] = self.options.mode
 
     def setup(self):
         user_context_filepath = pathlib.Path(self.context['SWCLI_USER_CONTEXT_FILEPATH'])
@@ -22,9 +23,9 @@ class GlobalCommand(object):
             user_context_filepath.parent.mkdir()
         with user_context_filepath.open('w') as context_file:
             yaml.dump({
-                'SWCLI_MODE': self.options.mode,
+                'SWCLI_MODE': self.context['SWCLI_MODE'],
             }, stream=context_file)
-        kubernetes.Kubernetes().setup_cluster_context()
+        kubernetes.setup_cluster_context(self.context)
 
     def get_parser(self):
         parser = OptionParser()
