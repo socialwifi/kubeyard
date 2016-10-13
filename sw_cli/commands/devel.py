@@ -1,8 +1,11 @@
 import collections
+import contextlib
+
 import kubepy.appliers
 import kubepy.base_commands
 import os
 import sh
+import time
 from cached_property import cached_property
 
 from sw_cli import base_command
@@ -41,6 +44,9 @@ class BaseDevelCommand(base_command.BaseCommand):
             '--default', dest='default', action='store_true', default=False,
             help='Don\'t try to execute custom script. Useful when you need original behaviour in overridden method')
         return parser
+
+    def docker(self, *args, **kwargs):
+        return sh.docker(*args, _env=self.sh_env, **kwargs)
 
     @property
     def image(self):
@@ -118,6 +124,33 @@ class DeployCommand(BaseDevelCommand):
         kubepy.appliers.DirectoryApplier(kubernetes_dir, options).apply_all()
 
 
+class SetupDevDbCommand(BaseDevelCommand):
+    custom_script_name = 'setup_dev_db'
+    postgres_started_log = 'PostgreSQL init process complete; ready for start up.'
+
+    def run_default(self):
+        postgres_name = self.context['DEV_POSTGRES_NAME']
+        self.ensure_postgres_running(postgres_name)
+
+    def ensure_postgres_running(self, postgres_name):
+        try:
+            postgres_status = str(self.docker('inspect', '--format={{.State.Status}}', postgres_name)).strip()
+        except sh.ErrorReturnCode:
+            postgres_status = 'error'
+        if postgres_status != 'running':
+            with contextlib.suppress(sh.ErrorReturnCode):
+                self.docker('rm', '-fv', postgres_name)
+            self.run_fresh_postgres(postgres_name)
+
+    def run_fresh_postgres(self, postgres_name):
+        print('running postgres')
+        self.docker('run', '-d', '--name={}'.format(postgres_name), '-p', '172.17.0.1:35432:5432', 'postgres:9.6.0')
+        for log in self.docker('logs', '-f', postgres_name, _iter=True):
+            print(log.strip())
+            if self.postgres_started_log in log:
+                break
+
+
 def build():
     print("Starting command build")
     cmd = BuildCommand()
@@ -142,5 +175,12 @@ def push():
 def deploy():
     print("Starting command deploy")
     cmd = DeployCommand()
+    cmd.run()
+    print("Done.")
+
+
+def setup_dev_db():
+    print("Setting up dev db")
+    cmd = SetupDevDbCommand()
     cmd.run()
     print("Done.")

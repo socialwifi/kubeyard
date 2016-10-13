@@ -29,7 +29,8 @@ class GlobalContextFactory:
     def base_user_context(self):
         return {
             'SWCLI_USER_CONTEXT_FILEPATH': str(self.user_context_path),
-            'SWCLI_MODE': 'production'
+            'SWCLI_MODE': 'production',
+            'DEV_POSTGRES_NAME': settings.DEFAULT_DEV_POSTGRES_NAME,
         }
 
     @cached_property
