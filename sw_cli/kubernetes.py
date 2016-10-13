@@ -67,6 +67,8 @@ class BaseKubernetesSecretsInstaller:
 
     def install(self):
         command = ['create', 'secret', 'generic', self.context['KUBE_SERVICE_NAME'], '--dry-run', '-o', 'yaml']
+        with contextlib.suppress(FileExistsError):
+            self.secrets_path.mkdir(parents=True)
         literal_secrets = list(self._get_literal_secrets())
         file_secrets = list(self._get_file_secrets())
         if literal_secrets or file_secrets:
