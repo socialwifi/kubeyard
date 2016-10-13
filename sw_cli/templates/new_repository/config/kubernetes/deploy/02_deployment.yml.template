@@ -14,5 +14,8 @@ spec:
         image: "docker.socialwifi.com/{{ DOCKER_IMAGE_NAME }}"
         ports:
         - containerPort: {{ KUBE_SERVICE_PORT }}
+        resources:
+          requests:
+            cpu: 10m
       imagePullSecrets:
       - name: docker.socialwifi.com
