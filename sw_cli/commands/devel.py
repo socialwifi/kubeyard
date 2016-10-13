@@ -130,7 +130,9 @@ class SetupDevDbCommand(BaseDevelCommand):
 
     def run_default(self):
         postgres_name = self.context['DEV_POSTGRES_NAME']
+        database_name = self.options.database or self.context['KUBE_SERVICE_NAME']
         self.ensure_postgres_running(postgres_name)
+        self.ensure_database_present(postgres_name, database_name)
 
     def ensure_postgres_running(self, postgres_name):
         try:
@@ -149,6 +151,19 @@ class SetupDevDbCommand(BaseDevelCommand):
             print(log.strip())
             if self.postgres_started_log in log:
                 break
+
+    def ensure_database_present(self, postgres_name, database_name):
+        try:
+            self.docker('exec', postgres_name, 'createdb', database_name, '-U', 'postgres')
+        except sh.ErrorReturnCode as e:
+            if b'already exists' not in e.stderr:
+                raise e
+
+    def get_parser(self):
+        parser = super().get_parser()
+        parser.add_option(
+            '--database', dest='database', action='store', default=None, help='used database name')
+        return parser
 
 
 def build():
