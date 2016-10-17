@@ -87,7 +87,7 @@ class BuildCommand(BaseDevelCommand):
 
     def run_default(self):
         docker_dir = "{0}/docker".format(self.project_dir)
-        for line in sh.docker('build', '-t', self.image, docker_dir, _iter=True, _env=self.sh_env):
+        for line in self.docker('build', '-t', self.image, docker_dir, _iter=True):
             print(line)
 
 
@@ -95,7 +95,7 @@ class TestCommand(BaseDevelCommand):
     custom_script_name = 'test'
 
     def run_default(self):
-        for line in sh.docker('run', '--rm', self.image, 'run_tests', _iter=True, _env=self.sh_env):
+        for line in self.docker('run', '--rm', self.image, 'run_tests', _iter=True):
             print(line)
 
 
@@ -103,11 +103,11 @@ class PushCommand(BaseDevelCommand):
     custom_script_name = 'push'
 
     def run_default(self):
-        for line in sh.docker('push', self.image, _iter=True, _env=self.sh_env):
+        for line in self.docker('push', self.image, _iter=True):
             print(line)
-        for line in sh.docker('tag', self.image, self.latest_image, _iter=True, _env=self.sh_env):
+        for line in self.docker('tag', self.image, self.latest_image, _iter=True):
             print(line)
-        for line in sh.docker('push', self.latest_image, _iter=True, _env=self.sh_env):
+        for line in self.docker('push', self.latest_image, _iter=True):
             print(line)
 
 
