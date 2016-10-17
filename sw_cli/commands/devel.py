@@ -86,9 +86,16 @@ class BuildCommand(BaseDevelCommand):
     custom_script_name = 'build'
 
     def run_default(self):
-        docker_dir = "{0}/docker".format(self.project_dir)
-        for line in self.docker('build', '-t', self.image, docker_dir, _iter=True):
+        image_context = self.options.image_context or "{0}/docker".format(self.project_dir)
+        for line in self.docker('build', '-t', self.image, image_context, _iter=True):
             print(line)
+
+    def get_parser(self):
+        parser = super().get_parser()
+        parser.add_option(
+            '--image-context', dest='image_context', action='store', default=None,
+            help='Image context containing Dockerfile. Defaults to <project_dir>/docker')
+        return parser
 
 
 class TestCommand(BaseDevelCommand):
