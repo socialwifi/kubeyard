@@ -43,6 +43,9 @@ class BaseDevelCommand(base_command.BaseCommand):
         parser.add_option(
             '--default', dest='default', action='store_true', default=False,
             help='Don\'t try to execute custom script. Useful when you need original behaviour in overridden method')
+        parser.add_option(
+            '--image-name', dest='image_name', action='store', default=None,
+            help='image name(without repository) default is set in sw-cli.yml')
         return parser
 
     def docker(self, *args, **kwargs):
@@ -50,12 +53,15 @@ class BaseDevelCommand(base_command.BaseCommand):
 
     @property
     def image(self):
-        return '{}/{}:{}'.format(self.docker_repository, self.context["DOCKER_IMAGE_NAME"], self.tag)
+        return '{}/{}:{}'.format(self.docker_repository, self.image_name, self.tag)
 
     @property
     def latest_image(self):
+        return '{}/{}:latest'.format(self.docker_repository, self.image_name)
 
-        return '{}/{}:latest'.format(self.docker_repository, self.context["DOCKER_IMAGE_NAME"])
+    @property
+    def image_name(self):
+        return self.options.image_name or self.context["DOCKER_IMAGE_NAME"]
 
     @property
     def tag(self):
