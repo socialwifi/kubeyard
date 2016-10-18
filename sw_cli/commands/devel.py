@@ -32,6 +32,11 @@ class BaseDevelCommand(base_command.BaseCommand):
             except custom_script.CustomScriptException:
                 self.run_default()
 
+    @cached_property
+    def options(self):
+        parser = self.get_parser()
+        return parser.parse_known_args()[0]
+
     def _prepare_minikube(self):
         minikube.ensure_minikube_started()
         self.context.update(minikube.docker_env())

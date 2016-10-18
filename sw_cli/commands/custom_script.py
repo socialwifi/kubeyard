@@ -3,6 +3,8 @@ import os
 import sh
 import sys
 
+from cached_property import cached_property
+
 from sw_cli import base_command
 
 
@@ -14,6 +16,11 @@ class CustomScriptCommand(base_command.BaseCommand):
     def __init__(self, script_name):
         super().__init__()
         self.script_name = script_name
+
+    @cached_property
+    def options(self):
+        parser = self.get_parser()
+        return parser.parse_known_args()[0]
 
     def run(self):
         print("Starting command %s" % self.script_name)
