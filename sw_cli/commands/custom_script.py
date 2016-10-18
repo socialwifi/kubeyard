@@ -1,6 +1,7 @@
 import os
 
 import sh
+import sys
 
 from sw_cli import base_command
 
@@ -40,5 +41,5 @@ class CustomScriptRunner:
         env = os.environ.copy()
         env.update(self.context)
         script = sh.Command(str(filepath))
-        for line in script(_env=env, _iter=True):
+        for line in script(*sys.argv[2:], _env=env, _iter=True):
             print(line)
