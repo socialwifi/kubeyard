@@ -1,21 +1,20 @@
 from argparse import ArgumentParser
 import contextlib
 import pathlib
-import sys
 
 import yaml
 from sw_cli import context_factories, kubernetes
 
 
-def setup():
-    GlobalCommand().setup()
+def setup(args):
+    GlobalCommand(args).setup()
 
 
-class GlobalCommand(object):
-    def __init__(self):
+class GlobalCommand:
+    def __init__(self, args):
         self.context = context_factories.GlobalContextFactory().get()
         parser = self.get_parser()
-        self.options = parser.parse_args(sys.argv[2:])
+        self.options = parser.parse_args(args)
         self.context['SWCLI_MODE'] = self.options.mode
 
     def setup(self):

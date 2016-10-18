@@ -17,7 +17,7 @@ def run():
 def run_command(command_name):
     for command in commands.get_all_commands():
         if command_name == command.name:
-            command.source()
+            command.source(sys.argv[2:])
             break
     else:
         print_usage()

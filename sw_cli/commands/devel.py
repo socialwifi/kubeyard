@@ -18,8 +18,8 @@ from sw_cli.commands import custom_script
 class BaseDevelCommand(base_command.BaseCommand):
     docker_repository = 'docker.socialwifi.com'
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, args):
+        super().__init__(args)
         if self.context['SWCLI_MODE'] == 'development':
             self._prepare_minikube()
 
@@ -184,36 +184,36 @@ class SetupDevDbCommand(BaseDevelCommand):
         return parser
 
 
-def build():
+def build(args):
     print("Starting command build")
-    cmd = BuildCommand()
+    cmd = BuildCommand(args)
     cmd.run()
     print("Done.")
 
 
-def test():
+def test(args):
     print("Starting command test")
-    cmd = TestCommand()
+    cmd = TestCommand(args)
     cmd.run()
     print("Done.")
 
 
-def push():
+def push(args):
     print("Starting command push")
-    cmd = PushCommand()
+    cmd = PushCommand(args)
     cmd.run()
     print("Done.")
 
 
-def deploy():
+def deploy(args):
     print("Starting command deploy")
-    cmd = DeployCommand()
+    cmd = DeployCommand(args)
     cmd.run()
     print("Done.")
 
 
-def setup_dev_db():
+def setup_dev_db(args):
     print("Setting up dev db")
-    cmd = SetupDevDbCommand()
+    cmd = SetupDevDbCommand(args)
     cmd.run()
     print("Done.")

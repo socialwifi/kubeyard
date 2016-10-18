@@ -7,9 +7,6 @@ from sw_cli import files_generator
 
 
 class JenkinsCommand(base_command.BaseCommand):
-    def __init__(self):
-        super(JenkinsCommand, self).__init__()
-
     @cached_property
     def server(self):
         username, password = self.get_credentials()
@@ -50,29 +47,29 @@ class JenkinsCommand(base_command.BaseCommand):
         self.server.build_job(job_name)
 
 
-def init():
+def init(args):
     print("Starting command jenkins_init")
-    cmd = JenkinsCommand()
+    cmd = JenkinsCommand(args)
     cmd.init_job()
     print("Done.")
 
 
-def reconfig():
+def reconfig(args):
     print("Starting command jenkins_reconfig")
-    cmd = JenkinsCommand()
+    cmd = JenkinsCommand(args)
     cmd.reconfig_job()
     print("Done.")
 
 
-def build():
+def build(args):
     print("Starting command jenkins_build")
-    cmd = JenkinsCommand()
+    cmd = JenkinsCommand(args)
     cmd.build_job()
     print("Done.")
 
 
-def info():
+def info(args):
     print("Starting command jenkins_info")
-    cmd = JenkinsCommand()
+    cmd = JenkinsCommand(args)
     cmd.print_info()
     print("Done.")

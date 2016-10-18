@@ -8,6 +8,6 @@ class DebugCommand(base_command.BaseCommand):
         pprint(self.context)
 
 
-def variables():
-    cmd = DebugCommand()
+def variables(args):
+    cmd = DebugCommand(args)
     cmd.show_variables()

@@ -4,7 +4,7 @@ import sys
 import sw_cli.files_generator
 
 
-def install():
+def install(args):
     print("installing sw-cli")
     sw_cli_dst = pathlib.Path('/etc/bash_completion.d/sw-cli')
     sw_cli.files_generator.copy_template('sw-cli-completion.sh', sw_cli_dst)
@@ -12,7 +12,7 @@ def install():
     print('done')
 
 
-def run():
+def run(args):
     sys.stdout.write(' '.join(get_script_names()))
 
 

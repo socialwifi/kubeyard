@@ -1,6 +1,5 @@
 from argparse import ArgumentParser
 import pathlib
-import sys
 
 from cached_property import cached_property
 
@@ -13,6 +12,9 @@ class CommandException(Exception):
 
 
 class BaseCommand(object):
+    def __init__(self, args):
+        self.args = args
+
     @cached_property
     def context(self):
         try:
@@ -29,10 +31,6 @@ class BaseCommand(object):
     def options(self):
         parser = self.get_parser()
         return parser.parse_args(self.args)
-
-    @property
-    def args(self):
-        return sys.argv[2:]
 
     def get_parser(self):
         parser = ArgumentParser()
