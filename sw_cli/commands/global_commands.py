@@ -1,6 +1,7 @@
+from argparse import ArgumentParser
 import contextlib
 import pathlib
-from optparse import OptionParser
+import sys
 
 import yaml
 from sw_cli import context_factories, kubernetes
@@ -14,7 +15,7 @@ class GlobalCommand(object):
     def __init__(self):
         self.context = context_factories.GlobalContextFactory().get()
         parser = self.get_parser()
-        self.options, self.args = parser.parse_args()
+        self.options = parser.parse_args(sys.argv[2:])
         self.context['SWCLI_MODE'] = self.options.mode
 
     def setup(self):
@@ -28,7 +29,7 @@ class GlobalCommand(object):
         kubernetes.setup_cluster_context(self.context)
 
     def get_parser(self):
-        parser = OptionParser()
-        parser.add_option("--development", dest="mode", default='production', action='store_const', const='development',
-                          help="Select project root directory.")
+        parser = ArgumentParser()
+        parser.add_argument("--development", dest="mode", default='production', action='store_const',
+                            const='development', help="Select project root directory.")
         return parser

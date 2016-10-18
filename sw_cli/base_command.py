@@ -1,5 +1,6 @@
-from optparse import OptionParser
+from argparse import ArgumentParser
 import pathlib
+import sys
 
 from cached_property import cached_property
 
@@ -24,21 +25,17 @@ class BaseCommand(object):
     def project_dir(self):
         return pathlib.Path(self.options.directory).resolve()
 
-    @property
+    @cached_property
     def options(self):
-        return self._parser_results[0]
+        parser = self.get_parser()
+        return parser.parse_args(self.args)
 
     @property
     def args(self):
-        return self._parser_results[1]
-
-    @cached_property
-    def _parser_results(self):
-        parser = self.get_parser()
-        return parser.parse_args()
+        return sys.argv[2:]
 
     def get_parser(self):
-        parser = OptionParser()
-        parser.add_option("--directory", dest="directory", default=settings.DEFAULT_SWCLI_PROJECT_DIR,
-                          help="Select project root directory.")
+        parser = ArgumentParser()
+        parser.add_argument("--directory", dest="directory", default=settings.DEFAULT_SWCLI_PROJECT_DIR,
+                            help="Select project root directory.")
         return parser

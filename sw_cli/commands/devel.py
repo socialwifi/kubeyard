@@ -38,12 +38,12 @@ class BaseDevelCommand(base_command.BaseCommand):
 
     def get_parser(self):
         parser = super().get_parser()
-        parser.add_option(
+        parser.add_argument(
             '--tag', dest='tag', action='store', default=None, help='used image tag')
-        parser.add_option(
+        parser.add_argument(
             '--default', dest='default', action='store_true', default=False,
             help='Don\'t try to execute custom script. Useful when you need original behaviour in overridden method')
-        parser.add_option(
+        parser.add_argument(
             '--image-name', dest='image_name', action='store', default=None,
             help='image name(without repository) default is set in sw-cli.yml')
         return parser
@@ -98,7 +98,7 @@ class BuildCommand(BaseDevelCommand):
 
     def get_parser(self):
         parser = super().get_parser()
-        parser.add_option(
+        parser.add_argument(
             '--image-context', dest='image_context', action='store', default=None,
             help='Image context containing Dockerfile. Defaults to <project_dir>/docker')
         return parser
@@ -174,7 +174,7 @@ class SetupDevDbCommand(BaseDevelCommand):
 
     def get_parser(self):
         parser = super().get_parser()
-        parser.add_option(
+        parser.add_argument(
             '--database', dest='database', action='store', default=None, help='used database name')
         return parser
 
