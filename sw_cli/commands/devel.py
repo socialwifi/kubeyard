@@ -28,7 +28,7 @@ class BaseDevelCommand(base_command.BaseCommand):
             self.run_default()
         else:
             try:
-                custom_script.CustomScriptRunner(self.project_dir, self.context).run(self.custom_script_name)
+                custom_script.CustomScriptRunner(self.project_dir, self.context).run(self.custom_script_name, self.args)
             except custom_script.CustomScriptException:
                 self.run_default()
 

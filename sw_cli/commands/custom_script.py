@@ -25,7 +25,7 @@ class CustomScriptCommand(base_command.BaseCommand):
     def run(self):
         print("Starting command %s" % self.script_name)
         try:
-            CustomScriptRunner(self.project_dir, self.context).run(self.script_name)
+            CustomScriptRunner(self.project_dir, self.context).run(self.script_name, self.args)
         except CustomScriptException as e:
             raise base_command.CommandException(*e.args)
         else:
@@ -37,7 +37,7 @@ class CustomScriptRunner:
         self.project_dir = project_dir
         self.context = context
 
-    def run(self, script_name):
+    def run(self, script_name, args):
         filepath = self.project_dir / self.context.get('SWCLI_SCRIPTS_DIR') / script_name
         if not filepath.exists():
             raise CustomScriptException(
@@ -48,5 +48,5 @@ class CustomScriptRunner:
         env = os.environ.copy()
         env.update(self.context)
         script = sh.Command(str(filepath))
-        for line in script(*sys.argv[2:], _env=env, _iter=True):
+        for line in script(*args, _env=env, _iter=True):
             print(line)
