@@ -20,7 +20,7 @@ class BaseDevelCommand(base_command.BaseCommand):
 
     def __init__(self, args):
         super().__init__(args)
-        if self.context['SWCLI_MODE'] == 'development':
+        if self.is_development:
             self._prepare_minikube()
 
     def run(self):
@@ -74,10 +74,14 @@ class BaseDevelCommand(base_command.BaseCommand):
 
     @property
     def default_tag(self):
-        if self.context['SWCLI_MODE'] == 'development':
+        if self.is_development:
             return 'dev'
         else:
             return 'latest'
+
+    @property
+    def is_development(self):
+        return self.context['SWCLI_MODE'] == 'development'
 
     def run_default(self):
         raise NotImplementedError
