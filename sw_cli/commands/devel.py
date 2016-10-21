@@ -133,7 +133,7 @@ class PushCommand(BaseDevelCommand):
             print(line)
 
 
-KubepyOptions = collections.namedtuple('KubepyOptions', ['build_tag'])
+KubepyOptions = collections.namedtuple('KubepyOptions', ['build_tag', 'replace'])
 
 
 class DeployCommand(BaseDevelCommand):
@@ -141,7 +141,7 @@ class DeployCommand(BaseDevelCommand):
 
     def run_default(self):
         kubernetes_dir = self.project_dir / settings.DEFAULT_KUBERNETES_DEPLOY_DIR
-        options = KubepyOptions(self.tag)
+        options = KubepyOptions(build_tag=self.tag, replace=self.is_development)
         kubernetes.install_secrets(self.context)
         kubepy.appliers.DirectoryApplier(kubernetes_dir, options).apply_all()
 
