@@ -1,12 +1,11 @@
 import collections
 import contextlib
+import os
 
+from cached_property import cached_property
 import kubepy.appliers
 import kubepy.base_commands
-import os
 import sh
-import time
-from cached_property import cached_property
 
 from sw_cli import base_command
 from sw_cli import kubernetes
