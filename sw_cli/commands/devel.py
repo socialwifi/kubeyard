@@ -166,7 +166,10 @@ class SetupDevDbCommand(BaseDevelCommand):
 
     def run_fresh_postgres(self, postgres_name):
         print('running postgres')
-        self.docker('run', '-d', '--name={}'.format(postgres_name), '-p', '172.17.0.1:35432:5432', 'postgres:9.6.0')
+        self.docker('run', '-d', '--restart=always',
+                    '--name={}'.format(postgres_name),
+                    '-p', '172.17.0.1:35432:5432',
+                    'postgres:9.6.0')
         for log in self.docker('logs', '-f', postgres_name, _iter=True):
             print(log.strip())
             if self.postgres_started_log in log:
