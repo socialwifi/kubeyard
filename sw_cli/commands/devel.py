@@ -1,6 +1,7 @@
 import collections
 import contextlib
 import os
+import sys
 
 from cached_property import cached_property
 import kubepy.appliers
@@ -55,6 +56,9 @@ class BaseDevelCommand(base_command.BaseCommand):
     def docker(self, *args, **kwargs):
         return sh.docker(*args, _env=self.sh_env, **kwargs)
 
+    def docker_with_output(self, *args, **kwargs):
+        return self.docker(*args, _out=sys.stdout.buffer, _err=sys.stdout.buffer, **kwargs)
+
     @property
     def image(self):
         return '{}/{}:{}'.format(self.docker_repository, self.image_name, self.tag)
@@ -101,8 +105,7 @@ class BuildCommand(BaseDevelCommand):
 
     def run_default(self):
         image_context = self.options.image_context or "{0}/docker".format(self.project_dir)
-        for line in self.docker('build', '-t', self.image, image_context, _iter=True):
-            print(line)
+        self.docker_with_output('build', '-t', self.image, image_context)
 
     def get_parser(self):
         parser = super().get_parser()
@@ -116,20 +119,16 @@ class TestCommand(BaseDevelCommand):
     custom_script_name = 'test'
 
     def run_default(self):
-        for line in self.docker('run', '--rm', self.image, 'run_tests', _iter=True):
-            print(line)
+        self.docker_with_output('run', '--rm', self.image, 'run_tests')
 
 
 class PushCommand(BaseDevelCommand):
     custom_script_name = 'push'
 
     def run_default(self):
-        for line in self.docker('push', self.image, _iter=True):
-            print(line)
-        for line in self.docker('tag', self.image, self.latest_image, _iter=True):
-            print(line)
-        for line in self.docker('push', self.latest_image, _iter=True):
-            print(line)
+        self.docker_with_output('push', self.image)
+        self.docker_with_output('tag', self.image, self.latest_image)
+        self.docker_with_output('push', self.latest_image)
 
 
 KubepyOptions = collections.namedtuple('KubepyOptions', ['build_tag', 'replace'])
