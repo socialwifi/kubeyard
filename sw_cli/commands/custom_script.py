@@ -1,8 +1,5 @@
 import os
 
-import sh
-import sys
-
 from cached_property import cached_property
 
 from sw_cli import base_command
@@ -53,6 +50,4 @@ class CustomScriptRunner:
                 "Could not execute %s command, script exists but is not executable: %s" % (script_name, filepath))
         env = os.environ.copy()
         env.update(self.context)
-        script = sh.Command(str(filepath))
-        for line in script(*args, _env=env, _iter=True):
-            print(line)
+        os.execvpe(file=str(filepath), args=[str(filepath)], env=env)
