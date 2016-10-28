@@ -1,14 +1,14 @@
 import collections
-import contextlib
 import os
 import sys
 
-from cached_property import cached_property
 import kubepy.appliers
 import kubepy.base_commands
 import sh
+from cached_property import cached_property
 
 from sw_cli import base_command
+from sw_cli import dependencies
 from sw_cli import kubernetes
 from sw_cli import minikube
 from sw_cli import settings
@@ -155,25 +155,7 @@ class SetupDevDbCommand(BaseDevelCommand):
         self.ensure_database_present(postgres_name, database_name)
 
     def ensure_postgres_running(self, postgres_name):
-        try:
-            postgres_status = str(self.docker('inspect', '--format={{.State.Status}}', postgres_name)).strip()
-        except sh.ErrorReturnCode:
-            postgres_status = 'error'
-        if postgres_status != 'running':
-            with contextlib.suppress(sh.ErrorReturnCode):
-                self.docker('rm', '-fv', postgres_name)
-            self.run_fresh_postgres(postgres_name)
-
-    def run_fresh_postgres(self, postgres_name):
-        print('running postgres')
-        self.docker('run', '-d', '--restart=always',
-                    '--name={}'.format(postgres_name),
-                    '-p', '172.17.0.1:35432:5432',
-                    'postgres:9.6.0')
-        for log in self.docker('logs', '-f', postgres_name, _iter=True):
-            print(log.strip())
-            if self.postgres_started_log in log:
-                break
+        PostgresRunningEnsurer(self.docker, postgres_name).ensure()
 
     def ensure_database_present(self, postgres_name, database_name):
         try:
@@ -187,6 +169,16 @@ class SetupDevDbCommand(BaseDevelCommand):
         parser.add_argument(
             '--database', dest='database', action='store', default=None, help='used database name')
         return parser
+
+
+class PostgresRunningEnsurer(dependencies.ContainerRunningEnsurer):
+    started_log = 'PostgreSQL init process complete; ready for start up.'
+
+    def docker_run(self):
+        self.docker('run', '-d', '--restart=always',
+                    '--name={}'.format(self.name),
+                    '-p', '172.17.0.1:35432:5432',
+                    'postgres:9.6.0')
 
 
 def build(args):
