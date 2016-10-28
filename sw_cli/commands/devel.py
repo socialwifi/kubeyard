@@ -181,6 +181,46 @@ class PostgresRunningEnsurer(dependencies.ContainerRunningEnsurer):
                     'postgres:9.6.0')
 
 
+class SetupPubSubEmulatorCommand(BaseDevelCommand):
+    custom_script_name = 'setup_dev_pubsub'
+
+    def run_default(self):
+        pubsub_name = self.context['DEV_PUBSUB_NAME']
+        topic_name = self.options.database or self.context['KUBE_SERVICE_NAME']
+        subscription_name = self.options.database or topic_name
+        self.ensure_pubsub_running(pubsub_name)
+        self.ensure_topic_present(pubsub_name, topic_name)
+        if subscription_name:
+            self.ensure_subscription_present(pubsub_name, topic_name, subscription_name)
+
+    def ensure_pubsub_running(self, pubsub_name):
+        PubSubRunningEnsurer(self.docker, pubsub_name).ensure()
+
+    def ensure_topic_present(self, pubsub_name, topic_name):
+        self.docker('exec', pubsub_name, 'pubsub_add_topic', topic_name)
+
+    def ensure_subscription_present(self, pubsub_name, topic_name, subscription_name):
+        self.docker('exec', pubsub_name, 'pubsub_add_subscription', topic_name, subscription_name)
+
+    def get_parser(self):
+        parser = super().get_parser()
+        parser.add_argument(
+            '--topic', dest='topic', action='store', default=None)
+        parser.add_argument(
+            '--subscription', dest='subscription', action='store', default=None, help='if not set it wont be created')
+        return parser
+
+
+class PubSubRunningEnsurer(dependencies.ContainerRunningEnsurer):
+    started_log = '[pubsub] INFO: Server started, listening on'
+
+    def docker_run(self):
+        self.docker('run', '-d', '--restart=always',
+                    '--name={}'.format(self.name),
+                    '-p', '172.17.0.1:8042:8042',
+                    'docker.socialwifi.com/sw-pubsub-emulator-helper')
+
+
 def build(args):
     print("Starting command build")
     cmd = BuildCommand(args)
@@ -211,6 +251,13 @@ def deploy(args):
 
 def setup_dev_db(args):
     print("Setting up dev db")
+    cmd = SetupDevDbCommand(args)
+    cmd.run()
+    print("Done.")
+
+
+def setup_pubsub_emulator(args):
+    print("Setting up pubsub emulator")
     cmd = SetupDevDbCommand(args)
     cmd.run()
     print("Done.")

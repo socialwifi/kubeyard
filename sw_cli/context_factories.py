@@ -31,6 +31,7 @@ class GlobalContextFactory:
             'SWCLI_USER_CONTEXT_FILEPATH': str(self.user_context_path),
             'SWCLI_MODE': 'production',
             'DEV_POSTGRES_NAME': settings.DEFAULT_DEV_POSTGRES_NAME,
+            'DEV_PUBSUB_NAME': settings.DEFAULT_DEV_PUBSUB_NAME,
         }
 
     @cached_property
