@@ -37,9 +37,9 @@ KubernetesCommands = collections.namedtuple('KubernetesCommand', ['context_setup
 class BaseKubernetesContext:
     def setup(self):
         with contextlib.suppress(sh.ErrorReturnCode):
-            sh.kubectl('delete', 'configmap', 'monolith')
-        sh.kubectl('create', 'configmap', 'monolith',
-                   '--from-literal', 'host={}'.format(self.monolith_host),
+            sh.kubectl('delete', 'configmap', 'global')
+        sh.kubectl('create', 'configmap', 'global',
+                   '--from-literal', 'monolith-host={}'.format(self.monolith_host),
                    '--from-literal', 'base-domain={}'.format(self.base_domain))
 
     @property
