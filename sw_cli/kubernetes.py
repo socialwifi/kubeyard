@@ -38,14 +38,22 @@ class BaseKubernetesContext:
     def setup(self):
         with contextlib.suppress(sh.ErrorReturnCode):
             sh.kubectl('delete', 'configmap', 'monolith')
-        sh.kubectl('create', 'configmap', 'monolith', '--from-literal', 'host={}'.format(self.monolith_host))
+        sh.kubectl('create', 'configmap', 'monolith',
+                   '--from-literal', 'host={}'.format(self.monolith_host),
+                   '--from-literal', 'base-domain={}'.format(self.base_domain))
 
     @property
     def monolith_host(self):
         raise NotImplementedError
 
+    @property
+    def base_domain(self):
+        raise NotImplementedError
+
 
 class DevelopmentKubernetesContext(BaseKubernetesContext):
+    base_domain = 'testing'
+
     def setup(self):
         minikube.ensure_minikube_started()
         super().setup()
@@ -58,6 +66,7 @@ class DevelopmentKubernetesContext(BaseKubernetesContext):
 
 
 class ProductionKubernetesContext(BaseKubernetesContext):
+    base_domain = 'socialwifi.com'
     monolith_host = 'socialwifi.com'
 
 
