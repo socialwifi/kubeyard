@@ -50,4 +50,4 @@ class CustomScriptRunner:
                 "Could not execute %s command, script exists but is not executable: %s" % (script_name, filepath))
         env = os.environ.copy()
         env.update(self.context)
-        os.execvpe(file=str(filepath), args=[str(filepath)], env=env)
+        os.execvpe(file=str(filepath), args=[str(filepath)] + args, env=env)
