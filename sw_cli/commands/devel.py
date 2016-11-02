@@ -186,8 +186,8 @@ class SetupPubSubEmulatorCommand(BaseDevelCommand):
 
     def run_default(self):
         pubsub_name = self.context['DEV_PUBSUB_NAME']
-        topic_name = self.options.database or self.context['KUBE_SERVICE_NAME']
-        subscription_name = self.options.database or topic_name
+        topic_name = self.options.topic or self.context['KUBE_SERVICE_NAME']
+        subscription_name = self.options.subscription
         self.ensure_pubsub_running(pubsub_name)
         self.ensure_topic_present(pubsub_name, topic_name)
         if subscription_name:
@@ -197,10 +197,18 @@ class SetupPubSubEmulatorCommand(BaseDevelCommand):
         PubSubRunningEnsurer(self.docker, pubsub_name).ensure()
 
     def ensure_topic_present(self, pubsub_name, topic_name):
-        self.docker('exec', pubsub_name, 'pubsub_add_topic', topic_name)
+        try:
+            self.docker('exec', pubsub_name, 'pubsub_add_topic', topic_name)
+        except sh.ErrorReturnCode as e:
+            if b'Topic already exists' not in e.stderr:
+                raise
 
     def ensure_subscription_present(self, pubsub_name, topic_name, subscription_name):
-        self.docker('exec', pubsub_name, 'pubsub_add_subscription', topic_name, subscription_name)
+        try:
+            self.docker('exec', pubsub_name, 'pubsub_add_subscription', topic_name, subscription_name)
+        except sh.ErrorReturnCode as e:
+            if b'Subscription already exists' not in e.stderr:
+                raise
 
     def get_parser(self):
         parser = super().get_parser()
@@ -213,6 +221,7 @@ class SetupPubSubEmulatorCommand(BaseDevelCommand):
 
 class PubSubRunningEnsurer(dependencies.ContainerRunningEnsurer):
     started_log = '[pubsub] INFO: Server started, listening on'
+    look_in_stream = 'err'
 
     def docker_run(self):
         self.docker('run', '-d', '--restart=always',
@@ -258,6 +267,6 @@ def setup_dev_db(args):
 
 def setup_pubsub_emulator(args):
     print("Setting up pubsub emulator")
-    cmd = SetupDevDbCommand(args)
+    cmd = SetupPubSubEmulatorCommand(args)
     cmd.run()
     print("Done.")

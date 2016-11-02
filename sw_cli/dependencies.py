@@ -4,6 +4,8 @@ import sh
 
 
 class ContainerRunningEnsurer:
+    look_in_stream = 'out'
+
     def __init__(self, docker, name):
         self.docker = docker
         self.name = name
@@ -21,7 +23,7 @@ class ContainerRunningEnsurer:
     def run_postgres(self):
         print('running {}'.format(self.name))
         self.docker_run()
-        for log in self.docker('logs', '-f', self.name, _iter=True):
+        for log in self.docker('logs', '-f', self.name, _iter=self.look_in_stream):
             print(log.strip())
             if self.started_log in log:
                 break
