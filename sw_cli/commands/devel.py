@@ -230,6 +230,28 @@ class PubSubRunningEnsurer(dependencies.ContainerRunningEnsurer):
                     'docker.socialwifi.com/sw-pubsub-emulator-helper')
 
 
+class SetupDevRedisCommand(BaseDevelCommand):
+    custom_script_name = 'setup_dev_redis'
+
+    def run_default(self):
+        redis_name = self.context['DEV_REDIS_NAME']
+        self.ensure_redis_running(redis_name)
+
+    def ensure_redis_running(self, redis_name):
+        RedisRunningEnsurer(self.docker, redis_name).ensure()
+
+
+class RedisRunningEnsurer(dependencies.ContainerRunningEnsurer):
+    started_log = 'The server is now ready to accept connections'
+    look_in_stream = 'out'
+
+    def docker_run(self):
+        self.docker('run', '-d', '--restart=always',
+                    '--name={}'.format(self.name),
+                    '-p', '172.17.0.1:6379:6379',
+                    'redis:3.0.7')
+
+
 def build(args):
     print("Starting command build")
     cmd = BuildCommand(args)
@@ -268,5 +290,12 @@ def setup_dev_db(args):
 def setup_pubsub_emulator(args):
     print("Setting up pubsub emulator")
     cmd = SetupPubSubEmulatorCommand(args)
+    cmd.run()
+    print("Done.")
+
+
+def setup_dev_redis(args):
+    print("Setting up dev redis")
+    cmd = SetupDevRedisCommand(args)
     cmd.run()
     print("Done.")

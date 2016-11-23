@@ -28,6 +28,7 @@ commands = [
     CommandDeclaration('deploy', devel.deploy),
     CommandDeclaration('setup_dev_db', devel.setup_dev_db),
     CommandDeclaration('setup_pubsub_emulator', devel.setup_pubsub_emulator),
+    CommandDeclaration('setup_dev_redis', devel.setup_dev_redis),
     CommandDeclaration('setup', global_commands.setup),
 ]
 
