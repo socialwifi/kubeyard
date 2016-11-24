@@ -4,6 +4,7 @@ metadata:
   name: {{ KUBE_SERVICE_NAME }}
 spec:
   replicas: 2
+  revisionHistoryLimit: 10
   template:
     metadata:
       labels:
