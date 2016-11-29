@@ -25,6 +25,13 @@ def install_global_secrets(context):
             GlobalSecretsInstaller(context, path.name).install()
 
 
+def get_global_secrets_manipulator(context, secret_name):
+    return KubernetesSecretsManipulator(
+        secret_name,
+        pathlib.Path(context['SWCLI_GLOBAL_SECRETS']) / secret_name
+    )
+
+
 def _get_kubernetes_commands(context):
     if context['SWCLI_MODE'] == 'development':
         return KubernetesCommands(
@@ -94,14 +101,31 @@ class KubernetesSecretsManipulator:
         return self.secrets_path / 'secrets.yml'
 
     def get_literal_secrets(self):
-        if self.yml_source_path.exists():
-            with self.yml_source_path.open() as yml_source:
-                yield from yaml.load(yml_source).items()
+        return self.get_literal_secrets_mapping().items()
 
     def get_file_secrets(self):
+        self._ensure_path_exists()
         for subpath in self.secrets_path.iterdir():
             if subpath != self.yml_source_path:
                 yield subpath
+
+    def set_literal_secret(self, key, value):
+        self._ensure_path_exists()
+        literal_secrets = self.get_literal_secrets_mapping()
+        literal_secrets[key] = value
+        with self.yml_source_path.open('w+') as yml_source:
+            yaml.dump(literal_secrets, yml_source)
+
+    def get_literal_secrets_mapping(self):
+        if self.yml_source_path.exists():
+            with self.yml_source_path.open() as yml_source:
+                return yaml.load(yml_source)
+        else:
+            return {}
+
+    def _ensure_path_exists(self):
+        with contextlib.suppress(FileExistsError):
+            self.secrets_path.mkdir(parents=True)
 
 
 class BaseKubernetesSecretsInstaller:
@@ -110,8 +134,6 @@ class BaseKubernetesSecretsInstaller:
 
     def install(self):
         command = ['create', 'secret', 'generic', self.secret_name, '--dry-run', '-o', 'yaml']
-        with contextlib.suppress(FileExistsError):
-            self.secrets_path.mkdir(parents=True)
         literal_secrets = list(self.manipulator.get_literal_secrets())
         file_secrets = list(self.manipulator.get_file_secrets())
         if literal_secrets or file_secrets:

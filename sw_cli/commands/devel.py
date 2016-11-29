@@ -236,6 +236,19 @@ class SetupDevRedisCommand(BaseDevelCommand):
     def run_default(self):
         redis_name = self.context['DEV_REDIS_NAME']
         self.ensure_redis_running(redis_name)
+        self.reset_global_secrets()
+
+    def reset_global_secrets(self):
+        manipulator = kubernetes.get_global_secrets_manipulator(self.context, 'redis-urls')
+        redis_urls = manipulator.get_literal_secrets_mapping()
+        if self.secret_key not in redis_urls:
+            count = len(redis_urls)
+            manipulator.set_literal_secret(self.secret_key, 'redis://172.17.0.1:6379/{}'.format(count))
+            kubernetes.install_global_secrets(self.context)
+
+    @property
+    def secret_key(self):
+        return self.context['KUBE_SERVICE_NAME']
 
     def ensure_redis_running(self, redis_name):
         RedisRunningEnsurer(self.docker, redis_name).ensure()
