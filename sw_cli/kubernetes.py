@@ -84,6 +84,26 @@ class ProductionKubernetesContext(BaseKubernetesContext):
     monolith_host = 'socialwifi.com'
 
 
+class KubernetesSecretsManipulator:
+    def __init__(self, secret_name, secrets_path):
+        self.secret_name = secret_name
+        self.secrets_path = secrets_path
+
+    @property
+    def yml_source_path(self):
+        return self.secrets_path / 'secrets.yml'
+
+    def get_literal_secrets(self):
+        if self.yml_source_path.exists():
+            with self.yml_source_path.open() as yml_source:
+                yield from yaml.load(yml_source).items()
+
+    def get_file_secrets(self):
+        for subpath in self.secrets_path.iterdir():
+            if subpath != self.yml_source_path:
+                yield subpath
+
+
 class BaseKubernetesSecretsInstaller:
     def __init__(self, context):
         self.context = context
@@ -92,8 +112,8 @@ class BaseKubernetesSecretsInstaller:
         command = ['create', 'secret', 'generic', self.secret_name, '--dry-run', '-o', 'yaml']
         with contextlib.suppress(FileExistsError):
             self.secrets_path.mkdir(parents=True)
-        literal_secrets = list(self._get_literal_secrets())
-        file_secrets = list(self._get_file_secrets())
+        literal_secrets = list(self.manipulator.get_literal_secrets())
+        file_secrets = list(self.manipulator.get_file_secrets())
         if literal_secrets or file_secrets:
             for key, value in literal_secrets:
                 command.append('--from-literal={}={}'.format(key, value))
@@ -102,26 +122,17 @@ class BaseKubernetesSecretsInstaller:
             sh.kubectl(sh.kubectl(*command), 'apply', '--record', '-f', '-')
 
     @property
-    def secret_name(self):
-        raise NotImplementedError
+    def manipulator(self):
+        return KubernetesSecretsManipulator(self.secret_name, self.secrets_path)
 
     @property
-    def yml_source_path(self):
-        return self.secrets_path / 'secrets.yml'
+    def secret_name(self):
+        raise NotImplementedError
 
     @property
     def secrets_path(self):
         raise NotImplementedError
 
-    def _get_literal_secrets(self):
-        if self.yml_source_path.exists():
-            with self.yml_source_path.open() as yml_source:
-                yield from yaml.load(yml_source).items()
-
-    def _get_file_secrets(self):
-        for subpath in self.secrets_path.iterdir():
-            if subpath != self.yml_source_path:
-                yield subpath
 
 
 class BaseProjectKubernetesSecretsInstaller(BaseKubernetesSecretsInstaller):
