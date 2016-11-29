@@ -19,6 +19,12 @@ def install_secrets(context):
     _get_kubernetes_commands(context).install_secrets()
 
 
+def install_global_secrets(context):
+    for path in pathlib.Path(context['SWCLI_GLOBAL_SECRETS']).iterdir():
+        if path.is_dir():
+            GlobalSecretsInstaller(context, path.name).install()
+
+
 def _get_kubernetes_commands(context):
     if context['SWCLI_MODE'] == 'development':
         return KubernetesCommands(
@@ -83,7 +89,7 @@ class BaseKubernetesSecretsInstaller:
         self.context = context
 
     def install(self):
-        command = ['create', 'secret', 'generic', self.context['KUBE_SERVICE_NAME'], '--dry-run', '-o', 'yaml']
+        command = ['create', 'secret', 'generic', self.secret_name, '--dry-run', '-o', 'yaml']
         with contextlib.suppress(FileExistsError):
             self.secrets_path.mkdir(parents=True)
         literal_secrets = list(self._get_literal_secrets())
@@ -95,6 +101,9 @@ class BaseKubernetesSecretsInstaller:
                 command.append('--from-file={}'.format(subpath))
             sh.kubectl(sh.kubectl(*command), 'apply', '--record', '-f', '-')
 
+    @property
+    def secret_name(self):
+        raise NotImplementedError
 
     @property
     def yml_source_path(self):
@@ -115,13 +124,31 @@ class BaseKubernetesSecretsInstaller:
                 yield subpath
 
 
-class DevelopmentKubernetesSecretsInstaller(BaseKubernetesSecretsInstaller):
+class BaseProjectKubernetesSecretsInstaller(BaseKubernetesSecretsInstaller):
+    @property
+    def secret_name(self):
+        return self.context['KUBE_SERVICE_NAME']
+
+
+class DevelopmentKubernetesSecretsInstaller(BaseProjectKubernetesSecretsInstaller):
     @property
     def secrets_path(self):
         return pathlib.Path(self.context['PROJECT_DIR'])/self.context['KUBERNETES_DEV_SECRETS_DIR']
 
 
-class ProductionKubernetesSecretsInstaller(BaseKubernetesSecretsInstaller):
+class ProductionKubernetesSecretsInstaller(BaseProjectKubernetesSecretsInstaller):
     @property
     def secrets_path(self):
-        return pathlib.Path.home() / settings.KUBERNETES_PROD_SECRETS_DIR / self.context['KUBE_SERVICE_NAME']
+        return pathlib.Path.home() / settings.KUBERNETES_PROD_SECRETS_DIR / self.secret_name
+
+
+class GlobalSecretsInstaller(BaseKubernetesSecretsInstaller):
+    secret_name = None
+
+    def __init__(self, context, secret_name):
+        super().__init__(context)
+        self.secret_name = secret_name
+
+    @property
+    def secrets_path(self):
+        return pathlib.Path(self.context['SWCLI_GLOBAL_SECRETS']) / self.secret_name
