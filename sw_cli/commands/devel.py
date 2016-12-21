@@ -119,7 +119,7 @@ class TestCommand(BaseDevelCommand):
     custom_script_name = 'test'
 
     def run_default(self):
-        self.docker_with_output('run', '--rm', self.image, 'run_tests')
+        self.docker_with_output('run', '--rm', '--net=none', self.image, 'run_tests')
 
 
 class PushCommand(BaseDevelCommand):
