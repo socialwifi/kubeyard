@@ -172,13 +172,14 @@ class SetupDevDbCommand(BaseDevelCommand):
 
 
 class PostgresRunningEnsurer(dependencies.ContainerRunningEnsurer):
+    postgres_version = '9.6.0'
     started_log = 'PostgreSQL init process complete; ready for start up.'
 
     def docker_run(self):
         self.docker('run', '-d', '--restart=always',
                     '--name={}'.format(self.name),
                     '-p', '172.17.0.1:35432:5432',
-                    'postgres:9.6.0')
+                    'postgres:{}'.format(self.postgres_version))
 
 
 class SetupPubSubEmulatorCommand(BaseDevelCommand):
