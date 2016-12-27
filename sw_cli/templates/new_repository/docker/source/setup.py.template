@@ -5,7 +5,6 @@ from setuptools import setup
 
 setup(
     name='{{ GIT_REPO_NAME }}',
-    version='1.0',
     packages=find_packages(exclude=['tests']),
     install_requires=[str(ir.req) for ir in parse_requirements('base_requirements.txt', session=False)],
     test_suite='tests',
