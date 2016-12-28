@@ -20,7 +20,7 @@ class BaseCommand(object):
         try:
             return context_factories.InitialisedRepoContextFactory(self.project_dir).get()
         except FileNotFoundError:
-            print("Invalid project root directory: %s. Exiting.." % self.project_dir)
+            print("Invalid project root directory: %s. Exiting." % self.project_dir)
             exit(1)
 
     @cached_property

@@ -24,7 +24,7 @@ def copy_template(template, destination, context=None, *, replace=False):
             else:
                 file_template = SimpleFileTemplate(path, environment)
             if file_template.destination.exists() and not replace:
-                print('file {} already exists. Skipping.'.format(str(file_template.destination)))
+                print('File {} already exists. Skipping.'.format(str(file_template.destination)))
             else:
                 file_template.render()
 

@@ -7,12 +7,12 @@ from sw_cli import context_factories
 
 
 def run(args):
-    print("initialising repo")
+    print("Initialising repo...")
     options = parse_arguments(args)
     project_dst = pathlib.Path(options.directory)
     context = context_factories.EmptyRepoContextFactory(options.directory).get()
     sw_cli.files_generator.copy_template('new_repository', project_dst, context=context)
-    print('done')
+    print('Done.')
 
 
 def parse_arguments(args):

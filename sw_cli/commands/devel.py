@@ -44,13 +44,13 @@ class BaseDevelCommand(base_command.BaseCommand):
     def get_parser(self):
         parser = super().get_parser()
         parser.add_argument(
-            '--tag', dest='tag', action='store', default=None, help='used image tag')
+            '--tag', dest='tag', action='store', default=None, help='Used image tag.')
         parser.add_argument(
             '--default', dest='default', action='store_true', default=False,
-            help='Don\'t try to execute custom script. Useful when you need original behaviour in overridden method')
+            help='Don\'t try to execute custom script. Useful when you need original behaviour in overridden method.')
         parser.add_argument(
             '--image-name', dest='image_name', action='store', default=None,
-            help='image name(without repository) default is set in sw-cli.yml')
+            help='Image name (without repository). Default is set in sw-cli.yml.')
         return parser
 
     def docker(self, *args, **kwargs):

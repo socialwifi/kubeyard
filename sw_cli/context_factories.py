@@ -90,7 +90,7 @@ class InitialisedRepoContextFactory(BaseRepoContextFactory):
         self.context_filepath = context_filepath
         self.filename = project_dir / context_filepath
         if not self.filename.exists():
-            raise FileNotFoundError("file does not exist: %s" % self.filename)
+            raise FileNotFoundError("File does not exist: %s" % self.filename)
 
     @cached_property
     def project_context(self):
