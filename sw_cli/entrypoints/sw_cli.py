@@ -21,6 +21,7 @@ def run_command(command_name):
             break
     else:
         print_usage()
+        exit(1)
 
 
 def print_usage():
