@@ -115,6 +115,16 @@ class BuildCommand(BaseDevelCommand):
         return parser
 
 
+class UpdateRequirementsCommand(BaseDevelCommand):
+    custom_script_name = 'update_requirements'
+
+    def run_default(self):
+        pip_freeze = ('(cat docker/source/base_requirements.txt | docker run --rm -i python:3.5.2'
+                      ' bash -c "pip install -r /dev/stdin > /dev/null ; pip freeze")'
+                      ' > docker/requirements.txt')
+        os.system(pip_freeze)
+
+
 class TestCommand(BaseDevelCommand):
     custom_script_name = 'test'
 
@@ -276,6 +286,13 @@ def build(args):
 def test(args):
     print("Starting command test")
     cmd = TestCommand(args)
+    cmd.run()
+    print("Done.")
+
+
+def requirements(args):
+    print("Starting command update requirements")
+    cmd = UpdateRequirementsCommand(args)
     cmd.run()
     print("Done.")
 
