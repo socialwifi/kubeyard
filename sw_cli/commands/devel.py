@@ -120,7 +120,7 @@ class UpdateRequirementsCommand(BaseDevelCommand):
 
     def run_default(self):
         pip_freeze = ('(cat docker/source/base_requirements.txt | docker run --rm -i python:3.5.2'
-                      ' bash -c "pip install -r /dev/stdin > /dev/null ; pip freeze")'
+                      ' bash -c "pip install -r /dev/stdin > /dev/stderr ; pip freeze")'
                       ' > docker/requirements.txt')
         os.system(pip_freeze)
 
