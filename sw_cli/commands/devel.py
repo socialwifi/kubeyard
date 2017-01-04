@@ -39,7 +39,7 @@ class BaseDevelCommand(base_command.BaseCommand):
         return parser.parse_known_args()[0]
 
     def _prepare_minikube(self):
-        minikube.ensure_minikube_started()
+        minikube.ensure_minikube_set_up()
         self.context.update(minikube.docker_env())
 
     def get_parser(self):
