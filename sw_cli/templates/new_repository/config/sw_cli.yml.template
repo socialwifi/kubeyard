@@ -4,4 +4,8 @@ kube_service_port: "{{ KUBE_SERVICE_PORT }}"
 jenkins_url: "{{ JENKINS_URL }}"
 jenkins_email_recipients: "{{ JENKINS_EMAIL_RECIPIENTS }}"
 dev_mounted_paths:
-  dev-volume: docker/source
+  - name: dev-volume
+    host-path: docker/source
+    mount-in-tests:
+      path: /package
+      image-name: {{ DOCKER_IMAGE_NAME }}

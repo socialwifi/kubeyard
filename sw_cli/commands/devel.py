@@ -129,8 +129,22 @@ class UpdateRequirementsCommand(BaseDevelCommand):
 class TestCommand(BaseDevelCommand):
     custom_script_name = 'test'
 
+    def __init__(self, args):
+        super().__init__(args)
+        self.context['HOST_VOLUMES'] = ' '.join(self.volumes)
+
     def run_default(self):
-        self.docker_with_output('run', '--rm', '--net=none', self.image, 'run_tests')
+        self.docker_with_output('run', '--rm', '--net=none', *self.volumes, self.image, 'run_tests')
+
+    @property
+    def volumes(self):
+        if self.is_development:
+            mounted_project_dir = pathlib.Path('/hosthome') / self.project_dir.relative_to('/home')
+            for volume in self.context.get('DEV_MOUNTED_PATHS', []):
+                if 'mount-in-tests' in volume and volume['mount-in-tests']['image-name'] == self.image_name:
+                    host_path = str(mounted_project_dir / volume['host-path'])
+                    container_path = volume['mount-in-tests']['path']
+                    yield from ['-v', '{}:{}:ro'.format(host_path, container_path)]
 
 
 class PushCommand(BaseDevelCommand):
@@ -167,8 +181,8 @@ class DeployCommand(BaseDevelCommand):
         if self.is_development:
             mounted_project_dir = pathlib.Path('/hosthome') / self.project_dir.relative_to('/home')
             return {
-                name: mounted_project_dir / path
-                for name, path in self.context.get('DEV_MOUNTED_PATHS', {}).items()
+                volume['name']: mounted_project_dir / volume['host-path']
+                for volume in self.context.get('DEV_MOUNTED_PATHS', [])
             }
         else:
             return {}
