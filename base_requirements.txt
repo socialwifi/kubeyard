@@ -1,5 +1,5 @@
 jinja2
-kubepy>=1.5.0
+git+https://github.com/socialwifi/kubepy.git@8ebc90436a05f942d167e09f1b904c8b1d8f474f#egg=kubepy
 python-jenkins
 pyYAML
 GitPython
