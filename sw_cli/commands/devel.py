@@ -4,6 +4,7 @@ import sys
 
 import kubepy.appliers
 import kubepy.base_commands
+import pathlib
 import sh
 from cached_property import cached_property
 
@@ -96,7 +97,7 @@ class BaseDevelCommand(base_command.BaseCommand):
     @cached_property
     def sh_env(self):
         env = os.environ.copy()
-        env.update(self.context)
+        env.update(self.context.as_environment())
         return env
 
 
@@ -141,17 +142,36 @@ class PushCommand(BaseDevelCommand):
         self.docker_with_output('push', self.latest_image)
 
 
-KubepyOptions = collections.namedtuple('KubepyOptions', ['build_tag', 'replace'])
+KubepyOptions = collections.namedtuple('KubepyOptions', ['build_tag', 'replace', 'host_volumes'])
 
 
 class DeployCommand(BaseDevelCommand):
     custom_script_name = 'deploy'
 
     def run_default(self):
-        kubernetes_dir = self.project_dir / settings.DEFAULT_KUBERNETES_DEPLOY_DIR
-        options = KubepyOptions(build_tag=self.tag, replace=self.is_development)
+        options = KubepyOptions(build_tag=self.tag, replace=self.is_development, host_volumes=self.host_volumes)
         kubernetes.install_secrets(self.context)
-        kubepy.appliers.DirectoryApplier(kubernetes_dir, options).apply_all()
+        kubepy.appliers.DirectoriesApplier(self.definition_directories, options).apply_all()
+
+    @property
+    def definition_directories(self):
+        kubernetes_dir = self.project_dir / settings.DEFAULT_KUBERNETES_DEPLOY_DIR
+        if self.is_development:
+            overrides_dir = self.project_dir / settings.DEFAULT_KUBERNETES_DEV_DEPLOY_OVERRIDES_DIR
+            return [kubernetes_dir, overrides_dir]
+        else:
+            return [kubernetes_dir]
+
+    @property
+    def host_volumes(self):
+        if self.is_development:
+            mounted_project_dir = pathlib.Path('/hosthome') / self.project_dir.relative_to('/home')
+            return {
+                name: mounted_project_dir / path
+                for name, path in self.context.get('DEV_MOUNTED_PATHS', {}).items()
+            }
+        else:
+            return {}
 
 
 class SetupDevDbCommand(BaseDevelCommand):

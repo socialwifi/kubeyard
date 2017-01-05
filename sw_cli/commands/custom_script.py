@@ -49,5 +49,5 @@ class CustomScriptRunner:
             raise PermissionError(
                 "Could not execute %s command, script exists but is not executable: %s" % (script_name, filepath))
         env = os.environ.copy()
-        env.update(self.context)
+        env.update(self.context.as_environment())
         os.execvpe(file=str(filepath), args=[str(filepath)] + args, env=env)

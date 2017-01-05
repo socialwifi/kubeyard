@@ -3,3 +3,5 @@ kube_service_name: "{{ KUBE_SERVICE_NAME }}"
 kube_service_port: "{{ KUBE_SERVICE_PORT }}"
 jenkins_url: "{{ JENKINS_URL }}"
 jenkins_email_recipients: "{{ JENKINS_EMAIL_RECIPIENTS }}"
+dev_mounted_paths:
+  dev-volume: docker/source
