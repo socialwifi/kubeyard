@@ -31,6 +31,7 @@ commands = [
     CommandDeclaration('setup_dev_elastic', devel.setup_dev_elastic),
     CommandDeclaration('setup_pubsub_emulator', devel.setup_pubsub_emulator),
     CommandDeclaration('setup_dev_redis', devel.setup_dev_redis),
+    CommandDeclaration('setup_dev_cassandra', devel.setup_dev_cassandra),
     CommandDeclaration('setup', global_commands.setup),
     CommandDeclaration('install_global_secrets', global_commands.install_global_secrets),
 ]

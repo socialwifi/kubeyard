@@ -334,6 +334,50 @@ class RedisRunningEnsurer(dependencies.ContainerRunningEnsurer):
                     'redis:3.0.7')
 
 
+class SetupDevCassandraCommand(BaseDevelCommand):
+    custom_script_name = 'setup_dev_cassandra'
+
+    def run_default(self):
+        cassandra_name = self.context['DEV_CASSANDRA_NAME']
+        keyspace_name = self.options.keyspace or self.context['KUBE_SERVICE_NAME']
+        keyspace_name = self.clean_keyspace_name(keyspace_name)
+        self.ensure_cassandra_running(cassandra_name)
+        self.ensure_database_present(cassandra_name, keyspace_name)
+
+    def clean_keyspace_name(self, original):
+        cleaned = original.replace('-', '_')
+        if cleaned != original:
+            print("Keyspace name can't contain dashes (-), so it's been changed to: %s" % cleaned)
+        return cleaned
+
+    def ensure_cassandra_running(self, cassandra_name):
+        CassandraRunningEnsurer(self.docker, cassandra_name).ensure()
+
+    def ensure_database_present(self, cassandra_name, keyspace_name):
+        query = ("create keyspace %s with replication = {'class': 'SimpleStrategy', "
+                 "'replication_factor': 1}" % keyspace_name)
+        try:
+            self.docker('exec', cassandra_name, 'cqlsh', '-e', query)
+        except sh.ErrorReturnCode as e:
+            if b'already exists' not in e.stderr:
+                raise e
+
+    def get_parser(self):
+        parser = super().get_parser()
+        parser.add_argument('--keyspace', dest='keyspace', action='store',
+                            default=None, help="used keyspace name")
+        return parser
+
+
+class CassandraRunningEnsurer(dependencies.ContainerRunningEnsurer):
+    cassandra_version = '3.0.10'
+    started_log = "Created default superuser role 'cassandra'"
+
+    def docker_run(self):
+        self.docker('run', '-d', '--restart=always', '--name={}'.format(self.name),
+                    'cassandra:{}'.format(self.cassandra_version))
+
+
 def build(args):
     print("Starting command build")
     cmd = BuildCommand(args)
@@ -393,5 +437,12 @@ def setup_pubsub_emulator(args):
 def setup_dev_redis(args):
     print("Setting up dev redis")
     cmd = SetupDevRedisCommand(args)
+    cmd.run()
+    print("Done.")
+
+
+def setup_dev_cassandra(args):
+    print("Setting up dev cassandra")
+    cmd = SetupDevCassandraCommand(args)
     cmd.run()
     print("Done.")
