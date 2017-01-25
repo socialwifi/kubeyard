@@ -41,6 +41,7 @@ class GlobalContextFactory:
             'SWCLI_MODE': 'production',
             'DEV_POSTGRES_NAME': settings.DEFAULT_DEV_POSTGRES_NAME,
             'DEV_PUBSUB_NAME': settings.DEFAULT_DEV_PUBSUB_NAME,
+            'DEFAULT_DEV_ELASTIC_NAME': settings.DEFAULT_DEV_ELASTIC_NAME,
             'DEV_REDIS_NAME': settings.DEFAULT_DEV_REDIS_NAME,
         })
 

@@ -226,6 +226,30 @@ class PostgresRunningEnsurer(dependencies.ContainerRunningEnsurer):
                     'postgres:{}'.format(self.postgres_version))
 
 
+class SetupDevElasticsearchCommand(BaseDevelCommand):
+    custom_script_name = 'setup_dev_es'
+
+    def run_default(self):
+        elastic_name = self.context['DEFAULT_DEV_ELASTIC_NAME']
+        self.ensure_elastic_running(elastic_name)
+
+    def ensure_elastic_running(self, elastic_name):
+        ElasticsearchRunningEnsurer(self.docker, elastic_name).ensure()
+
+
+class ElasticsearchRunningEnsurer(dependencies.ContainerRunningEnsurer):
+    elastic_version = '5.1.2'
+    started_log = '] started'
+
+    def docker_run(self):
+        self.docker('run', '-d', '--restart=always',
+                    '--name={}'.format(self.name),
+                    '-e', 'ES_JAVA_OPTS=-Xms200m -Xmx200m',
+                    '-p', '172.17.0.1:9300:9300',
+                    '-p', '172.17.0.1:9200:9200',
+                    'elasticsearch:{}'.format(self.elastic_version))
+
+
 class SetupPubSubEmulatorCommand(BaseDevelCommand):
     custom_script_name = 'setup_dev_pubsub'
 
@@ -348,6 +372,13 @@ def deploy(args):
 def setup_dev_db(args):
     print("Setting up dev db")
     cmd = SetupDevDbCommand(args)
+    cmd.run()
+    print("Done.")
+
+
+def setup_dev_elastic(args):
+    print("Setting up dev elasticsearch")
+    cmd = SetupDevElasticsearchCommand(args)
     cmd.run()
     print("Done.")
 
