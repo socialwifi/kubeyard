@@ -375,6 +375,7 @@ class CassandraRunningEnsurer(dependencies.ContainerRunningEnsurer):
 
     def docker_run(self):
         self.docker('run', '-d', '--restart=always', '--name={}'.format(self.name),
+                    '-e', 'HEAP_NEWSIZE=1M', '-e', 'MAX_HEAP_SIZE=128M',
                     'cassandra:{}'.format(self.cassandra_version))
 
 
