@@ -190,7 +190,6 @@ class DeployCommand(BaseDevelCommand):
 
 class SetupDevDbCommand(BaseDevelCommand):
     custom_script_name = 'setup_dev_db'
-    postgres_started_log = 'PostgreSQL init process complete; ready for start up.'
 
     def run_default(self):
         postgres_name = self.context['DEV_POSTGRES_NAME']
