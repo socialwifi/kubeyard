@@ -14,7 +14,7 @@ def ensure_minikube_started():
     status = sh.minikube('status', '--format={{.MinikubeStatus}}')
     if status.strip().lower() != 'running':
         print("Starting minikube...")
-        sh.minikube('start')
+        sh.minikube('start', '--memory', '4096')
 
 
 def ensure_hosthome_mounted():
