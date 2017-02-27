@@ -156,14 +156,15 @@ class PushCommand(BaseDevelCommand):
         self.docker_with_output('push', self.latest_image)
 
 
-KubepyOptions = collections.namedtuple('KubepyOptions', ['build_tag', 'replace', 'host_volumes'])
+KubepyOptions = collections.namedtuple('KubepyOptions', ['build_tag', 'replace', 'host_volumes', 'environment'])
 
 
 class DeployCommand(BaseDevelCommand):
     custom_script_name = 'deploy'
 
     def run_default(self):
-        options = KubepyOptions(build_tag=self.tag, replace=self.is_development, host_volumes=self.host_volumes)
+        options = KubepyOptions(build_tag=self.tag, replace=self.is_development, host_volumes=self.host_volumes,
+                                environment={})
         kubernetes.install_secrets(self.context)
         kubepy.appliers.DirectoriesApplier(self.definition_directories, options).apply_all()
 
