@@ -120,8 +120,11 @@ class UpdateRequirementsCommand(BaseDevelCommand):
     custom_script_name = 'update_requirements'
 
     def run_default(self):
-        pip_freeze = ('(cat docker/source/base_requirements.txt | docker run --rm -i python:3.5.2'
-                      ' bash -c "pip install -r /dev/stdin > /dev/stderr ; pip freeze")'
+        pip_freeze = ('(cat docker/source/base_requirements.txt | docker run --rm -i python:3.6.0'
+                      ' bash -c "'
+                      'pip install --upgrade setuptools==34.3.0 > /dev/stderr ; '
+                      'pip install -r /dev/stdin > /dev/stderr ; '
+                      'pip freeze")'
                       ' > docker/requirements.txt')
         os.system(pip_freeze)
 
