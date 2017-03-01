@@ -241,7 +241,7 @@ class SetupDevElasticsearchCommand(BaseDevelCommand):
 
 
 class ElasticsearchRunningEnsurer(dependencies.ContainerRunningEnsurer):
-    elastic_version = '5.1.2'
+    elastic_version = '5.2.1'
     started_log = '] started'
 
     def docker_run(self):
