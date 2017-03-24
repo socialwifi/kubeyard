@@ -1,5 +1,5 @@
 jinja2
-kubepy>=1.7.0
+kubepy>=1.7.1
 python-jenkins
 pyYAML
 GitPython
