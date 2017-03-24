@@ -15,6 +15,8 @@ from sw_cli import minikube
 from sw_cli import settings
 from sw_cli.commands import custom_script
 
+MAX_JOB_RETRIES = 10
+
 
 class BaseDevelCommand(base_command.BaseCommand):
     docker_repository = 'docker.socialwifi.com'
@@ -165,6 +167,7 @@ class DeployCommand(BaseDevelCommand):
     def run_default(self):
         options = appliers_options.Options(
             build_tag=self.tag, replace=self.is_development, host_volumes=self.host_volumes,
+            max_job_retries=MAX_JOB_RETRIES,
         )
         kubernetes.install_secrets(self.context)
         kubepy.appliers.DirectoriesApplier(self.definition_directories, options).apply_all()
