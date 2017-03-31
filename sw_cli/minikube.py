@@ -15,6 +15,7 @@ def ensure_minikube_started():
     if status.strip().lower() != 'running':
         print("Starting minikube...")
         sh.minikube('start', '--memory', '4096')
+        sh.minikube('ssh', 'sudo sysctl fs.inotify.max_user_watches=16382')
 
 
 def ensure_hosthome_mounted():
