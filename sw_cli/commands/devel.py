@@ -164,7 +164,46 @@ class PushCommand(BaseDevelCommand):
 class DeployCommand(BaseDevelCommand):
     custom_script_name = 'deploy'
 
+    def get_parser(self):
+        parser = super().get_parser()
+        parser.add_argument(
+            '--aws-credentials', dest='aws_credentials', action='store', default=None,
+            help='Needed to deploy static data. AWS_KEY:AWS_SECRET.')
+        return parser
+
     def run_default(self):
+        if self.statics_directory and self.aws_credentials and not self.is_development:
+            self.run_statics_deploy()
+        if self.definition_directories:
+            self.run_kubernetes_deploy()
+
+    def run_statics_deploy(self):
+        access_key, secret_key = self.aws_credentials
+        collect_statics_command = self.context.get('COLLECT_STATICS_COMMAND', 'collect_statics_tar')
+        statics_tar_process = self.docker('run', '-i', '--rm', self.image, collect_statics_command, _piped=True)
+        upload_statics_run_command = [
+            'run', '-i', '--rm', '-e', 'AWS_ACCESS_KEY={}'.format(access_key),
+            '-e',  'AWS_SECRET_KEY={}'.format(secret_key), '-e', 'UPLOAD_BUCKET=socialwifi-static',
+            '-e', 'NAME_PREFIX={}/'.format(self.statics_directory),
+            'docker.socialwifi.com/aws-utils', 'upload_tar'
+        ]
+        self.docker_with_output(statics_tar_process, *upload_statics_run_command)
+
+    @property
+    def aws_credentials(self):
+        if self.options.aws_credentials:
+            if ':' in self.options.aws_credentials:
+                return self.options.aws_credentials.split(':', 2)
+            else:
+                raise base_command.CommandException('Aws credentials should be in form access_key:secret_key.')
+        else:
+            return None
+
+    @property
+    def statics_directory(self):
+        return self.context.get('STATICS_DIRECTORY')
+
+    def run_kubernetes_deploy(self):
         options = appliers_options.Options(
             build_tag=self.tag, replace=self.is_development, host_volumes=self.host_volumes,
             max_job_retries=MAX_JOB_RETRIES,
@@ -175,11 +214,13 @@ class DeployCommand(BaseDevelCommand):
     @property
     def definition_directories(self):
         kubernetes_dir = self.project_dir / settings.DEFAULT_KUBERNETES_DEPLOY_DIR
-        if self.is_development:
-            overrides_dir = self.project_dir / settings.DEFAULT_KUBERNETES_DEV_DEPLOY_OVERRIDES_DIR
-            return [kubernetes_dir, overrides_dir]
-        else:
-            return [kubernetes_dir]
+        overrides_dir = self.project_dir / settings.DEFAULT_KUBERNETES_DEV_DEPLOY_OVERRIDES_DIR
+        definition_directories = []
+        if kubernetes_dir.exists():
+            definition_directories.append(kubernetes_dir)
+        if self.is_development and overrides_dir.exists():
+            definition_directories.append(overrides_dir)
+        return definition_directories
 
     @property
     def host_volumes(self):

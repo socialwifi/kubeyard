@@ -1,0 +1,17 @@
+docker_image_name: "{{ DOCKER_IMAGE_NAME }}"
+kube_service_name: "{{ KUBE_SERVICE_NAME }}"
+kube_service_port: "{{ KUBE_SERVICE_PORT }}"
+jenkins_url: "{{ JENKINS_URL }}"
+jenkins_email_recipients: "{{ JENKINS_EMAIL_RECIPIENTS }}"
+dev_mounted_paths:
+  - name: dev-volume
+    host-path: docker/source/app
+    mount-in-tests:
+      path: /ember-app/app
+      image-name: {{ DOCKER_IMAGE_NAME }}
+  - name: dev-test-volume
+    host-path: docker/source/tests
+    mount-in-tests:
+      path: /ember-app/tests
+      image-name: {{ DOCKER_IMAGE_NAME }}
+statics_directory: {{ DOCKER_IMAGE_NAME }}

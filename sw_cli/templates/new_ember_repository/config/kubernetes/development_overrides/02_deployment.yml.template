@@ -1,0 +1,28 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ KUBE_SERVICE_NAME }}-development
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  template:
+    metadata:
+      labels:
+        app: {{ KUBE_SERVICE_NAME }}-development
+    spec:
+      containers:
+      - name: {{ KUBE_SERVICE_NAME }}-development
+        image: "docker.socialwifi.com/{{ DOCKER_IMAGE_NAME }}"
+        command: [bash, -c, 'exec ember serve --port {{ KUBE_SERVICE_PORT }} --live-reload-port 55556']
+        ports:
+        - containerPort: {{ KUBE_SERVICE_PORT }}
+        resources:
+          requests:
+            cpu: 10m
+        volumeMounts:
+        - name: dev-volume
+          mountPath: /ember-app/app
+        - name: dev-test-volume
+          mountPath: /app/tests
+      imagePullSecrets:
+      - name: docker.socialwifi.com

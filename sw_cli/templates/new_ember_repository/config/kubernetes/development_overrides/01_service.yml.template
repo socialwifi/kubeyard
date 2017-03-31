@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ KUBE_SERVICE_NAME }}-development
+spec:
+  selector:
+    app: {{ KUBE_SERVICE_NAME }}-development
+  ports:
+  - port: {{ KUBE_SERVICE_PORT }}
+    targetPort: {{ KUBE_SERVICE_PORT }}
+  type: ClusterIP
