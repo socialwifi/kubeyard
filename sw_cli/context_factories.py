@@ -1,4 +1,6 @@
+import collections
 import pathlib
+
 from cached_property import cached_property
 import yaml
 import git
@@ -80,19 +82,24 @@ class BaseRepoContextFactory:
         })
 
 
+PromptedContext = collections.namedtuple('PromptedContext', ['variable', 'prompt', 'default'])
+
+
 class EmptyRepoContextFactory(BaseRepoContextFactory):
+    def __init__(self, project_dir, prompted_context):
+        super().__init__(project_dir)
+        self.prompted_context = prompted_context
+
     @cached_property
     def project_context(self):
         docker_image = self.git_info['GIT_REPO_NAME']
-
-        service_name = io_utils.default_input('service name', settings.DEFAULT_KUBE_SERVICE_NAME_PATTERN.format(docker_image))
-        service_port = io_utils.default_input('service port', settings.DEFAULT_KUBE_SERVICE_PORT)
-
-        return dict(
-            DOCKER_IMAGE_NAME=docker_image,
-            KUBE_SERVICE_NAME=service_name,
-            KUBE_SERVICE_PORT=service_port
-        )
+        context = {'DOCKER_IMAGE_NAME': docker_image}
+        for prompt_config in self.prompted_context:
+            context[prompt_config.variable] = io_utils.default_input(
+                prompt_config.prompt,
+                prompt_config.default.format(docker_image)
+            )
+        return context
 
 
 class InitialisedRepoContextFactory(BaseRepoContextFactory):
