@@ -24,6 +24,6 @@ spec:
         - name: dev-volume
           mountPath: /ember-app/app
         - name: dev-test-volume
-          mountPath: /app/tests
+          mountPath: /ember-app/tests
       imagePullSecrets:
       - name: docker.socialwifi.com
