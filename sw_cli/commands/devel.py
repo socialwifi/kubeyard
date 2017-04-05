@@ -184,7 +184,7 @@ class DeployCommand(BaseDevelCommand):
         upload_statics_run_command = [
             'run', '-i', '--rm', '-e', 'AWS_ACCESS_KEY={}'.format(access_key),
             '-e',  'AWS_SECRET_KEY={}'.format(secret_key), '-e', 'UPLOAD_BUCKET=socialwifi-static',
-            '-e', 'NAME_PREFIX={}/'.format(self.statics_directory),
+            '-e', 'UPLOAD_PATH={}/'.format(self.statics_directory),
             'docker.socialwifi.com/aws-utils', 'upload_tar'
         ]
         self.docker_with_output(statics_tar_process, *upload_statics_run_command)
