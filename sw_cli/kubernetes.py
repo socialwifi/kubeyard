@@ -54,8 +54,9 @@ class BaseKubernetesContext:
         sh.kubectl('create', 'configmap', 'global',
                    '--from-literal', 'monolith-host={}'.format(self.monolith_host),
                    '--from-literal', 'base-domain={}'.format(self.base_domain),
+                   '--from-literal', 'alternative-domain={}'.format(self.alternative_domain),
                    '--from-literal', 'debug={}'.format(self.debug),
-        )
+                   )
 
     @property
     def monolith_host(self):
@@ -66,12 +67,17 @@ class BaseKubernetesContext:
         raise NotImplementedError
 
     @property
+    def alternative_domain(self):
+        raise NotImplementedError
+
+    @property
     def debug(self):
         raise NotImplementedError
 
 
 class DevelopmentKubernetesContext(BaseKubernetesContext):
     base_domain = 'testing'
+    alternative_domain = 'pl-testing'
     debug = 'True'
 
     def setup(self):
@@ -88,6 +94,7 @@ class DevelopmentKubernetesContext(BaseKubernetesContext):
 class ProductionKubernetesContext(BaseKubernetesContext):
     debug = 'False'
     base_domain = 'socialwifi.com'
+    alternative_domain = 'socialwifi.pl'
     monolith_host = 'socialwifi.com'
 
 
