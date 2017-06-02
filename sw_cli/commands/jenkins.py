@@ -33,12 +33,18 @@ class JenkinsCommand(base_command.BaseCommand):
         print("Initialising jenkins job: %s" % job_name)
         config_filepath = self.context.get('JENKINS_JOB_CONFIG_FILEPATH', settings.DEFAULT_JENKINS_JOB_CONFIG_FILEPATH)
         self.server.create_job(job_name, self.get_config_xml(config_filepath))
+        config_filepath = self.context.get('JENKINS_JOB_TEST_PATCHSET_FILEPATH',
+                                           settings.DEFAULT_JENKINS_JOB_TEST_PATCHSET_FILEPATH)
+        self.server.create_job('{} test patchset'.format(job_name), self.get_config_xml(config_filepath))
 
     def reconfig_job(self):
         job_name = self.context['DOCKER_IMAGE_NAME']
         print("Reconfiguring jenkins job: %s" % job_name)
         config_filepath = self.context.get('JENKINS_JOB_CONFIG_FILEPATH', settings.DEFAULT_JENKINS_JOB_CONFIG_FILEPATH)
         self.server.reconfig_job(job_name, self.get_config_xml(config_filepath))
+        config_filepath = self.context.get('JENKINS_JOB_TEST_PATCHSET_FILEPATH',
+                                           settings.DEFAULT_JENKINS_JOB_TEST_PATCHSET_FILEPATH)
+        self.server.reconfig_job('{} test patchset'.format(job_name), self.get_config_xml(config_filepath))
 
     def build_job(self):
         job_name = self.context['DOCKER_IMAGE_NAME']
