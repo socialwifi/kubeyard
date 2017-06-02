@@ -1,3 +1,4 @@
+import io
 import os
 import sys
 
@@ -121,14 +122,34 @@ class BuildCommand(BaseDevelCommand):
 class UpdateRequirementsCommand(BaseDevelCommand):
     custom_script_name = 'update_requirements'
 
+    def get_parser(self):
+        parser = super().get_parser()
+        parser.add_argument('--before3.6.0-5', dest='before', action='store_true',
+                            default=False, help='Add this flag to use update for an older python application.')
+        return parser
+
     def run_default(self):
-        pip_freeze = ('(cat docker/source/base_requirements.txt | docker run --rm -i python:3.6.0'
-                      ' bash -c "'
-                      'pip install --upgrade setuptools==34.3.0 > /dev/stderr ; '
-                      'pip install -r /dev/stdin > /dev/stderr ; '
-                      'pip freeze")'
-                      ' > docker/requirements.txt')
-        os.system(pip_freeze)
+        if self.options.before is True:
+            os.system(self.legacy_pip_freeze_command)
+        else:
+            with open("docker/requirements/python.txt", "w") as output_file:
+                output_file.write(self.get_pip_freeze_output())
+
+    @property
+    def legacy_pip_freeze_command(self):
+        return ('(cat docker/source/base_requirements.txt | docker run --rm -i python:3.6.0'
+                ' bash -c "'
+                'pip install --upgrade setuptools==34.3.0 > /dev/stderr ; '
+                'pip install -r /dev/stdin > /dev/stderr ; '
+                'pip freeze")'
+                ' > docker/requirements.txt')
+
+    def get_pip_freeze_output(self):
+        output = io.StringIO()
+        input = sh.cat("docker/source/base_requirements.txt")
+        self.docker('run', '--rm', '-i', self.image, 'freeze_requirements', _in=input, _out=output,
+                    _err=sys.stdout.buffer)
+        return output.getvalue()
 
 
 class TestCommand(BaseDevelCommand):
