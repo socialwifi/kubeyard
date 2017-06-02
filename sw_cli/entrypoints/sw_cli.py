@@ -17,8 +17,11 @@ def run():
 def run_command(command_name):
     for command in commands.get_all_commands():
         if command_name == command.name:
-            command.source(sys.argv[2:])
-            break
+            try:
+                command.source(sys.argv[2:])
+                break
+            except commands.devel.SilencedException as e:
+                exit(e.code)
     else:
         print_usage()
         exit(1)
