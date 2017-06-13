@@ -19,6 +19,7 @@
             <throttleEnabled>false</throttleEnabled>
             <throttleOption>project</throttleOption>
             <limitOneJobWithMatchingParams>false</limitOneJobWithMatchingParams>
+            <paramsToUseForLimit></paramsToUseForLimit>
         </hudson.plugins.throttleconcurrents.ThrottleJobProperty>
     </properties>
     <scm class="hudson.plugins.git.GitSCM" plugin="git@3.0.0">
@@ -32,7 +33,7 @@
         </userRemoteConfigs>
         <branches>
             <hudson.plugins.git.BranchSpec>
-                <name>*/master</name>
+                <name>$GERRIT_BRANCH</name>
             </hudson.plugins.git.BranchSpec>
         </branches>
         <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
@@ -53,6 +54,7 @@
     <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
     <triggers>
         <com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.GerritTrigger plugin="gerrit-trigger@2.22.0">
+            <spec></spec>
             <gerritProjects>
                 <com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.GerritProject>
                     <compareType>PLAIN</compareType>
@@ -73,12 +75,21 @@
                 <onNotBuilt>false</onNotBuilt>
             </skipVote>
             <silentMode>false</silentMode>
+            <notificationLevel></notificationLevel>
             <silentStartMode>false</silentStartMode>
             <escapeQuotes>true</escapeQuotes>
             <nameAndEmailParameterMode>PLAIN</nameAndEmailParameterMode>
+            <dependencyJobsNames></dependencyJobsNames>
             <commitMessageParameterMode>BASE64</commitMessageParameterMode>
             <changeSubjectParameterMode>PLAIN</changeSubjectParameterMode>
             <commentTextParameterMode>PLAIN</commentTextParameterMode>
+            <buildStartMessage></buildStartMessage>
+            <buildFailureMessage></buildFailureMessage>
+            <buildSuccessfulMessage></buildSuccessfulMessage>
+            <buildUnstableMessage></buildUnstableMessage>
+            <buildNotBuiltMessage></buildNotBuiltMessage>
+            <buildUnsuccessfulFilepath></buildUnsuccessfulFilepath>
+            <customUrl></customUrl>
             <serverName>review.socialwifi.com</serverName>
             <triggerOnEvents>
                 <com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.events.PluginPatchsetCreatedEvent>
@@ -89,6 +100,7 @@
                 <com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.events.PluginDraftPublishedEvent/>
             </triggerOnEvents>
             <dynamicTriggerConfiguration>false</dynamicTriggerConfiguration>
+            <triggerConfigURL></triggerConfigURL>
             <triggerInformationAction/>
         </com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.GerritTrigger>
     </triggers>
