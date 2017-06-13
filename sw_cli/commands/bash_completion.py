@@ -1,4 +1,5 @@
 import pathlib
+import os
 import sys
 
 import sw_cli.files_generator
@@ -13,7 +14,12 @@ def install(args):
 
 
 def run(args):
-    sys.stdout.write(' '.join(get_script_names()))
+    line = os.environ.get('COMP_LINE', '')
+    point = int(os.environ.get('COMP_POINT', '0'))
+    prefix = line[:point].split(' ')[-1]
+    script_names = get_script_names()
+    filtered = [name for name in script_names if name.startswith(prefix)]
+    sys.stdout.write(' '.join(filtered))
 
 
 def get_script_names():
