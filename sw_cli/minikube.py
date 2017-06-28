@@ -14,7 +14,8 @@ def ensure_minikube_started():
     status = sh.minikube('status', '--format={{.MinikubeStatus}}')
     if status.strip().lower() != 'running':
         print("Starting minikube...")
-        sh.minikube('start', '--memory', '4096')
+        minikube_iso = 'https://storage.googleapis.com/minikube-builds/1542/minikube-testing.iso'
+        sh.minikube('start', '--memory', '4096', '--iso-url', minikube_iso)
         sh.minikube('ssh', 'sudo sysctl fs.inotify.max_user_watches=16382')
 
 
