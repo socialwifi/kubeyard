@@ -176,7 +176,14 @@ class TestCommand(BaseDevelCommand):
                 if 'mount-in-tests' in volume and volume['mount-in-tests']['image-name'] == self.image_name:
                     host_path = str(mounted_project_dir / volume['host-path'])
                     container_path = volume['mount-in-tests']['path']
-                    yield from ['-v', '{}:{}:ro'.format(host_path, container_path)]
+                    mount_mode = self.get_mount_mode(volume['mount-in-tests'])
+                    yield from ['-v', '{}:{}:{}'.format(host_path, container_path, mount_mode)]
+
+    def get_mount_mode(self, configuration):
+        mount_mode = configuration.get('mount-mode', 'ro')
+        if mount_mode not in {'ro', 'rw'}:
+            raise base_command.CommandException('Volume "mount-mode" should be one of: "ro", "rw".')
+        return mount_mode
 
 
 class PushCommand(BaseDevelCommand):
