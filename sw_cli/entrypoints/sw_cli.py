@@ -11,14 +11,14 @@ def run():
     except (KeyError, IndexError):
         print_usage()
     else:
-        run_command(command_name)
+        run_command(command_name, sys.argv[2:])
 
 
-def run_command(command_name):
+def run_command(command_name, arguments):
     for command in commands.get_all_commands():
         if command_name == command.name:
             try:
-                command.source(sys.argv[2:])
+                command.source(arguments)
                 break
             except commands.devel.SilencedException as e:
                 exit(e.code)
