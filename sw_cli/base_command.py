@@ -23,7 +23,8 @@ class BaseCommand:
         parser = self.get_parser()
         return parser.parse_args(self.args)
 
-    def get_parser(self):
+    @classmethod
+    def get_parser(cls):
         return ArgumentParser()
 
 
@@ -40,7 +41,8 @@ class InitialisedRepositoryCommand(BaseCommand):
     def project_dir(self):
         return pathlib.Path(self.options.directory).resolve()
 
-    def get_parser(self):
+    @classmethod
+    def get_parser(cls):
         parser = super().get_parser()
         parser.add_argument("--directory", dest="directory", default=settings.DEFAULT_SWCLI_PROJECT_DIR,
                             help="Select project root directory.")

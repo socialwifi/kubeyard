@@ -42,7 +42,8 @@ class SetupCommand(GlobalCommand):
             global_secrets.mkdir()
         return global_secrets
 
-    def get_parser(self):
+    @classmethod
+    def get_parser(cls):
         parser = super().get_parser()
         parser.add_argument("--development", dest="mode", default='production', action='store_const',
                             const='development', help="Select project root directory.")

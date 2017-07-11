@@ -48,7 +48,8 @@ class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
         minikube.ensure_minikube_set_up()
         self.context.update(minikube.docker_env())
 
-    def get_parser(self):
+    @classmethod
+    def get_parser(cls):
         parser = super().get_parser()
         parser.add_argument(
             '--tag', dest='tag', action='store', default=None, help='Used image tag.')
@@ -117,7 +118,8 @@ class BuildCommand(BaseDevelCommand):
         image_context = self.options.image_context or "{0}/docker".format(self.project_dir)
         self.docker_with_output('build', '-t', self.image, image_context)
 
-    def get_parser(self):
+    @classmethod
+    def get_parser(cls):
         parser = super().get_parser()
         parser.add_argument(
             '--image-context', dest='image_context', action='store', default=None,
@@ -128,7 +130,8 @@ class BuildCommand(BaseDevelCommand):
 class UpdateRequirementsCommand(BaseDevelCommand):
     custom_script_name = 'update_requirements'
 
-    def get_parser(self):
+    @classmethod
+    def get_parser(cls):
         parser = super().get_parser()
         parser.add_argument('--before3.6.0-5', dest='before', action='store_true',
                             default=False, help='Add this flag to use update for an older python application.')
@@ -198,7 +201,8 @@ class PushCommand(BaseDevelCommand):
 class DeployCommand(BaseDevelCommand):
     custom_script_name = 'deploy'
 
-    def get_parser(self):
+    @classmethod
+    def get_parser(cls):
         parser = super().get_parser()
         parser.add_argument(
             '--aws-credentials', dest='aws_credentials', action='store', default=None,
@@ -287,7 +291,8 @@ class SetupDevDbCommand(BaseDevelCommand):
             if b'already exists' not in e.stderr:
                 raise e
 
-    def get_parser(self):
+    @classmethod
+    def get_parser(cls):
         parser = super().get_parser()
         parser.add_argument(
             '--database', dest='database', action='store', default=None, help='used database name')
@@ -358,7 +363,8 @@ class SetupPubSubEmulatorCommand(BaseDevelCommand):
             if b'Subscription already exists' not in e.stderr:
                 raise
 
-    def get_parser(self):
+    @classmethod
+    def get_parser(cls):
         parser = super().get_parser()
         parser.add_argument(
             '--topic', dest='topic', action='store', default=None)
@@ -441,7 +447,8 @@ class SetupDevCassandraCommand(BaseDevelCommand):
             if b'already exists' not in e.stderr:
                 raise e
 
-    def get_parser(self):
+    @classmethod
+    def get_parser(cls):
         parser = super().get_parser()
         parser.add_argument('--keyspace', dest='keyspace', action='store',
                             default=None, help="used keyspace name")

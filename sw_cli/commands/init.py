@@ -17,7 +17,8 @@ class InitCommand(base_command.BaseCommand):
         sw_cli.files_generator.copy_template(init_type.template_directory, project_dst, context=context)
         print('Done.')
 
-    def get_parser(self):
+    @classmethod
+    def get_parser(cls):
         parser = super().get_parser()
         parser.add_argument("--directory", dest="directory", default=".", help="Select project root directory.")
         parser.add_argument("--ember", dest="init_type", action='store_const', const=EmberInitType,
