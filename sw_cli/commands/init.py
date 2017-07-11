@@ -18,8 +18,8 @@ class InitCommand(base_command.BaseCommand):
         print('Done.')
 
     @classmethod
-    def get_parser(cls):
-        parser = super().get_parser()
+    def get_parser(cls, **kwargs):
+        parser = super().get_parser(**kwargs)
         parser.add_argument("--directory", dest="directory", default=".", help="Select project root directory.")
         parser.add_argument("--ember", dest="init_type", action='store_const', const=EmberInitType,
                             default=PythonPackageInitType, help="Select ember template.")

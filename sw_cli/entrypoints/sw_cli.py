@@ -1,36 +1,33 @@
 #!/usr/bin/env python
 
+import os
 import sys
 
 from sw_cli import commands
+from sw_cli.commands import help
 
 
 def run():
     try:
         command_name = sys.argv[1]
+        sw_cli_name = os.path.basename(sys.argv[0])
     except (KeyError, IndexError):
-        print_usage()
+        help.HelpCommand.print_basic_help()
     else:
-        run_command(command_name, sys.argv[2:])
+        run_command(command_name, sw_cli_name, sys.argv[2:])
 
 
-def run_command(command_name, arguments):
+def run_command(command_name, sw_cli_name, arguments):
     for command in commands.get_all_commands():
         if command_name == command.name:
             try:
-                command.source(arguments, **command.kwargs).run()
+                command.source(sw_cli_name, command_name, arguments, **command.kwargs).run()
                 break
             except commands.devel.SilencedException as e:
                 exit(e.code)
     else:
-        print_usage()
+        help.HelpCommand.print_basic_help()
         exit(1)
-
-
-def print_usage():
-    print('Use one of:')
-    for command in commands.get_all_commands():
-        print(command.name)
 
 
 if __name__ == '__main__':

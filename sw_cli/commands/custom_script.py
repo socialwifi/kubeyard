@@ -10,8 +10,8 @@ class CustomScriptException(Exception):
 
 
 class CustomScriptCommand(base_command.InitialisedRepositoryCommand):
-    def __init__(self, args, *, script_name):
-        super().__init__(args)
+    def __init__(self, *args, script_name):
+        super().__init__(*args)
         self.script_name = script_name
 
     @cached_property

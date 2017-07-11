@@ -43,8 +43,8 @@ class SetupCommand(GlobalCommand):
         return global_secrets
 
     @classmethod
-    def get_parser(cls):
-        parser = super().get_parser()
+    def get_parser(cls, **kwargs):
+        parser = super().get_parser(**kwargs)
         parser.add_argument("--development", dest="mode", default='production', action='store_const',
                             const='development', help="Select project root directory.")
         return parser

@@ -25,8 +25,8 @@ class SilencedException(Exception):
 class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
     docker_repository = 'docker.socialwifi.com'
 
-    def __init__(self, args):
-        super().__init__(args)
+    def __init__(self, *args):
+        super().__init__(*args)
         if self.is_development:
             self._prepare_minikube()
 
@@ -49,8 +49,8 @@ class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
         self.context.update(minikube.docker_env())
 
     @classmethod
-    def get_parser(cls):
-        parser = super().get_parser()
+    def get_parser(cls, **kwargs):
+        parser = super().get_parser(**kwargs)
         parser.add_argument(
             '--tag', dest='tag', action='store', default=None, help='Used image tag.')
         parser.add_argument(
@@ -119,8 +119,8 @@ class BuildCommand(BaseDevelCommand):
         self.docker_with_output('build', '-t', self.image, image_context)
 
     @classmethod
-    def get_parser(cls):
-        parser = super().get_parser()
+    def get_parser(cls, **kwargs):
+        parser = super().get_parser(**kwargs)
         parser.add_argument(
             '--image-context', dest='image_context', action='store', default=None,
             help='Image context containing Dockerfile. Defaults to <project_dir>/docker')
@@ -131,8 +131,8 @@ class UpdateRequirementsCommand(BaseDevelCommand):
     custom_script_name = 'update_requirements'
 
     @classmethod
-    def get_parser(cls):
-        parser = super().get_parser()
+    def get_parser(cls, **kwargs):
+        parser = super().get_parser(**kwargs)
         parser.add_argument('--before3.6.0-5', dest='before', action='store_true',
                             default=False, help='Add this flag to use update for an older python application.')
         return parser
@@ -164,8 +164,8 @@ class UpdateRequirementsCommand(BaseDevelCommand):
 class TestCommand(BaseDevelCommand):
     custom_script_name = 'test'
 
-    def __init__(self, args):
-        super().__init__(args)
+    def __init__(self, *args):
+        super().__init__(*args)
         self.context['HOST_VOLUMES'] = ' '.join(self.volumes)
 
     def run_default(self):
@@ -202,8 +202,8 @@ class DeployCommand(BaseDevelCommand):
     custom_script_name = 'deploy'
 
     @classmethod
-    def get_parser(cls):
-        parser = super().get_parser()
+    def get_parser(cls, **kwargs):
+        parser = super().get_parser(**kwargs)
         parser.add_argument(
             '--aws-credentials', dest='aws_credentials', action='store', default=None,
             help='Needed to deploy static data. AWS_KEY:AWS_SECRET.')
@@ -292,8 +292,8 @@ class SetupDevDbCommand(BaseDevelCommand):
                 raise e
 
     @classmethod
-    def get_parser(cls):
-        parser = super().get_parser()
+    def get_parser(cls, **kwargs):
+        parser = super().get_parser(**kwargs)
         parser.add_argument(
             '--database', dest='database', action='store', default=None, help='used database name')
         return parser
@@ -364,8 +364,8 @@ class SetupPubSubEmulatorCommand(BaseDevelCommand):
                 raise
 
     @classmethod
-    def get_parser(cls):
-        parser = super().get_parser()
+    def get_parser(cls, **kwargs):
+        parser = super().get_parser(**kwargs)
         parser.add_argument(
             '--topic', dest='topic', action='store', default=None)
         parser.add_argument(
@@ -448,8 +448,8 @@ class SetupDevCassandraCommand(BaseDevelCommand):
                 raise e
 
     @classmethod
-    def get_parser(cls):
-        parser = super().get_parser()
+    def get_parser(cls, **kwargs):
+        parser = super().get_parser(**kwargs)
         parser.add_argument('--keyspace', dest='keyspace', action='store',
                             default=None, help="used keyspace name")
         return parser

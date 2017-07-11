@@ -12,7 +12,9 @@ class CommandException(Exception):
 
 
 class BaseCommand:
-    def __init__(self, args):
+    def __init__(self, sw_cli_name, command_name, args):
+        self.sw_cli_name = sw_cli_name
+        self.command_name = command_name
         self.args = args
 
     def run(self):
@@ -20,12 +22,12 @@ class BaseCommand:
 
     @cached_property
     def options(self):
-        parser = self.get_parser()
+        parser = self.get_parser(prog='{} {}'.format(self.sw_cli_name, self.command_name))
         return parser.parse_args(self.args)
 
     @classmethod
-    def get_parser(cls):
-        return ArgumentParser()
+    def get_parser(cls, **kwargs):
+        return ArgumentParser(**kwargs)
 
 
 class InitialisedRepositoryCommand(BaseCommand):
@@ -42,8 +44,8 @@ class InitialisedRepositoryCommand(BaseCommand):
         return pathlib.Path(self.options.directory).resolve()
 
     @classmethod
-    def get_parser(cls):
-        parser = super().get_parser()
+    def get_parser(cls, **kwargs):
+        parser = super().get_parser(**kwargs)
         parser.add_argument("--directory", dest="directory", default=settings.DEFAULT_SWCLI_PROJECT_DIR,
                             help="Select project root directory.")
         return parser

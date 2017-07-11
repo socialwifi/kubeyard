@@ -7,6 +7,7 @@ from . import bash_completion
 from . import debug
 from . import devel
 from . import global_commands
+from . import help
 from . import init
 from . import jenkins
 
@@ -18,6 +19,7 @@ class CommandDeclaration:
         self.kwargs = kwargs or {}
 
 commands = [
+    CommandDeclaration('help', help.HelpCommand),
     CommandDeclaration('init', init.InitCommand),
     CommandDeclaration('install_bash_completion', bash_completion.InstallCompletion),
     CommandDeclaration('bash_completion', bash_completion.RunCompletion),
