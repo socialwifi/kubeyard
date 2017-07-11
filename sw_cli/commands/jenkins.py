@@ -6,7 +6,7 @@ from sw_cli import base_command
 from sw_cli import files_generator
 
 
-class JenkinsCommand(base_command.BaseCommand):
+class JenkinsCommand(base_command.InitialisedRepositoryCommand):
     @cached_property
     def server(self):
         username, password = self.get_credentials()
@@ -25,10 +25,14 @@ class JenkinsCommand(base_command.BaseCommand):
         template = files_generator.jinja_environment.get_template(str(filename))
         return template.render(self.context)
 
-    def print_info(self):
+
+class JenkinsInfoCommand(JenkinsCommand):
+    def run(self):
         print(self.server.get_whoami())
 
-    def init_job(self):
+
+class JenkinsInitCommand(JenkinsCommand):
+    def run(self):
         job_name = self.context['DOCKER_IMAGE_NAME']
         print("Initialising jenkins job: %s" % job_name)
         config_filepath = self.context.get('JENKINS_JOB_CONFIG_FILEPATH', settings.DEFAULT_JENKINS_JOB_CONFIG_FILEPATH)
@@ -37,7 +41,9 @@ class JenkinsCommand(base_command.BaseCommand):
                                            settings.DEFAULT_JENKINS_JOB_TEST_PATCHSET_FILEPATH)
         self.server.create_job('{} test patchset'.format(job_name), self.get_config_xml(config_filepath))
 
-    def reconfig_job(self):
+
+class JenkinsReconfigCommand(JenkinsCommand):
+    def run(self):
         job_name = self.context['DOCKER_IMAGE_NAME']
         print("Reconfiguring jenkins job: %s" % job_name)
         config_filepath = self.context.get('JENKINS_JOB_CONFIG_FILEPATH', settings.DEFAULT_JENKINS_JOB_CONFIG_FILEPATH)
@@ -46,35 +52,8 @@ class JenkinsCommand(base_command.BaseCommand):
                                            settings.DEFAULT_JENKINS_JOB_TEST_PATCHSET_FILEPATH)
         self.server.reconfig_job('{} test patchset'.format(job_name), self.get_config_xml(config_filepath))
 
-    def build_job(self):
+class JenkinsBuildCommand(JenkinsCommand):
+    def run(self):
         job_name = self.context['DOCKER_IMAGE_NAME']
         print("building jenkins job: %s" % job_name)
         self.server.build_job(job_name)
-
-
-def init(args):
-    print("Starting command jenkins_init")
-    cmd = JenkinsCommand(args)
-    cmd.init_job()
-    print("Done.")
-
-
-def reconfig(args):
-    print("Starting command jenkins_reconfig")
-    cmd = JenkinsCommand(args)
-    cmd.reconfig_job()
-    print("Done.")
-
-
-def build(args):
-    print("Starting command jenkins_build")
-    cmd = JenkinsCommand(args)
-    cmd.build_job()
-    print("Done.")
-
-
-def info(args):
-    print("Starting command jenkins_info")
-    cmd = JenkinsCommand(args)
-    cmd.print_info()
-    print("Done.")

@@ -9,14 +9,8 @@ class CustomScriptException(Exception):
     pass
 
 
-def custom_script_factory(script_name):
-    def run(args):
-        return CustomScriptCommand(script_name, args).run()
-    return run
-
-
-class CustomScriptCommand(base_command.BaseCommand):
-    def __init__(self, script_name, args):
+class CustomScriptCommand(base_command.InitialisedRepositoryCommand):
+    def __init__(self, args, *, script_name):
         super().__init__(args)
         self.script_name = script_name
 

@@ -11,10 +11,23 @@ class CommandException(Exception):
     pass
 
 
-class BaseCommand(object):
+class BaseCommand:
     def __init__(self, args):
         self.args = args
 
+    def run(self):
+        raise NotImplementedError
+
+    @cached_property
+    def options(self):
+        parser = self.get_parser()
+        return parser.parse_args(self.args)
+
+    def get_parser(self):
+        return ArgumentParser()
+
+
+class InitialisedRepositoryCommand(BaseCommand):
     @cached_property
     def context(self):
         try:
@@ -27,13 +40,8 @@ class BaseCommand(object):
     def project_dir(self):
         return pathlib.Path(self.options.directory).resolve()
 
-    @cached_property
-    def options(self):
-        parser = self.get_parser()
-        return parser.parse_args(self.args)
-
     def get_parser(self):
-        parser = ArgumentParser()
+        parser = super().get_parser()
         parser.add_argument("--directory", dest="directory", default=settings.DEFAULT_SWCLI_PROJECT_DIR,
                             help="Select project root directory.")
         return parser

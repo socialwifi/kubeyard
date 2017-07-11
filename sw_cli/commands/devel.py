@@ -22,7 +22,7 @@ class SilencedException(Exception):
     def __init__(self, code):
         self.code = code
 
-class BaseDevelCommand(base_command.BaseCommand):
+class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
     docker_repository = 'docker.socialwifi.com'
 
     def __init__(self, args):
@@ -457,73 +457,3 @@ class CassandraRunningEnsurer(dependencies.ContainerRunningEnsurer):
                     '-e', 'HEAP_NEWSIZE=1M', '-e', 'MAX_HEAP_SIZE=128M',
                     '-p', '172.17.0.1:9042:9042',
                     'cassandra:{}'.format(self.cassandra_version))
-
-
-def build(args):
-    print("Starting command build")
-    cmd = BuildCommand(args)
-    cmd.run()
-    print("Done.")
-
-
-def test(args):
-    print("Starting command test")
-    cmd = TestCommand(args)
-    cmd.run()
-    print("Done.")
-
-
-def requirements(args):
-    print("Starting command update requirements")
-    cmd = UpdateRequirementsCommand(args)
-    cmd.run()
-    print("Done.")
-
-
-def push(args):
-    print("Starting command push")
-    cmd = PushCommand(args)
-    cmd.run()
-    print("Done.")
-
-
-def deploy(args):
-    print("Starting command deploy")
-    cmd = DeployCommand(args)
-    cmd.run()
-    print("Done.")
-
-
-def setup_dev_db(args):
-    print("Setting up dev db")
-    cmd = SetupDevDbCommand(args)
-    cmd.run()
-    print("Done.")
-
-
-def setup_dev_elastic(args):
-    print("Setting up dev elasticsearch")
-    cmd = SetupDevElasticsearchCommand(args)
-    cmd.run()
-    print("Done.")
-
-
-def setup_pubsub_emulator(args):
-    print("Setting up pubsub emulator")
-    cmd = SetupPubSubEmulatorCommand(args)
-    cmd.run()
-    print("Done.")
-
-
-def setup_dev_redis(args):
-    print("Setting up dev redis")
-    cmd = SetupDevRedisCommand(args)
-    cmd.run()
-    print("Done.")
-
-
-def setup_dev_cassandra(args):
-    print("Setting up dev cassandra")
-    cmd = SetupDevCassandraCommand(args)
-    cmd.run()
-    print("Done.")

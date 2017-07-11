@@ -11,29 +11,33 @@ from . import init
 from . import jenkins
 
 
-CommandDeclaration = namedtuple('CommandDeclaration', ['name', 'source'])
+class CommandDeclaration:
+    def __init__(self, name, source, kwargs=None):
+        self.name = name
+        self.source = source
+        self.kwargs = kwargs or {}
 
 commands = [
-    CommandDeclaration('init', init.run),
-    CommandDeclaration('install_bash_completion', bash_completion.install),
-    CommandDeclaration('bash_completion', bash_completion.run),
-    CommandDeclaration('jenkins_init', jenkins.init),
-    CommandDeclaration('jenkins_build', jenkins.build),
-    CommandDeclaration('jenkins_reconfig', jenkins.reconfig),
-    CommandDeclaration('jenkins_info', jenkins.info),
-    CommandDeclaration('variables', debug.variables),
-    CommandDeclaration('build', devel.build),
-    CommandDeclaration('test', devel.test),
-    CommandDeclaration('update_requirements', devel.requirements),
-    CommandDeclaration('push', devel.push),
-    CommandDeclaration('deploy', devel.deploy),
-    CommandDeclaration('setup_dev_db', devel.setup_dev_db),
-    CommandDeclaration('setup_dev_elastic', devel.setup_dev_elastic),
-    CommandDeclaration('setup_pubsub_emulator', devel.setup_pubsub_emulator),
-    CommandDeclaration('setup_dev_redis', devel.setup_dev_redis),
-    CommandDeclaration('setup_dev_cassandra', devel.setup_dev_cassandra),
-    CommandDeclaration('setup', global_commands.setup),
-    CommandDeclaration('install_global_secrets', global_commands.install_global_secrets),
+    CommandDeclaration('init', init.InitCommand),
+    CommandDeclaration('install_bash_completion', bash_completion.InstallCompletion),
+    CommandDeclaration('bash_completion', bash_completion.RunCompletion),
+    CommandDeclaration('jenkins_init', jenkins.JenkinsInitCommand),
+    CommandDeclaration('jenkins_build', jenkins.JenkinsBuildCommand),
+    CommandDeclaration('jenkins_reconfig', jenkins.JenkinsReconfigCommand),
+    CommandDeclaration('jenkins_info', jenkins.JenkinsInfoCommand),
+    CommandDeclaration('variables', debug.DebugCommand),
+    CommandDeclaration('build', devel.BuildCommand),
+    CommandDeclaration('test', devel.TestCommand),
+    CommandDeclaration('update_requirements', devel.UpdateRequirementsCommand),
+    CommandDeclaration('push', devel.PushCommand),
+    CommandDeclaration('deploy', devel.DeployCommand),
+    CommandDeclaration('setup_dev_db', devel.SetupDevDbCommand),
+    CommandDeclaration('setup_dev_elastic', devel.SetupDevElasticsearchCommand),
+    CommandDeclaration('setup_pubsub_emulator', devel.SetupPubSubEmulatorCommand),
+    CommandDeclaration('setup_dev_redis', devel.SetupDevRedisCommand),
+    CommandDeclaration('setup_dev_cassandra', devel.SetupDevCassandraCommand),
+    CommandDeclaration('setup', global_commands.SetupCommand),
+    CommandDeclaration('install_global_secrets', global_commands.InstallGlobalSecretsCommand),
 ]
 
 
@@ -48,7 +52,6 @@ def get_all_commands():
         scripts_dir = scripts_dir.resolve()
         for filepath in scripts_dir.glob("*"):
             if filepath.is_file() and not cmd_exists(filepath.name):
-                command = custom_script.custom_script_factory(filepath)
-                cmds.append(CommandDeclaration(filepath.name, command))
-
+                cmds.append(CommandDeclaration(filepath.name, custom_script.CustomScriptCommand,
+                                               kwargs={'script_name': filepath}))
     return cmds

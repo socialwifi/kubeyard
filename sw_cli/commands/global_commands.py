@@ -1,31 +1,21 @@
-from argparse import ArgumentParser
 import contextlib
 import pathlib
 
 import yaml
-from sw_cli import context_factories, kubernetes
+
+from sw_cli import base_command
+from sw_cli import context_factories
+from sw_cli import kubernetes
 
 
-def setup(args):
-    SetupCommand(args).setup()
-
-
-def install_global_secrets(args):
-    InstallGlobalSecretsCommand(args).install()
-
-
-class GlobalCommand:
-    def __init__(self, args):
-        self.context = context_factories.GlobalContextFactory().get()
-        parser = self.get_parser()
-        self.options = parser.parse_args(args)
-
-    def get_parser(self):
-        return ArgumentParser()
+class GlobalCommand(base_command.BaseCommand):
+    @property
+    def context(self):
+        return context_factories.GlobalContextFactory().get()
 
 
 class SetupCommand(GlobalCommand):
-    def setup(self):
+    def run(self):
         user_context = self.get_current_user_context()
         if 'SWCLI_GLOBAL_SECRETS' not in user_context:
             user_context['SWCLI_GLOBAL_SECRETS'] = str(self.default_global_secrets_directory)
@@ -60,5 +50,5 @@ class SetupCommand(GlobalCommand):
 
 
 class InstallGlobalSecretsCommand(GlobalCommand):
-    def install(self):
+    def run(self):
         kubernetes.install_global_secrets(self.context)

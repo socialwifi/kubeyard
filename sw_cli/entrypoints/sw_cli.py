@@ -18,7 +18,7 @@ def run_command(command_name, arguments):
     for command in commands.get_all_commands():
         if command_name == command.name:
             try:
-                command.source(arguments)
+                command.source(arguments, **command.kwargs).run()
                 break
             except commands.devel.SilencedException as e:
                 exit(e.code)
