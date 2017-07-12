@@ -3,6 +3,9 @@ from sw_cli import commands
 
 
 class HelpCommand(base_command.BaseCommand):
+    """
+    Shows help about commands.
+    """
     def run(self):
         if self.options.command:
             for command in commands.get_all_commands():

@@ -112,6 +112,10 @@ class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
 
 
 class BuildCommand(BaseDevelCommand):
+    """
+    Builds docker image required to run tests and deployment. Can be overridden in <project_dir>/sripts/build.
+    If sw-cli is set up in development mode it uses minikube as docker host.
+    """
     custom_script_name = 'build'
 
     def run_default(self):
@@ -128,6 +132,13 @@ class BuildCommand(BaseDevelCommand):
 
 
 class UpdateRequirementsCommand(BaseDevelCommand):
+    """
+    Updates docker/requirements/python.txt file based on docker/source/base_requirements.txt.
+    In container it creates virtualenv and runs
+    `pip install -r docker/source/base_requirements.txt && pip freeze > docker/source/base_requirements.txt`
+    Can be overridden in <project_dir>/sripts/update_requirements.
+    If sw-cli is set up in development mode it uses minikube as docker host.
+    """
     custom_script_name = 'update_requirements'
 
     @classmethod
@@ -162,6 +173,19 @@ class UpdateRequirementsCommand(BaseDevelCommand):
 
 
 class TestCommand(BaseDevelCommand):
+    """
+    Runs tests in docker image built by build command. Can be overridden in <project_dir>/sripts/test.
+    If sw-cli is set up in development mode it uses minikube as docker host and mounts volumes configured in
+    dev_mounted_paths in config/sw_cli.yml if they have mount-in-test set.
+
+    Example:
+    dev_mounted_paths:
+    - name: dev-volume
+      host-path: docker/source
+      mount-in-tests:
+        path: /package
+        image-name: sw-project
+    """
     custom_script_name = 'test'
 
     def __init__(self, *args):
@@ -190,6 +214,12 @@ class TestCommand(BaseDevelCommand):
 
 
 class PushCommand(BaseDevelCommand):
+    """
+    Runs `docker push` on docker image built by build command. It also tags image as latest adn push it as well.
+    Can be overridden in <project_dir>/sripts/push.
+    If sw-cli is set up in development mode it uses minikube as docker host.
+    Normally you want to run it only in production.
+    """
     custom_script_name = 'push'
 
     def run_default(self):
@@ -199,6 +229,26 @@ class PushCommand(BaseDevelCommand):
 
 
 class DeployCommand(BaseDevelCommand):
+    """
+    Deploys application to kubernetes. If it got aws credentials and is not in development mode than it uploads static
+    files to socialwifi-static s3 bucket in STATICS_DIRECTORY configured through context(config/sw_cli.yml).
+    Image should implement collect_statics_tar command For this part to work.
+    Next step is creating secret. Secret is named KUBE_SERVICE_NAME configured through context. its content is gathered
+    either form repository in development mode or from global directory in production mode (see sw-cli help setup).
+    key value pairs of this secrets are collected from files in this directory: keys are filenames and values are
+    contents of these files. File secrets.yml is exception: it contains yaml encoded dictionary of additional key,
+    value pairs. In genereal you should use secrets.yml for your short text secrets.
+    Last step is deploying ./config/kubernetes/deploy/ using kubepy_deploy_all command
+    (https://github.com/socialwifi/kubepy/). In development mode it also merges differences from
+    config/development_overrides, and adds volumes to every pod configured in dev_mounted_paths in config/sw_cli.yml.
+    These volumes should be mounted in selected pods using development_overrides.
+    Example:
+    dev_mounted_paths:
+    - name: dev-volume
+      host-path: docker/source
+
+    Can be overridden in <project_dir>/sripts/deploy.
+    """
     custom_script_name = 'deploy'
 
     @classmethod
@@ -273,6 +323,11 @@ class DeployCommand(BaseDevelCommand):
 
 
 class SetupDevDbCommand(BaseDevelCommand):
+    """
+    Command used in development. It should be called automatically from customized deploy script if microservice needs
+    postgresql. By default it creates database KUBE_SERVICE_NAME (configured in context)
+    available at 172.17.0.1:35432 by user postgres without password.
+    """
     custom_script_name = 'setup_dev_db'
 
     def run_default(self):
@@ -311,6 +366,11 @@ class PostgresRunningEnsurer(dependencies.ContainerRunningEnsurer):
 
 
 class SetupDevElasticsearchCommand(BaseDevelCommand):
+    """
+    Command used in development. It should be called automatically from customized deploy script if microservice needs
+    elasticsearch. By default it creates elasticsearch container DEFAULT_DEV_ELASTIC_NAME (configured in context)
+    available at 172.17.0.1:9200.
+    """
     custom_script_name = 'setup_dev_es'
 
     def run_default(self):
@@ -335,6 +395,12 @@ class ElasticsearchRunningEnsurer(dependencies.ContainerRunningEnsurer):
 
 
 class SetupPubSubEmulatorCommand(BaseDevelCommand):
+    """
+    Command used in development. It should be called automatically from customized deploy script if microservice needs
+    google pub sub. By default it creates pubsub container DEV_PUBSUB_NAME (configured in context)
+    available at 172.17.0.1:8042. It also creates topic and can create subscription. When used, support for pubsub
+    emulator should be added to microservice.
+    """
     custom_script_name = 'setup_dev_pubsub'
 
     def run_default(self):
@@ -385,6 +451,12 @@ class PubSubRunningEnsurer(dependencies.ContainerRunningEnsurer):
 
 
 class SetupDevRedisCommand(BaseDevelCommand):
+    """
+    Command used in development. It should be called automatically from customized deploy script if microservice needs
+    redis By default it creates redis container DEV_REDIS_NAME (configured in context)
+    available at 172.17.0.1:6379. It also checks and updates if needed global secret redis-urls with next in order
+    database.
+    """
     custom_script_name = 'setup_dev_redis'
 
     def run_default(self):
@@ -420,6 +492,11 @@ class RedisRunningEnsurer(dependencies.ContainerRunningEnsurer):
 
 
 class SetupDevCassandraCommand(BaseDevelCommand):
+    """
+    Command used in development. It should be called automatically from customized deploy script if microservice needs
+    cassandra. By default it creates cassandra container DEV_CASSANDRA_NAME (configured in context)
+    available at 172.17.0.1:9042.
+    """
     custom_script_name = 'setup_dev_cassandra'
 
     def run_default(self):

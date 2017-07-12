@@ -9,6 +9,12 @@ from sw_cli import settings
 
 
 class InitCommand(base_command.BaseCommand):
+    """
+    Initialises empty repository. Adds basic configuration and placeholders for source code and tests.
+    It can be run only in git repository. It also adds missing files in not empty repositories.
+    Most commands requires repository to have files structure as provisioned by this command.
+    By default it uses python application template.
+    """
     def run(self):
         print("Initialising repo...")
         init_type = self.options.init_type

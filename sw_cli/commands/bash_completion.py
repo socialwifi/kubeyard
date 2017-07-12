@@ -7,6 +7,10 @@ from sw_cli import base_command
 
 
 class InstallCompletion(base_command.BaseCommand):
+    """
+    Run this to enable bash completion. It writes /etc/bash_completion.d/sw-cli file. It will work automatically on
+    your next bash use. You can enable it in your current sessions by running `. /etc/bash_completion.d/sw-cli`
+    """
     def run(self):
         print("Installing sw-cli...")
         sw_cli_dst = pathlib.Path('/etc/bash_completion.d/sw-cli')
@@ -16,6 +20,11 @@ class InstallCompletion(base_command.BaseCommand):
 
 
 class RunCompletion(base_command.BaseCommand):
+    """
+    Command run by script installed by `sw-cli install_bash_completion`. Shouldn't be called manually.
+    It reads COMP_LINE and COMP_POINT environment variables and writes possible commands which starts with current word
+    from its start to cursor position.
+    """
     def run(self):
         line = os.environ.get('COMP_LINE', '')
         point = int(os.environ.get('COMP_POINT', '0'))

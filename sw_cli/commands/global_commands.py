@@ -15,6 +15,11 @@ class GlobalCommand(base_command.BaseCommand):
 
 
 class SetupCommand(GlobalCommand):
+    """
+    Set up global context. It should be run after instalation of sw-cli. By default it uses production context.
+    Production context requires configured docker and kubectl. Also needs your microservices secrets to be at
+    ~/kubernetes_secrets/.
+    """
     def run(self):
         user_context = self.get_current_user_context()
         if 'SWCLI_GLOBAL_SECRETS' not in user_context:
@@ -46,10 +51,16 @@ class SetupCommand(GlobalCommand):
     def get_parser(cls, **kwargs):
         parser = super().get_parser(**kwargs)
         parser.add_argument("--development", dest="mode", default='production', action='store_const',
-                            const='development', help="Select project root directory.")
+                            const='development', help="Sets development context using minikube. Development context "
+                                                      "uses secrets from repository.")
         return parser
 
 
 class InstallGlobalSecretsCommand(GlobalCommand):
+    """
+    Installs secrets from global secrets directory (usualy from ~/.sw_cli/global-secrets/).
+    Usualy secrets are maintained per microservice. Some secrets are easier to maintain if they are in one global file.
+    In example: redis databases.
+    """
     def run(self):
         kubernetes.install_global_secrets(self.context)

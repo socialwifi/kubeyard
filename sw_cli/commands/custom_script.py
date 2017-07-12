@@ -10,6 +10,9 @@ class CustomScriptException(Exception):
 
 
 class CustomScriptCommand(base_command.InitialisedRepositoryCommand):
+    """
+    Custom script defined in ./scripts/ directory. Running it with sw-cli add current context to environment.
+    """
     def __init__(self, *args, script_name):
         super().__init__(*args)
         self.script_name = script_name

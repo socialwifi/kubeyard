@@ -27,11 +27,18 @@ class JenkinsCommand(base_command.InitialisedRepositoryCommand):
 
 
 class JenkinsInfoCommand(JenkinsCommand):
+    """
+    Displays info about jenkins user.
+    """
     def run(self):
         print(self.server.get_whoami())
 
 
 class JenkinsInitCommand(JenkinsCommand):
+    """
+    Creates jenkins jobs (deploy and test patchset) defined in repository. Requires administrative privileges on
+    jenkins.
+    """
     def run(self):
         job_name = self.context['DOCKER_IMAGE_NAME']
         print("Initialising jenkins job: %s" % job_name)
@@ -43,6 +50,10 @@ class JenkinsInitCommand(JenkinsCommand):
 
 
 class JenkinsReconfigCommand(JenkinsCommand):
+    """
+    Updates jenkins jobs (deploy and test patchset) defined in repository. Requires administrative privileges on
+    jenkins.
+    """
     def run(self):
         job_name = self.context['DOCKER_IMAGE_NAME']
         print("Reconfiguring jenkins job: %s" % job_name)
@@ -53,6 +64,9 @@ class JenkinsReconfigCommand(JenkinsCommand):
         self.server.reconfig_job('{} test patchset'.format(job_name), self.get_config_xml(config_filepath))
 
 class JenkinsBuildCommand(JenkinsCommand):
+    """
+    Runs jenkins deplou job defined in repository. Requires run privileges on jenkins.
+    """
     def run(self):
         job_name = self.context['DOCKER_IMAGE_NAME']
         print("building jenkins job: %s" % job_name)
