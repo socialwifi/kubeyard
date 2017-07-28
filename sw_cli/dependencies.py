@@ -3,6 +3,15 @@ import contextlib
 import sh
 
 
+def is_command_available(name):
+    try:
+        sh.bash('which', name)
+    except sh.ErrorReturnCode:
+        return False
+    else:
+        return True
+
+
 class ContainerRunningEnsurer:
     look_in_stream = 'out'
 

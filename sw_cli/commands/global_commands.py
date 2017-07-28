@@ -6,6 +6,7 @@ import yaml
 from sw_cli import base_command
 from sw_cli import context_factories
 from sw_cli import kubernetes
+from sw_cli import dependencies
 
 
 class GlobalCommand(base_command.BaseCommand):
@@ -24,7 +25,9 @@ class SetupCommand(GlobalCommand):
         user_context = self.get_current_user_context()
         if 'SWCLI_GLOBAL_SECRETS' not in user_context:
             user_context['SWCLI_GLOBAL_SECRETS'] = str(self.default_global_secrets_directory)
-        user_context['SWCLI_MODE'] = self.options.mode
+        sw_cli_mode = self.get_sw_cli_mode()
+        user_context['SWCLI_MODE'] = sw_cli_mode
+        print('Setting up {} mode'.format(sw_cli_mode))
         with self.user_context_filepath.open('w') as context_file:
             yaml.dump(user_context, stream=context_file)
         new_context = dict(self.context, **user_context)
@@ -32,6 +35,23 @@ class SetupCommand(GlobalCommand):
 
     def get_current_user_context(self):
         return context_factories.GlobalContextFactory().user_context
+
+    def get_sw_cli_mode(self):
+        minikube_installed = dependencies.is_command_available('minikube')
+        if self.options.mode == 'production':
+            if minikube_installed:
+                print('Minikube installed! Use --development option')
+                exit(1)
+            else:
+                return 'production'
+        elif self.options.mode == 'development':
+            if not minikube_installed:
+                print('Minikube not installed!')
+                exit(1)
+            else:
+                return 'development'
+        elif self.options.mode is None:
+            return 'development' if minikube_installed else 'production'
 
     @property
     def user_context_filepath(self):
@@ -50,9 +70,12 @@ class SetupCommand(GlobalCommand):
     @classmethod
     def get_parser(cls, **kwargs):
         parser = super().get_parser(**kwargs)
-        parser.add_argument("--development", dest="mode", default='production', action='store_const',
-                            const='development', help="Sets development context using minikube. Development context "
-                                                      "uses secrets from repository.")
+        group = parser.add_mutually_exclusive_group(required=False)
+        group.add_argument("--development", dest="mode", action='store_const', const='development',
+                           help="Sets development context using minikube. Development context "
+                                "uses secrets from repository.")
+        group.add_argument("--production", dest="mode", action='store_const', const='production')
+
         return parser
 
 
