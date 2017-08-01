@@ -2,22 +2,46 @@ import sh
 
 from sw_cli import dependencies
 from sw_cli import kubernetes
-from sw_cli.commands.devel import BaseDevelCommand
+from sw_cli.commands.devel import DockerRunner
 
 MAX_JOB_RETRIES = 10
 
 
-class SetupDevDbCommand(BaseDevelCommand):
+class SetupDevBaseCommand:
+    valid_arguments = ()
+
+    def __init__(self, context: dict):
+        self.context = context
+        self.docker_runner = DockerRunner(context)
+
+    def __call__(self, arguments: dict):
+        if all(key in self.valid_arguments for key in arguments.keys()):
+            self.run(arguments)
+        else:
+            print('dev requirement configuration not valid [{}]\n'
+                  'valid options: {}'.format(arguments, self.valid_arguments))
+
+    def docker(self, *args, **kwargs):
+        return self.docker_runner.run(*args, **kwargs)
+
+    def docker_with_output(self, *args, **kwargs):
+        return self.docker_runner.run_with_output(*args, **kwargs)
+
+    def run(self, arguments: dict):
+        raise NotImplementedError
+
+
+class SetupDevDbCommand(SetupDevBaseCommand):
     """
-    Command used in development. It should be called automatically from customized deploy script if microservice needs
+    Command used in development. It should be configured in sw_cli.yml if microservice needs
     postgresql. By default it creates database KUBE_SERVICE_NAME (configured in context)
     available at 172.17.0.1:35432 by user postgres without password.
     """
-    custom_script_name = 'setup_dev_db'
+    valid_arguments = ('name')
 
-    def run_default(self):
+    def run(self, arguments: dict):
         postgres_name = self.context['DEV_POSTGRES_NAME']
-        database_name = self.options.database or self.context['KUBE_SERVICE_NAME']
+        database_name = arguments.get('name') or self.context['KUBE_SERVICE_NAME']
         self.ensure_postgres_running(postgres_name)
         self.ensure_database_present(postgres_name, database_name)
 
@@ -31,13 +55,6 @@ class SetupDevDbCommand(BaseDevelCommand):
             if b'already exists' not in e.stderr:
                 raise e
 
-    @classmethod
-    def get_parser(cls, **kwargs):
-        parser = super().get_parser(**kwargs)
-        parser.add_argument(
-            '--database', dest='database', action='store', default=None, help='used database name')
-        return parser
-
 
 class PostgresRunningEnsurer(dependencies.ContainerRunningEnsurer):
     postgres_version = '9.6.1'
@@ -50,15 +67,15 @@ class PostgresRunningEnsurer(dependencies.ContainerRunningEnsurer):
                     'postgres:{}'.format(self.postgres_version))
 
 
-class SetupDevElasticsearchCommand(BaseDevelCommand):
+class SetupDevElasticsearchCommand(SetupDevBaseCommand):
     """
-    Command used in development. It should be called automatically from customized deploy script if microservice needs
+    Command used in development. It should be configured in sw_cli.yml if microservice needs
     elasticsearch. By default it creates elasticsearch container DEFAULT_DEV_ELASTIC_NAME (configured in context)
     available at 172.17.0.1:9200.
     """
-    custom_script_name = 'setup_dev_es'
+    valid_arguments = ()
 
-    def run_default(self):
+    def run(self, arguments: dict):
         elastic_name = self.context['DEFAULT_DEV_ELASTIC_NAME']
         self.ensure_elastic_running(elastic_name)
 
@@ -79,22 +96,25 @@ class ElasticsearchRunningEnsurer(dependencies.ContainerRunningEnsurer):
                     'elasticsearch:{}'.format(self.elastic_version))
 
 
-class SetupPubSubEmulatorCommand(BaseDevelCommand):
+class SetupPubSubEmulatorCommand(SetupDevBaseCommand):
     """
-    Command used in development. It should be called automatically from customized deploy script if microservice needs
+    Command used in development. It should be configured in sw_cli.yml if microservice needs
     google pub sub. By default it creates pubsub container DEV_PUBSUB_NAME (configured in context)
     available at 172.17.0.1:8042. It also creates topic and can create subscription. When used, support for pubsub
     emulator should be added to microservice.
     """
-    custom_script_name = 'setup_dev_pubsub'
+    valid_arguments = ('topic', 'subscription')
 
-    def run_default(self):
+    def run(self, arguments: dict):
         pubsub_name = self.context['DEV_PUBSUB_NAME']
-        topic_name = self.options.topic or self.context['KUBE_SERVICE_NAME']
-        subscription_name = self.options.subscription
+        topic_name = arguments.get('topic') or self.context['KUBE_SERVICE_NAME']
         self.ensure_pubsub_running(pubsub_name)
         self.ensure_topic_present(pubsub_name, topic_name)
-        if subscription_name:
+        try:
+            subscription_name = arguments['subscription']
+        except KeyError:
+            print('pubsub subscription not specified, it wont be created!')
+        else:
             self.ensure_subscription_present(pubsub_name, topic_name, subscription_name)
 
     def ensure_pubsub_running(self, pubsub_name):
@@ -114,15 +134,6 @@ class SetupPubSubEmulatorCommand(BaseDevelCommand):
             if b'Subscription already exists' not in e.stderr:
                 raise
 
-    @classmethod
-    def get_parser(cls, **kwargs):
-        parser = super().get_parser(**kwargs)
-        parser.add_argument(
-            '--topic', dest='topic', action='store', default=None)
-        parser.add_argument(
-            '--subscription', dest='subscription', action='store', default=None, help='if not set it wont be created')
-        return parser
-
 
 class PubSubRunningEnsurer(dependencies.ContainerRunningEnsurer):
     started_log = '[pubsub] INFO: Server started, listening on'
@@ -135,16 +146,16 @@ class PubSubRunningEnsurer(dependencies.ContainerRunningEnsurer):
                     'docker.socialwifi.com/sw-pubsub-emulator-helper')
 
 
-class SetupDevRedisCommand(BaseDevelCommand):
+class SetupDevRedisCommand(SetupDevBaseCommand):
     """
-    Command used in development. It should be called automatically from customized deploy script if microservice needs
+    Command used in development. It should be configured in sw_cli.yml if microservice needs
     redis By default it creates redis container DEV_REDIS_NAME (configured in context)
     available at 172.17.0.1:6379. It also checks and updates if needed global secret redis-urls with next in order
     database.
     """
-    custom_script_name = 'setup_dev_redis'
+    valid_arguments = ()
 
-    def run_default(self):
+    def run(self, arguments: dict):
         redis_name = self.context['DEV_REDIS_NAME']
         self.ensure_redis_running(redis_name)
         self.reset_global_secrets()
@@ -176,17 +187,17 @@ class RedisRunningEnsurer(dependencies.ContainerRunningEnsurer):
                     'redis:3.0.7')
 
 
-class SetupDevCassandraCommand(BaseDevelCommand):
+class SetupDevCassandraCommand(SetupDevBaseCommand):
     """
-    Command used in development. It should be called automatically from customized deploy script if microservice needs
+    Command used in development. It should be configured in sw_cli.yml if microservice needs
     cassandra. By default it creates cassandra container DEV_CASSANDRA_NAME (configured in context)
     available at 172.17.0.1:9042.
     """
-    custom_script_name = 'setup_dev_cassandra'
+    valid_arguments = ('keyspace')
 
-    def run_default(self):
+    def run(self, arguments: dict):
         cassandra_name = self.context['DEV_CASSANDRA_NAME']
-        keyspace_name = self.options.keyspace or self.context['KUBE_SERVICE_NAME']
+        keyspace_name = arguments.get('keyspace') or self.context['KUBE_SERVICE_NAME']
         keyspace_name = self.clean_keyspace_name(keyspace_name)
         self.ensure_cassandra_running(cassandra_name)
         self.ensure_database_present(cassandra_name, keyspace_name)
@@ -209,13 +220,6 @@ class SetupDevCassandraCommand(BaseDevelCommand):
             if b'already exists' not in e.stderr:
                 raise e
 
-    @classmethod
-    def get_parser(cls, **kwargs):
-        parser = super().get_parser(**kwargs)
-        parser.add_argument('--keyspace', dest='keyspace', action='store',
-                            default=None, help="used keyspace name")
-        return parser
-
 
 class CassandraRunningEnsurer(dependencies.ContainerRunningEnsurer):
     cassandra_version = '3.0.10'
@@ -226,3 +230,33 @@ class CassandraRunningEnsurer(dependencies.ContainerRunningEnsurer):
                     '-e', 'HEAP_NEWSIZE=1M', '-e', 'MAX_HEAP_SIZE=128M',
                     '-p', '172.17.0.1:9042:9042',
                     'cassandra:{}'.format(self.cassandra_version))
+
+
+class SetupDevCommandDispatcher:
+    commands = {
+        'postgres': SetupDevDbCommand,
+        'redis': SetupDevRedisCommand,
+        'elastic': SetupDevElasticsearchCommand,
+        'pubsub': SetupPubSubEmulatorCommand,
+        'cassandra': SetupDevCassandraCommand,
+    }
+
+    def __init__(self, context: dict):
+        self.context = context
+
+    def dispatch_all(self, requirements: dict):
+        for requirement in requirements:
+            if 'kind' in requirement:
+                self.dispatch(requirement)
+            else:
+                print("Skipping dev_requirement without specified 'kind' [{}]".format(requirement))
+
+    def dispatch(self, requirement: dict):
+        arguments = requirement.copy()
+        kind = arguments.pop('kind')
+        try:
+            command = self.commands[kind](self.context)
+        except KeyError:
+            print('dev requirement [{}] not supported!'.format(kind))
+        else:
+            command(arguments)

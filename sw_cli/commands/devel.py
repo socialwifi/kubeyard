@@ -17,9 +17,11 @@ from sw_cli.commands import custom_script
 
 MAX_JOB_RETRIES = 10
 
+
 class SilencedException(Exception):
     def __init__(self, code):
         self.code = code
+
 
 class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
     docker_repository = 'docker.socialwifi.com'
@@ -28,6 +30,7 @@ class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
         super().__init__(*args)
         if self.is_development:
             self._prepare_minikube()
+        self.docker_runner = DockerRunner(self.context)
 
     def run(self):
         if self.options.default:
@@ -61,13 +64,10 @@ class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
         return parser
 
     def docker(self, *args, **kwargs):
-        return sh.docker(*args, _env=self.sh_env, **kwargs)
+        return self.docker_runner.run(*args, **kwargs)
 
     def docker_with_output(self, *args, **kwargs):
-        try:
-            return self.docker(*args, _out=sys.stdout.buffer, _err=sys.stdout.buffer, **kwargs)
-        except sh.ErrorReturnCode as e:
-            raise SilencedException(e.exit_code)
+        return self.docker_runner.run_with_output(*args, **kwargs)
 
     @property
     def image(self):
@@ -102,12 +102,6 @@ class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
     @property
     def custom_script_name(self):
         raise NotImplementedError
-
-    @cached_property
-    def sh_env(self):
-        env = os.environ.copy()
-        env.update(self.context.as_environment())
-        return env
 
 
 class BuildCommand(BaseDevelCommand):
@@ -262,6 +256,8 @@ class DeployCommand(BaseDevelCommand):
         if self.statics_directory and self.aws_credentials and not self.is_development:
             self.run_statics_deploy()
         if self.definition_directories:
+            if self.dev_requirements and self.is_development:
+                self.run_dev_requirements_deploy()
             self.run_kubernetes_deploy()
 
     def run_statics_deploy(self):
@@ -319,3 +315,32 @@ class DeployCommand(BaseDevelCommand):
             }
         else:
             return {}
+
+    def run_dev_requirements_deploy(self):
+        from sw_cli.commands.dev_requirements import SetupDevCommandDispatcher
+        dispatcher = SetupDevCommandDispatcher(self.context)
+        dispatcher.dispatch_all(self.dev_requirements)
+
+    @property
+    def dev_requirements(self):
+        return self.context.get('DEV_REQUIREMENTS')
+
+
+class DockerRunner:
+    def __init__(self, context):
+        self.context = context
+
+    def run(self, *args, **kwargs):
+        return sh.docker(*args, _env=self.sh_env, **kwargs)
+
+    def run_with_output(self, *args, **kwargs):
+        try:
+            return self.run(*args, _out=sys.stdout.buffer, _err=sys.stdout.buffer, **kwargs)
+        except sh.ErrorReturnCode as e:
+            raise SilencedException(e.exit_code)
+
+    @cached_property
+    def sh_env(self):
+        env = os.environ.copy()
+        env.update(self.context.as_environment())
+        return env
