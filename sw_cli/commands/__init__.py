@@ -6,6 +6,7 @@ from sw_cli.commands import custom_script
 from . import bash_completion
 from . import debug
 from . import devel
+from . import dev_requirements
 from . import global_commands
 from . import help
 from . import init
@@ -33,11 +34,11 @@ commands = [
     CommandDeclaration('update_requirements', devel.UpdateRequirementsCommand),
     CommandDeclaration('push', devel.PushCommand),
     CommandDeclaration('deploy', devel.DeployCommand),
-    CommandDeclaration('setup_dev_db', devel.SetupDevDbCommand),
-    CommandDeclaration('setup_dev_elastic', devel.SetupDevElasticsearchCommand),
-    CommandDeclaration('setup_pubsub_emulator', devel.SetupPubSubEmulatorCommand),
-    CommandDeclaration('setup_dev_redis', devel.SetupDevRedisCommand),
-    CommandDeclaration('setup_dev_cassandra', devel.SetupDevCassandraCommand),
+    CommandDeclaration('setup_dev_db', dev_requirements.SetupDevDbCommand),
+    CommandDeclaration('setup_dev_elastic', dev_requirements.SetupDevElasticsearchCommand),
+    CommandDeclaration('setup_pubsub_emulator', dev_requirements.SetupPubSubEmulatorCommand),
+    CommandDeclaration('setup_dev_redis', dev_requirements.SetupDevRedisCommand),
+    CommandDeclaration('setup_dev_cassandra', dev_requirements.SetupDevCassandraCommand),
     CommandDeclaration('setup', global_commands.SetupCommand),
     CommandDeclaration('install_global_secrets', global_commands.InstallGlobalSecretsCommand),
 ]
