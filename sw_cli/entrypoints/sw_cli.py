@@ -20,11 +20,8 @@ def run():
 def run_command(command_name, sw_cli_name, arguments):
     for command in commands.get_all_commands():
         if command_name == command.name:
-            try:
-                command.source(sw_cli_name, command_name, arguments, **command.kwargs).run()
-                break
-            except commands.devel.SilencedException as e:
-                exit(e.code)
+            command.source(sw_cli_name, command_name, arguments, **command.kwargs).run()
+            break
     else:
         help.HelpCommand.print_basic_help()
         exit(1)

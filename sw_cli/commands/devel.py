@@ -18,11 +18,6 @@ from sw_cli.commands import custom_script
 MAX_JOB_RETRIES = 10
 
 
-class SilencedException(Exception):
-    def __init__(self, code):
-        self.code = code
-
-
 class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
     docker_repository = 'docker.socialwifi.com'
 
@@ -334,10 +329,7 @@ class DockerRunner:
         return sh.docker(*args, _env=self.sh_env, **kwargs)
 
     def run_with_output(self, *args, **kwargs):
-        try:
-            return self.run(*args, _out=sys.stdout.buffer, _err=sys.stdout.buffer, **kwargs)
-        except sh.ErrorReturnCode as e:
-            raise SilencedException(e.exit_code)
+        return self.run(*args, _out=sys.stdout.buffer, _err=sys.stdout.buffer, **kwargs)
 
     @cached_property
     def sh_env(self):
