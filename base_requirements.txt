@@ -5,3 +5,5 @@ pyYAML
 GitPython
 cached-property
 sh
+pyfiglet
+termcolor

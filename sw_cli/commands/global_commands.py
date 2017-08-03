@@ -3,6 +3,7 @@ import pathlib
 
 import yaml
 
+from sw_cli import ascii_art
 from sw_cli import base_command
 from sw_cli import context_factories
 from sw_cli import kubernetes
@@ -27,7 +28,7 @@ class SetupCommand(GlobalCommand):
             user_context['SWCLI_GLOBAL_SECRETS'] = str(self.default_global_secrets_directory)
         sw_cli_mode = self.get_sw_cli_mode()
         user_context['SWCLI_MODE'] = sw_cli_mode
-        print('Setting up {} mode'.format(sw_cli_mode))
+        self.print_info(sw_cli_mode)
         with self.user_context_filepath.open('w') as context_file:
             yaml.dump(user_context, stream=context_file)
         new_context = dict(self.context, **user_context)
@@ -52,6 +53,10 @@ class SetupCommand(GlobalCommand):
                 return 'development'
         elif self.options.mode is None:
             return 'development' if minikube_installed else 'production'
+
+    def print_info(self, sw_cli_mode):
+        ascii_art.print_ascii_art()
+        print('Setting up {} mode'.format(sw_cli_mode))
 
     @property
     def user_context_filepath(self):
