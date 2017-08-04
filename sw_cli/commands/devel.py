@@ -19,7 +19,7 @@ from sw_cli.commands import custom_script
 
 logger = logging.getLogger(__name__)
 
-MAX_JOB_RETRIES = 10
+MAX_JOB_RETRIES = 2
 
 
 class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
