@@ -34,7 +34,7 @@ class SetupCommand(GlobalCommand):
         user_context['SWCLI_MODE'] = sw_cli_mode
         self.print_info(sw_cli_mode)
         with self.user_context_filepath.open('w') as context_file:
-            yaml.dump(user_context, stream=context_file)
+            yaml.dump(dict(user_context), stream=context_file, default_flow_style=False)
         new_context = dict(self.context, **user_context)
         kubernetes.setup_cluster_context(new_context)
 
