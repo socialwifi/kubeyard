@@ -24,7 +24,6 @@ class InitCommand(base_command.BaseCommand):
         project_dst = pathlib.Path(self.options.directory)
         context = context_factories.EmptyRepoContextFactory(self.options.directory, init_type.prompted_context).get()
         sw_cli.files_generator.copy_template(init_type.template_directory, project_dst, context=context)
-        logger.info('Done')
 
     @classmethod
     def get_parser(cls, **kwargs):

@@ -9,10 +9,6 @@ from sw_cli import base_command
 logger = logging.getLogger(__name__)
 
 
-class CustomScriptException(Exception):
-    pass
-
-
 class CustomScriptCommand(base_command.InitialisedRepositoryCommand):
     """
     Custom script defined in ./scripts/ directory. Running it with sw-cli add current context to environment.
@@ -29,12 +25,7 @@ class CustomScriptCommand(base_command.InitialisedRepositoryCommand):
     def run(self):
         super().run()
         logger.info('Running custom script command "{}"...'.format(self.script_name))
-        try:
-            CustomScriptRunner(self.project_dir, self.context).run(self.script_name, self.args)
-        except CustomScriptException as e:
-            raise base_command.CommandException(*e.args)
-        else:
-            logger.info("Done")
+        CustomScriptRunner(self.project_dir, self.context).run(self.script_name, self.args)
 
 
 class CustomScriptRunner:
@@ -43,13 +34,21 @@ class CustomScriptRunner:
         self.context = context
 
     def run(self, script_name, args):
-        filepath = self.project_dir / self.context.get('SWCLI_SCRIPTS_DIR') / script_name
-        if not filepath.exists():
-            raise CustomScriptException(
-                "Could not execute %s command, script doesn't exist: %s" % (script_name, filepath))
-        if not os.access(str(filepath), os.X_OK):
-            raise PermissionError(
-                "Could not execute %s command, script exists but is not executable: %s" % (script_name, filepath))
+        filepath = self.scripts_dir_path / script_name
+        if not self.is_executable(script_name):
+            raise PermissionError("Could not execute %s command, script exists but is not executable: %s"
+                                  % (script_name, filepath))
         env = os.environ.copy()
         env.update(self.context.as_environment())
         os.execvpe(file=str(filepath), args=[str(filepath)] + args, env=env)
+
+    def exists(self, script_name):
+        return (self.scripts_dir_path / script_name).exists()
+
+    def is_executable(self, script_name):
+        filepath = self.scripts_dir_path / script_name
+        return os.access(str(filepath), os.X_OK)
+
+    @property
+    def scripts_dir_path(self):
+        return self.project_dir / self.context.get('SWCLI_SCRIPTS_DIR')

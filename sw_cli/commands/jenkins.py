@@ -59,7 +59,6 @@ class JenkinsInitCommand(JenkinsCommand):
         job_name = '{} test patchset'.format(job_name)
         logger.info('Creating Jenkins job: "{}"...'.format(job_name))
         self.server.create_job(job_name, self.get_config_xml(config_filepath))
-        logger.info('Done')
 
 
 class JenkinsReconfigCommand(JenkinsCommand):
@@ -78,7 +77,6 @@ class JenkinsReconfigCommand(JenkinsCommand):
         job_name = '{} test patchset'.format(job_name)
         logger.info('Reconfiguring Jenkins job: "{}"...'.format(job_name))
         self.server.reconfig_job(job_name, self.get_config_xml(config_filepath))
-        logger.info('Done')
 
 
 class JenkinsBuildCommand(JenkinsCommand):
@@ -90,4 +88,3 @@ class JenkinsBuildCommand(JenkinsCommand):
         job_name = self.context['DOCKER_IMAGE_NAME']
         logger.info('Starting jenkins job: "{}"...'.format(job_name))
         self.server.build_job(job_name)
-        logger.info('Done')

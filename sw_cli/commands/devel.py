@@ -16,7 +16,6 @@ from sw_cli import minikube
 from sw_cli import settings
 from sw_cli.commands import custom_script
 
-
 logger = logging.getLogger(__name__)
 
 MAX_JOB_RETRIES = 2
@@ -33,13 +32,12 @@ class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
 
     def run(self):
         super().run()
-        if self.options.default:
+        custom_script_runner = custom_script.CustomScriptRunner(self.project_dir, self.context)
+        custom_script_exists = custom_script_runner.exists(self.custom_script_name)
+        if self.options.default or not custom_script_exists:
             self.run_default()
         else:
-            try:
-                custom_script.CustomScriptRunner(self.project_dir, self.context).run(self.custom_script_name, self.args)
-            except custom_script.CustomScriptException:
-                self.run_default()
+            custom_script_runner.run(self.custom_script_name, self.args)
 
     @cached_property
     def options(self):

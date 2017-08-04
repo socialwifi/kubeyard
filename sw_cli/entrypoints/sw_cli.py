@@ -26,9 +26,15 @@ def run():
 def run_command(command_name, sw_cli_name, arguments):
     for command in commands.get_all_commands():
         if command_name == command.name:
-            command.source(sw_cli_name, command_name, arguments, **command.kwargs).run()
-            logger.info('Done')
-            break
+            try:
+                command.source(sw_cli_name, command_name, arguments, **command.kwargs).run()
+            except Exception as e:
+                logger.error(e)
+                logger.debug('', exc_info=True)
+                exit(1)
+            else:
+                logger.info('Done')
+                break
     else:
         help.HelpCommand.print_basic_help()
         exit(1)
