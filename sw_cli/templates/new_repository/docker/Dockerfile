@@ -1,1 +1,1 @@
-FROM docker.socialwifi.com/python-package:3.6.1
+FROM docker.socialwifi.com/python-package:3.6.2
