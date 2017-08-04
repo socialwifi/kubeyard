@@ -21,15 +21,15 @@ class ContainerRunningEnsurer:
 
     def ensure(self):
         try:
-            postgres_status = str(self.docker_runner.run('inspect', '--format={{.State.Status}}', self.name)).strip()
+            container_status = str(self.docker_runner.run('inspect', '--format={{.State.Status}}', self.name)).strip()
         except sh.ErrorReturnCode:
-            postgres_status = 'error'
-        if postgres_status != 'running':
+            container_status = 'error'
+        if container_status != 'running':
             with contextlib.suppress(sh.ErrorReturnCode):
                 self.docker_runner.run('rm', '-fv', self.name)
-            self.run_postgres()
+            self.run_container()
 
-    def run_postgres(self):
+    def run_container(self):
         print('running {}'.format(self.name))
         self.docker_run()
         for log in self.docker_runner.run('logs', '-f', self.name, _iter=self.look_in_stream):
