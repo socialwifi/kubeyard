@@ -145,11 +145,13 @@ class UpdateRequirementsCommand(BaseDevelCommand):
         return parser
 
     def run_default(self):
+        logger.info('Updating requirements for "{}"...'.format(self.image))
         if self.options.before is True:
             os.system(self.legacy_pip_freeze_command)
         else:
             with open("docker/requirements/python.txt", "w") as output_file:
                 output_file.write(self.get_pip_freeze_output())
+        logger.info('Requirements updated and saved to "docker/requirements/python.txt"')
 
     @property
     def legacy_pip_freeze_command(self):
