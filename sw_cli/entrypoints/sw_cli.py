@@ -2,14 +2,18 @@
 
 import os
 import sys
+import logging
 
 from sw_cli import commands
-from sw_cli import logging
+from sw_cli import logging as sw_cli_logging
 from sw_cli.commands import help
 
 
+logger = logging.getLogger(__name__)
+
+
 def run():
-    logging.init_logging()
+    sw_cli_logging.init_logging()
     try:
         command_name = sys.argv[1]
         sw_cli_name = os.path.basename(sys.argv[0])
@@ -23,7 +27,7 @@ def run_command(command_name, sw_cli_name, arguments):
     for command in commands.get_all_commands():
         if command_name == command.name:
             command.source(sw_cli_name, command_name, arguments, **command.kwargs).run()
-            print('Done')
+            logger.info('Done')
             break
     else:
         help.HelpCommand.print_basic_help()
