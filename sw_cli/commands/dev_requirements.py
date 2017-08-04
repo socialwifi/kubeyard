@@ -55,7 +55,7 @@ class PostgresRunningEnsurer(dependencies.ContainerRunningEnsurer):
     started_log = 'PostgreSQL init process complete; ready for start up.'
 
     def docker_run(self):
-        self.docker_runner.run(
+        self.docker_runner.run_with_output(
             'run', '-d', '--restart=always',
             '--name={}'.format(self.name),
             '-p', '172.17.0.1:35432:5432',
@@ -83,7 +83,7 @@ class ElasticsearchRunningEnsurer(dependencies.ContainerRunningEnsurer):
     started_log = '] started'
 
     def docker_run(self):
-        self.docker_runner.run(
+        self.docker_runner.run_with_output(
             'run', '-d', '--restart=always',
             '--name={}'.format(self.name),
             '-e', 'ES_JAVA_OPTS=-Xms200m -Xmx200m',
@@ -136,7 +136,7 @@ class PubSubRunningEnsurer(dependencies.ContainerRunningEnsurer):
     look_in_stream = 'err'
 
     def docker_run(self):
-        self.docker_runner.run(
+        self.docker_runner.run_with_output(
             'run', '-d', '--restart=always',
             '--name={}'.format(self.name),
             '-p', '172.17.0.1:8042:8042',
@@ -178,7 +178,7 @@ class RedisRunningEnsurer(dependencies.ContainerRunningEnsurer):
     look_in_stream = 'out'
 
     def docker_run(self):
-        self.docker_runner.run(
+        self.docker_runner.run_with_output(
             'run', '-d', '--restart=always',
             '--name={}'.format(self.name),
             '-p', '172.17.0.1:6379:6379',
@@ -224,7 +224,7 @@ class CassandraRunningEnsurer(dependencies.ContainerRunningEnsurer):
     started_log = "Created default superuser role 'cassandra'"
 
     def docker_run(self):
-        self.docker_runner.run(
+        self.docker_runner.run_with_output(
             'run', '-d', '--restart=always', '--name={}'.format(self.name),
             '-e', 'HEAP_NEWSIZE=1M', '-e', 'MAX_HEAP_SIZE=128M',
             '-p', '172.17.0.1:9042:9042',
