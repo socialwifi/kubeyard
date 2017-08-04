@@ -35,6 +35,16 @@ class BaseCommand:
 
 
 class InitialisedRepositoryCommand(BaseCommand):
+    def run(self):
+        self.set_log_level()
+
+    def set_log_level(self):
+        logging.getLogger('sw_cli').setLevel(self.log_level)
+
+    @property
+    def log_level(self):
+        return self.options.log_level or self.context.get('SWCLI_LOG_LEVEL', settings.DEFAULT_SWCLI_LOG_LEVEL)
+
     @cached_property
     def context(self):
         try:
@@ -52,4 +62,6 @@ class InitialisedRepositoryCommand(BaseCommand):
         parser = super().get_parser(**kwargs)
         parser.add_argument("--directory", dest="directory", default=settings.DEFAULT_SWCLI_PROJECT_DIR,
                             help="Select project root directory.")
+        parser.add_argument("--verbose", dest="log_level", action='store_const', const='DEBUG', default=None,
+                            help="Outputs debug logs.")
         return parser

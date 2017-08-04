@@ -12,6 +12,9 @@ logger = logging.getLogger(__name__)
 
 
 class JenkinsCommand(base_command.InitialisedRepositoryCommand):
+    def run(self):
+        super().run()
+
     @cached_property
     def server(self):
         username, password = self.get_credentials()
@@ -36,6 +39,7 @@ class JenkinsInfoCommand(JenkinsCommand):
     Displays info about jenkins user.
     """
     def run(self):
+        super().run()
         print(self.server.get_whoami())
 
 
@@ -45,6 +49,7 @@ class JenkinsInitCommand(JenkinsCommand):
     jenkins.
     """
     def run(self):
+        super().run()
         job_name = self.context['DOCKER_IMAGE_NAME']
         logger.info('Creating Jenkins job: "{}"...'.format(job_name))
         config_filepath = self.context.get('JENKINS_JOB_CONFIG_FILEPATH', settings.DEFAULT_JENKINS_JOB_CONFIG_FILEPATH)
@@ -63,6 +68,7 @@ class JenkinsReconfigCommand(JenkinsCommand):
     jenkins.
     """
     def run(self):
+        super().run()
         job_name = self.context['DOCKER_IMAGE_NAME']
         logger.info('Reconfiguring Jenkins job: "{}"...'.format(job_name))
         config_filepath = self.context.get('JENKINS_JOB_CONFIG_FILEPATH', settings.DEFAULT_JENKINS_JOB_CONFIG_FILEPATH)
@@ -80,6 +86,7 @@ class JenkinsBuildCommand(JenkinsCommand):
     Runs jenkins deploy job defined in repository. Requires run privileges on jenkins.
     """
     def run(self):
+        super().run()
         job_name = self.context['DOCKER_IMAGE_NAME']
         logger.info('Starting jenkins job: "{}"...'.format(job_name))
         self.server.build_job(job_name)

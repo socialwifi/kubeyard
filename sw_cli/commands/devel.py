@@ -32,6 +32,7 @@ class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
         self.docker_runner = DockerRunner(self.context)
 
     def run(self):
+        super().run()
         if self.options.default:
             self.run_default()
         else:

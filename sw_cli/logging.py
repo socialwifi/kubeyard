@@ -42,7 +42,7 @@ def init_logging():
         },
         'loggers': {
             'sw_cli': {
-                'level': logging.DEBUG,
+                'level': logging.INFO,
                 'handlers': ['console-colored'],
                 'propagate': False,
             },

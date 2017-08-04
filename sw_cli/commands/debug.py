@@ -8,4 +8,5 @@ class DebugCommand(base_command.InitialisedRepositoryCommand):
     Prints current context.
     """
     def run(self):
+        super().run()
         pprint(self.context)

@@ -27,7 +27,8 @@ class CustomScriptCommand(base_command.InitialisedRepositoryCommand):
         return parser.parse_known_args()[0]
 
     def run(self):
-        logger.info('Running custom script "{}"...'.format(self.script_name))
+        super().run()
+        logger.info('Running custom script command "{}"...'.format(self.script_name))
         try:
             CustomScriptRunner(self.project_dir, self.context).run(self.script_name, self.args)
         except CustomScriptException as e:

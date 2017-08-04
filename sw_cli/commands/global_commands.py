@@ -7,8 +7,9 @@ import yaml
 from sw_cli import ascii_art
 from sw_cli import base_command
 from sw_cli import context_factories
-from sw_cli import kubernetes
 from sw_cli import dependencies
+from sw_cli import kubernetes
+from sw_cli import settings
 
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,8 @@ class SetupCommand(GlobalCommand):
         user_context = self.get_current_user_context()
         if 'SWCLI_GLOBAL_SECRETS' not in user_context:
             user_context['SWCLI_GLOBAL_SECRETS'] = str(self.default_global_secrets_directory)
+        if 'SWCLI_LOG_LEVEL' not in user_context:
+            user_context['SWCLI_LOG_LEVEL'] = settings.DEFAULT_SWCLI_LOG_LEVEL
         sw_cli_mode = self.get_sw_cli_mode()
         user_context['SWCLI_MODE'] = sw_cli_mode
         self.print_info(sw_cli_mode)
