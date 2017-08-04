@@ -15,8 +15,8 @@ def ensure_minikube_set_up():
 
 
 def ensure_minikube_started():
-    status = sh.minikube('status', '--format={{.MinikubeStatus}}')
-    if status.strip().lower() != 'running':
+    running_machines = sh.VBoxManage('list', 'runningvms')
+    if 'minikube' not in running_machines:
         logger.info("Starting minikube...")
         minikube_iso = 'https://storage.googleapis.com/minikube-builds/1542/minikube-testing.iso'
         sh.minikube('start', '--memory', '4096', '--iso-url', minikube_iso)
