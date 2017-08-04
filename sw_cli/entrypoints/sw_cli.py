@@ -4,10 +4,12 @@ import os
 import sys
 
 from sw_cli import commands
+from sw_cli import logging
 from sw_cli.commands import help
 
 
 def run():
+    logging.init_logging()
     try:
         command_name = sys.argv[1]
         sw_cli_name = os.path.basename(sys.argv[0])
