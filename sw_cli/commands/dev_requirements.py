@@ -48,16 +48,16 @@ class SetupDevDbCommand(SetupDevBaseCommand):
         PostgresRunningEnsurer(self.docker_runner, postgres_name).ensure()
 
     def ensure_database_present(self, postgres_name, database_name):
-        logger.info('Ensuring that database "{}" exists...]'.format(database_name))
+        logger.debug('Ensuring that database "{}" exists...'.format(database_name))
         try:
             self.docker_runner.run('exec', postgres_name, 'createdb', database_name, '-U', 'postgres')
         except sh.ErrorReturnCode as e:
             if b'already exists' not in e.stderr:
                 raise e
             else:
-                logger.info('Database "{}" exists'.format(database_name))
+                logger.debug('Database "{}" exists'.format(database_name))
         else:
-            logger.info('Database "{}" created'.format(database_name))
+            logger.debug('Database "{}" created'.format(database_name))
 
 
 class PostgresRunningEnsurer(dependencies.ContainerRunningEnsurer):
@@ -119,7 +119,7 @@ class SetupPubSubEmulatorCommand(SetupDevBaseCommand):
         try:
             subscription_name = arguments['subscription']
         except KeyError:
-            logger.info("Subscription not specified, it won't be created")
+            logger.debug("Subscription not specified, it won't be created")
         else:
             self.ensure_subscription_present(pubsub_name, topic_name, subscription_name)
 
@@ -127,28 +127,28 @@ class SetupPubSubEmulatorCommand(SetupDevBaseCommand):
         PubSubRunningEnsurer(self.docker_runner, pubsub_name).ensure()
 
     def ensure_topic_present(self, pubsub_name, topic_name):
-        logger.info('Ensuring that topic "{}" exists...'.format(topic_name))
+        logger.debug('Ensuring that topic "{}" exists...'.format(topic_name))
         try:
             self.docker_runner.run('exec', pubsub_name, 'pubsub_add_topic', topic_name)
         except sh.ErrorReturnCode as e:
             if b'Topic already exists' not in e.stderr:
                 raise
             else:
-                logger.info('Topic "{}" exists'.format(topic_name))
+                logger.debug('Topic "{}" exists'.format(topic_name))
         else:
-            logger.info('Topic "{}" created'.format(topic_name))
+            logger.debug('Topic "{}" created'.format(topic_name))
 
     def ensure_subscription_present(self, pubsub_name, topic_name, subscription_name):
-        logger.info('Ensuring that subscription "{}" exists...'.format(subscription_name))
+        logger.debug('Ensuring that subscription "{}" exists...'.format(subscription_name))
         try:
             self.docker_runner.run('exec', pubsub_name, 'pubsub_add_subscription', topic_name, subscription_name)
         except sh.ErrorReturnCode as e:
             if b'Subscription already exists' not in e.stderr:
                 raise
             else:
-                logger.info('Subscription "{}" exists'.format(subscription_name))
+                logger.debug('Subscription "{}" exists'.format(subscription_name))
         else:
-            logger.info('Subscription "{}" created'.format(subscription_name))
+            logger.debug('Subscription "{}" created'.format(subscription_name))
 
 
 class PubSubRunningEnsurer(dependencies.ContainerRunningEnsurer):
@@ -230,7 +230,7 @@ class SetupDevCassandraCommand(SetupDevBaseCommand):
         CassandraRunningEnsurer(self.docker_runner, cassandra_name).ensure()
 
     def ensure_database_present(self, cassandra_name, keyspace_name):
-        logger.info('Ensuring that keyspace "{}" exists...'.format(keyspace_name))
+        logger.debug('Ensuring that keyspace "{}" exists...'.format(keyspace_name))
         query = ("create keyspace %s with replication = {'class': 'SimpleStrategy', "
                  "'replication_factor': 1}" % keyspace_name)
         try:
@@ -239,9 +239,9 @@ class SetupDevCassandraCommand(SetupDevBaseCommand):
             if b'already exists' not in e.stderr:
                 raise e
             else:
-                logger.info('Keyspace "{}" exists'.format(keyspace_name))
+                logger.debug('Keyspace "{}" exists'.format(keyspace_name))
         else:
-            logger.info('Keyspace "{}" created'.format(keyspace_name))
+            logger.debug('Keyspace "{}" created'.format(keyspace_name))
 
 
 class CassandraRunningEnsurer(dependencies.ContainerRunningEnsurer):
