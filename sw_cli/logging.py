@@ -8,11 +8,13 @@ def init_logging():
         'disable_existing_loggers': False,
         'formatters': {
             'simple': {
-                'format': '[%(levelname)s] %(name)s %(message)s'
+                'format': '%(asctime)s [%(levelname)s] %(name)s %(message)s',
+                'datefmt': '%H:%M:%S',
             },
             'colored': {
                 '()': 'colorlog.ColoredFormatter',
-                'fmt': '%(log_color)s[%(levelname)s]%(reset)s %(message)s',
+                'fmt': '%(asctime)s %(log_color)s[%(levelname)s]%(reset)s %(message)s',
+                'datefmt': '%H:%M:%S',
                 'log_colors': {
                     'DEBUG':    'cyan',
                     'INFO':     'white',
