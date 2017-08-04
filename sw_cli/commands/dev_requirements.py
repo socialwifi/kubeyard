@@ -8,8 +8,6 @@ from sw_cli.commands.devel import DockerRunner
 
 logger = logging.getLogger(__name__)
 
-MAX_JOB_RETRIES = 10
-
 
 class SetupDevBaseCommand:
     valid_arguments = ()
