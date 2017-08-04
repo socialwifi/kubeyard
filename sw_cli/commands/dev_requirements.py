@@ -21,12 +21,6 @@ class SetupDevBaseCommand:
             print('dev requirement configuration not valid [{}]\n'
                   'valid options: {}'.format(arguments, self.valid_arguments))
 
-    def docker(self, *args, **kwargs):
-        return self.docker_runner.run(*args, **kwargs)
-
-    def docker_with_output(self, *args, **kwargs):
-        return self.docker_runner.run_with_output(*args, **kwargs)
-
     def run(self, arguments: dict):
         raise NotImplementedError
 
@@ -46,11 +40,11 @@ class SetupDevDbCommand(SetupDevBaseCommand):
         self.ensure_database_present(postgres_name, database_name)
 
     def ensure_postgres_running(self, postgres_name):
-        PostgresRunningEnsurer(self.docker, postgres_name).ensure()
+        PostgresRunningEnsurer(self.docker_runner, postgres_name).ensure()
 
     def ensure_database_present(self, postgres_name, database_name):
         try:
-            self.docker('exec', postgres_name, 'createdb', database_name, '-U', 'postgres')
+            self.docker_runner.run('exec', postgres_name, 'createdb', database_name, '-U', 'postgres')
         except sh.ErrorReturnCode as e:
             if b'already exists' not in e.stderr:
                 raise e
@@ -61,10 +55,11 @@ class PostgresRunningEnsurer(dependencies.ContainerRunningEnsurer):
     started_log = 'PostgreSQL init process complete; ready for start up.'
 
     def docker_run(self):
-        self.docker('run', '-d', '--restart=always',
-                    '--name={}'.format(self.name),
-                    '-p', '172.17.0.1:35432:5432',
-                    'postgres:{}'.format(self.postgres_version))
+        self.docker_runner.run(
+            'run', '-d', '--restart=always',
+            '--name={}'.format(self.name),
+            '-p', '172.17.0.1:35432:5432',
+            'postgres:{}'.format(self.postgres_version))
 
 
 class SetupDevElasticsearchCommand(SetupDevBaseCommand):
@@ -80,7 +75,7 @@ class SetupDevElasticsearchCommand(SetupDevBaseCommand):
         self.ensure_elastic_running(elastic_name)
 
     def ensure_elastic_running(self, elastic_name):
-        ElasticsearchRunningEnsurer(self.docker, elastic_name).ensure()
+        ElasticsearchRunningEnsurer(self.docker_runner, elastic_name).ensure()
 
 
 class ElasticsearchRunningEnsurer(dependencies.ContainerRunningEnsurer):
@@ -88,12 +83,13 @@ class ElasticsearchRunningEnsurer(dependencies.ContainerRunningEnsurer):
     started_log = '] started'
 
     def docker_run(self):
-        self.docker('run', '-d', '--restart=always',
-                    '--name={}'.format(self.name),
-                    '-e', 'ES_JAVA_OPTS=-Xms200m -Xmx200m',
-                    '-p', '172.17.0.1:9300:9300',
-                    '-p', '172.17.0.1:9200:9200',
-                    'elasticsearch:{}'.format(self.elastic_version))
+        self.docker_runner.run(
+            'run', '-d', '--restart=always',
+            '--name={}'.format(self.name),
+            '-e', 'ES_JAVA_OPTS=-Xms200m -Xmx200m',
+            '-p', '172.17.0.1:9300:9300',
+            '-p', '172.17.0.1:9200:9200',
+            'elasticsearch:{}'.format(self.elastic_version))
 
 
 class SetupPubSubEmulatorCommand(SetupDevBaseCommand):
@@ -118,18 +114,18 @@ class SetupPubSubEmulatorCommand(SetupDevBaseCommand):
             self.ensure_subscription_present(pubsub_name, topic_name, subscription_name)
 
     def ensure_pubsub_running(self, pubsub_name):
-        PubSubRunningEnsurer(self.docker, pubsub_name).ensure()
+        PubSubRunningEnsurer(self.docker_runner, pubsub_name).ensure()
 
     def ensure_topic_present(self, pubsub_name, topic_name):
         try:
-            self.docker('exec', pubsub_name, 'pubsub_add_topic', topic_name)
+            self.docker_runner.run('exec', pubsub_name, 'pubsub_add_topic', topic_name)
         except sh.ErrorReturnCode as e:
             if b'Topic already exists' not in e.stderr:
                 raise
 
     def ensure_subscription_present(self, pubsub_name, topic_name, subscription_name):
         try:
-            self.docker('exec', pubsub_name, 'pubsub_add_subscription', topic_name, subscription_name)
+            self.docker_runner.run('exec', pubsub_name, 'pubsub_add_subscription', topic_name, subscription_name)
         except sh.ErrorReturnCode as e:
             if b'Subscription already exists' not in e.stderr:
                 raise
@@ -140,10 +136,11 @@ class PubSubRunningEnsurer(dependencies.ContainerRunningEnsurer):
     look_in_stream = 'err'
 
     def docker_run(self):
-        self.docker('run', '-d', '--restart=always',
-                    '--name={}'.format(self.name),
-                    '-p', '172.17.0.1:8042:8042',
-                    'docker.socialwifi.com/sw-pubsub-emulator-helper')
+        self.docker_runner.run(
+            'run', '-d', '--restart=always',
+            '--name={}'.format(self.name),
+            '-p', '172.17.0.1:8042:8042',
+            'docker.socialwifi.com/sw-pubsub-emulator-helper')
 
 
 class SetupDevRedisCommand(SetupDevBaseCommand):
@@ -173,7 +170,7 @@ class SetupDevRedisCommand(SetupDevBaseCommand):
         return self.context['KUBE_SERVICE_NAME']
 
     def ensure_redis_running(self, redis_name):
-        RedisRunningEnsurer(self.docker, redis_name).ensure()
+        RedisRunningEnsurer(self.docker_runner, redis_name).ensure()
 
 
 class RedisRunningEnsurer(dependencies.ContainerRunningEnsurer):
@@ -181,10 +178,11 @@ class RedisRunningEnsurer(dependencies.ContainerRunningEnsurer):
     look_in_stream = 'out'
 
     def docker_run(self):
-        self.docker('run', '-d', '--restart=always',
-                    '--name={}'.format(self.name),
-                    '-p', '172.17.0.1:6379:6379',
-                    'redis:3.0.7')
+        self.docker_runner.run(
+            'run', '-d', '--restart=always',
+            '--name={}'.format(self.name),
+            '-p', '172.17.0.1:6379:6379',
+            'redis:3.0.7')
 
 
 class SetupDevCassandraCommand(SetupDevBaseCommand):
@@ -209,13 +207,13 @@ class SetupDevCassandraCommand(SetupDevBaseCommand):
         return cleaned
 
     def ensure_cassandra_running(self, cassandra_name):
-        CassandraRunningEnsurer(self.docker, cassandra_name).ensure()
+        CassandraRunningEnsurer(self.docker_runner, cassandra_name).ensure()
 
     def ensure_database_present(self, cassandra_name, keyspace_name):
         query = ("create keyspace %s with replication = {'class': 'SimpleStrategy', "
                  "'replication_factor': 1}" % keyspace_name)
         try:
-            self.docker('exec', cassandra_name, 'cqlsh', '-e', query)
+            self.docker_runner.run('exec', cassandra_name, 'cqlsh', '-e', query)
         except sh.ErrorReturnCode as e:
             if b'already exists' not in e.stderr:
                 raise e
@@ -226,10 +224,11 @@ class CassandraRunningEnsurer(dependencies.ContainerRunningEnsurer):
     started_log = "Created default superuser role 'cassandra'"
 
     def docker_run(self):
-        self.docker('run', '-d', '--restart=always', '--name={}'.format(self.name),
-                    '-e', 'HEAP_NEWSIZE=1M', '-e', 'MAX_HEAP_SIZE=128M',
-                    '-p', '172.17.0.1:9042:9042',
-                    'cassandra:{}'.format(self.cassandra_version))
+        self.docker_runner.run(
+            'run', '-d', '--restart=always', '--name={}'.format(self.name),
+            '-e', 'HEAP_NEWSIZE=1M', '-e', 'MAX_HEAP_SIZE=128M',
+            '-p', '172.17.0.1:9042:9042',
+            'cassandra:{}'.format(self.cassandra_version))
 
 
 class SetupDevCommandDispatcher:
