@@ -294,7 +294,9 @@ class DeployCommand(BaseDevelCommand):
             max_job_retries=MAX_JOB_RETRIES,
         )
         kubernetes.install_secrets(self.context)
+        logger.info('Applying Kubernetes definitions from YAML files...')
         kubepy.appliers.DirectoriesApplier(self.definition_directories, options).apply_all()
+        logger.info('Kubernetes definitions applied')
 
     @property
     def definition_directories(self):

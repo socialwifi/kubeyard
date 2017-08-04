@@ -1,4 +1,5 @@
 import contextlib
+import logging
 import socket
 
 import pathlib
@@ -11,18 +12,25 @@ from sw_cli import settings
 from sw_cli import minikube
 
 
+logger = logging.getLogger(__name__)
+
+
 def setup_cluster_context(context):
     _get_kubernetes_commands(context).context_setup()
 
 
 def install_secrets(context):
+    logger.info('Installing secrets...')
     _get_kubernetes_commands(context).install_secrets()
+    logger.info('Secrets installed')
 
 
 def install_global_secrets(context):
+    logger.info('Installing global secrets...')
     for path in pathlib.Path(context['SWCLI_GLOBAL_SECRETS']).iterdir():
         if path.is_dir():
             GlobalSecretsInstaller(context, path.name).install()
+    logger.info('Global secrets installed')
 
 
 def get_global_secrets_manipulator(context, secret_name):
