@@ -1,6 +1,10 @@
 import contextlib
+import logging
 
 import sh
+
+
+logger = logging.getLogger(__name__)
 
 
 def is_command_available(name):
@@ -20,18 +24,23 @@ class ContainerRunningEnsurer:
         self.name = name
 
     def ensure(self):
+        logger.info('Checking if container "{}" is running...'.format(self.name))
         try:
             container_status = str(self.docker_runner.run('inspect', '--format={{.State.Status}}', self.name)).strip()
         except sh.ErrorReturnCode:
             container_status = 'error'
-        if container_status != 'running':
+        if container_status == 'running':
+            logger.info('{} is running'.format(self.name))
+        else:
             with contextlib.suppress(sh.ErrorReturnCode):
                 self.docker_runner.run('rm', '-fv', self.name)
+            logger.info('Starting {}...'.format(self.name))
             self.run_container()
+            logger.info('{} started'.format(self.name))
 
     def run_container(self):
-        print('running {}'.format(self.name))
         self.docker_run()
+        logger.info('Waiting for {} to start...'.format(self.name))
         for log in self.docker_runner.run('logs', '-f', self.name, _iter=self.look_in_stream):
             if self.started_log in log:
                 break
