@@ -1,8 +1,12 @@
+import logging
 import os
 
 from cached_property import cached_property
 
 from sw_cli import base_command
+
+
+logger = logging.getLogger(__name__)
 
 
 class CustomScriptException(Exception):
@@ -23,13 +27,13 @@ class CustomScriptCommand(base_command.InitialisedRepositoryCommand):
         return parser.parse_known_args()[0]
 
     def run(self):
-        print("Starting command %s" % self.script_name)
+        logger.info('Running custom script "{}"...'.format(self.script_name))
         try:
             CustomScriptRunner(self.project_dir, self.context).run(self.script_name, self.args)
         except CustomScriptException as e:
             raise base_command.CommandException(*e.args)
         else:
-            print("Done.")
+            logger.info("Done")
 
 
 class CustomScriptRunner:

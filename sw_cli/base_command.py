@@ -1,10 +1,14 @@
 from argparse import ArgumentParser
+import logging
 import pathlib
 
 from cached_property import cached_property
 
 from sw_cli import settings
 from sw_cli import context_factories
+
+
+logger = logging.getLogger(__name__)
 
 
 class CommandException(Exception):
@@ -36,7 +40,7 @@ class InitialisedRepositoryCommand(BaseCommand):
         try:
             return context_factories.InitialisedRepoContextFactory(self.project_dir).get()
         except FileNotFoundError:
-            print("Invalid project root directory: %s. Exiting." % self.project_dir)
+            logger.error("Invalid project root directory: {}. Exiting.".format(self.project_dir))
             exit(1)
 
     @cached_property

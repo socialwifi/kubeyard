@@ -1,6 +1,10 @@
 import functools
+import logging
 
 import sh
+
+
+logger = logging.getLogger(__name__)
 
 DOCKER_ENV_KEYS = ['DOCKER_TLS_VERIFY', 'DOCKER_HOST', 'DOCKER_CERT_PATH', 'DOCKER_API_VERSION']
 
@@ -13,7 +17,7 @@ def ensure_minikube_set_up():
 def ensure_minikube_started():
     status = sh.minikube('status', '--format={{.MinikubeStatus}}')
     if status.strip().lower() != 'running':
-        print("Starting minikube...")
+        logger.info("Starting minikube...")
         minikube_iso = 'https://storage.googleapis.com/minikube-builds/1542/minikube-testing.iso'
         sh.minikube('start', '--memory', '4096', '--iso-url', minikube_iso)
         sh.minikube('ssh', 'sudo sysctl fs.inotify.max_user_watches=16382')
@@ -21,7 +25,7 @@ def ensure_minikube_started():
 
 def ensure_hosthome_mounted():
     if '/hosthome' not in sh.minikube('ssh', 'mount'):
-        print("Preparing hosthome directory...")
+        logger.info("Preparing hosthome directory...")
         try:
             sh.minikube('ssh', 'sudo mkdir /hosthome')
         except sh.ErrorReturnCode_1 as e:

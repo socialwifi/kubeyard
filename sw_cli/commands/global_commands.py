@@ -1,4 +1,5 @@
 import contextlib
+import logging
 import pathlib
 
 import yaml
@@ -8,6 +9,9 @@ from sw_cli import base_command
 from sw_cli import context_factories
 from sw_cli import kubernetes
 from sw_cli import dependencies
+
+
+logger = logging.getLogger(__name__)
 
 
 class GlobalCommand(base_command.BaseCommand):
@@ -41,13 +45,13 @@ class SetupCommand(GlobalCommand):
         minikube_installed = dependencies.is_command_available('minikube')
         if self.options.mode == 'production':
             if minikube_installed:
-                print('Minikube installed! Use --development option')
+                logger.error('Minikube installed! Use --development option')
                 exit(1)
             else:
                 return 'production'
         elif self.options.mode == 'development':
             if not minikube_installed:
-                print('Minikube not installed!')
+                logger.error('Minikube not installed!')
                 exit(1)
             else:
                 return 'development'
@@ -56,7 +60,7 @@ class SetupCommand(GlobalCommand):
 
     def print_info(self, sw_cli_mode):
         ascii_art.print_ascii_art()
-        print('Setting up {} mode'.format(sw_cli_mode))
+        logger.info('Setting up {} mode...'.format(sw_cli_mode))
 
     @property
     def user_context_filepath(self):

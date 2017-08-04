@@ -1,9 +1,14 @@
 import getpass
+import logging
+
 import jenkins
 from cached_property import cached_property
 from sw_cli import settings
 from sw_cli import base_command
 from sw_cli import files_generator
+
+
+logger = logging.getLogger(__name__)
 
 
 class JenkinsCommand(base_command.InitialisedRepositoryCommand):
@@ -41,12 +46,15 @@ class JenkinsInitCommand(JenkinsCommand):
     """
     def run(self):
         job_name = self.context['DOCKER_IMAGE_NAME']
-        print("Initialising jenkins job: %s" % job_name)
+        logger.info('Creating Jenkins job: "{}"...'.format(job_name))
         config_filepath = self.context.get('JENKINS_JOB_CONFIG_FILEPATH', settings.DEFAULT_JENKINS_JOB_CONFIG_FILEPATH)
         self.server.create_job(job_name, self.get_config_xml(config_filepath))
         config_filepath = self.context.get('JENKINS_JOB_TEST_PATCHSET_FILEPATH',
                                            settings.DEFAULT_JENKINS_JOB_TEST_PATCHSET_FILEPATH)
-        self.server.create_job('{} test patchset'.format(job_name), self.get_config_xml(config_filepath))
+        job_name = '{} test patchset'.format(job_name)
+        logger.info('Creating Jenkins job: "{}"...'.format(job_name))
+        self.server.create_job(job_name, self.get_config_xml(config_filepath))
+        logger.info('Done')
 
 
 class JenkinsReconfigCommand(JenkinsCommand):
@@ -56,18 +64,23 @@ class JenkinsReconfigCommand(JenkinsCommand):
     """
     def run(self):
         job_name = self.context['DOCKER_IMAGE_NAME']
-        print("Reconfiguring jenkins job: %s" % job_name)
+        logger.info('Reconfiguring Jenkins job: "{}"...'.format(job_name))
         config_filepath = self.context.get('JENKINS_JOB_CONFIG_FILEPATH', settings.DEFAULT_JENKINS_JOB_CONFIG_FILEPATH)
         self.server.reconfig_job(job_name, self.get_config_xml(config_filepath))
         config_filepath = self.context.get('JENKINS_JOB_TEST_PATCHSET_FILEPATH',
                                            settings.DEFAULT_JENKINS_JOB_TEST_PATCHSET_FILEPATH)
-        self.server.reconfig_job('{} test patchset'.format(job_name), self.get_config_xml(config_filepath))
+        job_name = '{} test patchset'.format(job_name)
+        logger.info('Reconfiguring Jenkins job: "{}"...'.format(job_name))
+        self.server.reconfig_job(job_name, self.get_config_xml(config_filepath))
+        logger.info('Done')
+
 
 class JenkinsBuildCommand(JenkinsCommand):
     """
-    Runs jenkins deplou job defined in repository. Requires run privileges on jenkins.
+    Runs jenkins deploy job defined in repository. Requires run privileges on jenkins.
     """
     def run(self):
         job_name = self.context['DOCKER_IMAGE_NAME']
-        print("building jenkins job: %s" % job_name)
+        logger.info('Starting jenkins job: "{}"...'.format(job_name))
         self.server.build_job(job_name)
+        logger.info('Done')

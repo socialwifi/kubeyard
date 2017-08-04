@@ -1,3 +1,4 @@
+import logging
 import pathlib
 import os
 import sys
@@ -6,17 +7,20 @@ import sw_cli.files_generator
 from sw_cli import base_command
 
 
+logger = logging.getLogger(__name__)
+
+
 class InstallCompletion(base_command.BaseCommand):
     """
     Run this to enable bash completion. It writes /etc/bash_completion.d/sw-cli file. It will work automatically on
     your next bash use. You can enable it in your current sessions by running `. /etc/bash_completion.d/sw-cli`
     """
     def run(self):
-        print("Installing sw-cli...")
+        logger.info("Installing sw-cli...")
         sw_cli_dst = pathlib.Path('/etc/bash_completion.d/sw-cli')
         sw_cli.files_generator.copy_template('sw-cli-completion.sh', sw_cli_dst)
         sw_cli_dst.chmod(0o644)
-        print('Done.')
+        logger.info('Done')
 
 
 class RunCompletion(base_command.BaseCommand):

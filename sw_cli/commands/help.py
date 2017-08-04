@@ -13,12 +13,12 @@ class HelpCommand(base_command.BaseCommand):
                     command.source.get_parser(prog='{} {}'.format(self.sw_cli_name, command.name)).print_help()
                     break
             else:
-                print('{} not found'.format(self.options.command))
+                print('Command "{}" not found!'.format(self.options.command))
                 self.print_basic_help()
         else:
-            print('{} is commandline tool for easier development and deployment of Social WiFi services.'.format(
+            print('{} is a commandline tool for easier development and deployment of Social WiFi services.'.format(
                 self.sw_cli_name))
-            print('For help about specific command use {} {} <command>'.format(self.sw_cli_name, self.command_name))
+            print('For help about specific commands use {} {} <command>.'.format(self.sw_cli_name, self.command_name))
             self.print_basic_help()
 
     @staticmethod

@@ -1,8 +1,12 @@
+import logging
+
 import sh
 
 from sw_cli import dependencies
 from sw_cli import kubernetes
 from sw_cli.commands.devel import DockerRunner
+
+logger = logging.getLogger(__name__)
 
 MAX_JOB_RETRIES = 10
 
@@ -18,8 +22,9 @@ class SetupDevBaseCommand:
         if all(key in self.valid_arguments for key in arguments.keys()):
             self.run(arguments)
         else:
-            print('dev requirement configuration not valid [{}]\n'
-                  'valid options: {}'.format(arguments, self.valid_arguments))
+            logger.warning(
+                'Requirement configuration is not valid: {}\n'
+                'Available options are: {}'.format(arguments, self.valid_arguments))
 
     def run(self, arguments: dict):
         raise NotImplementedError
@@ -109,7 +114,7 @@ class SetupPubSubEmulatorCommand(SetupDevBaseCommand):
         try:
             subscription_name = arguments['subscription']
         except KeyError:
-            print('pubsub subscription not specified, it wont be created!')
+            logger.info("Subscription not specified, it won't be created")
         else:
             self.ensure_subscription_present(pubsub_name, topic_name, subscription_name)
 
@@ -203,7 +208,7 @@ class SetupDevCassandraCommand(SetupDevBaseCommand):
     def clean_keyspace_name(self, original):
         cleaned = original.replace('-', '_')
         if cleaned != original:
-            print("Keyspace name can't contain dashes (-), so it's been changed to: %s" % cleaned)
+            logger.warning("Keyspace name can't contain dashes (-), so it's been changed to: %s" % cleaned)
         return cleaned
 
     def ensure_cassandra_running(self, cassandra_name):
@@ -248,7 +253,7 @@ class SetupDevCommandDispatcher:
             if 'kind' in requirement:
                 self.dispatch(requirement)
             else:
-                print("Skipping dev_requirement without specified 'kind' [{}]".format(requirement))
+                logger.warning("Skipping requirement without specified kind. Requirement: {}".format(requirement))
 
     def dispatch(self, requirement: dict):
         arguments = requirement.copy()
@@ -256,6 +261,6 @@ class SetupDevCommandDispatcher:
         try:
             command = self.commands[kind](self.context)
         except KeyError:
-            print('dev requirement [{}] not supported!'.format(kind))
+            logger.warning('Kind "{}" is not supported!'.format(kind))
         else:
             command(arguments)

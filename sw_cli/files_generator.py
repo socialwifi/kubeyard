@@ -1,10 +1,14 @@
 import collections
 import contextlib
+import logging
 import os
 import pathlib
 import shutil
 
 import jinja2
+
+
+logger = logging.getLogger(__name__)
 
 templates_directory = pathlib.Path(__file__).parent / 'templates'
 jinja_loader = jinja2.FileSystemLoader('/')
@@ -24,7 +28,7 @@ def copy_template(template, destination, context=None, *, replace=False):
             else:
                 file_template = SimpleFileTemplate(path, environment)
             if file_template.destination.exists() and not replace:
-                print('File {} already exists. Skipping.'.format(str(file_template.destination)))
+                logger.warning('File {} already exists. Skipping.'.format(str(file_template.destination)))
             else:
                 file_template.render()
 

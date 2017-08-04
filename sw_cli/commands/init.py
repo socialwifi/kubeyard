@@ -1,4 +1,4 @@
-from argparse import ArgumentParser
+import logging
 import pathlib
 
 
@@ -6,6 +6,9 @@ import sw_cli.files_generator
 from sw_cli import base_command
 from sw_cli import context_factories
 from sw_cli import settings
+
+
+logger = logging.getLogger(__name__)
 
 
 class InitCommand(base_command.BaseCommand):
@@ -16,12 +19,12 @@ class InitCommand(base_command.BaseCommand):
     By default it uses python application template.
     """
     def run(self):
-        print("Initialising repo...")
+        logger.info("Initialising repo...")
         init_type = self.options.init_type
         project_dst = pathlib.Path(self.options.directory)
         context = context_factories.EmptyRepoContextFactory(self.options.directory, init_type.prompted_context).get()
         sw_cli.files_generator.copy_template(init_type.template_directory, project_dst, context=context)
-        print('Done.')
+        logger.info('Done')
 
     @classmethod
     def get_parser(cls, **kwargs):
