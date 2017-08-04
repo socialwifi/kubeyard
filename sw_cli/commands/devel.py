@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 import sys
 
@@ -14,6 +15,9 @@ from sw_cli import kubernetes
 from sw_cli import minikube
 from sw_cli import settings
 from sw_cli.commands import custom_script
+
+
+logger = logging.getLogger(__name__)
 
 MAX_JOB_RETRIES = 10
 
@@ -42,8 +46,10 @@ class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
         return parser.parse_known_args()[0]
 
     def _prepare_minikube(self):
+        logger.info('Checking if minikube is running and configured...')
         minikube.ensure_minikube_set_up()
         self.context.update(minikube.docker_env())
+        logger.info('Minikube is ready')
 
     @classmethod
     def get_parser(cls, **kwargs):
@@ -108,6 +114,7 @@ class BuildCommand(BaseDevelCommand):
 
     def run_default(self):
         image_context = self.options.image_context or "{0}/docker".format(self.project_dir)
+        logger.info('Building image "{}"...'.format(self.image))
         self.docker_with_output('build', '-t', self.image, image_context)
 
     @classmethod
@@ -312,9 +319,11 @@ class DeployCommand(BaseDevelCommand):
             return {}
 
     def run_dev_requirements_deploy(self):
+        logger.info('Checking development requirements...')
         from sw_cli.commands.dev_requirements import SetupDevCommandDispatcher
         dispatcher = SetupDevCommandDispatcher(self.context)
         dispatcher.dispatch_all(self.dev_requirements)
+        logger.info('Development requirements are satisfied')
 
     @property
     def dev_requirements(self):
