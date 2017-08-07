@@ -89,7 +89,7 @@ class DevelopmentKubernetesContext(BaseKubernetesContext):
     debug = 'True'
 
     def setup(self):
-        minikube.ensure_minikube_set_up()
+        minikube.ensure_minikube_started()
         super().setup()
 
     @property

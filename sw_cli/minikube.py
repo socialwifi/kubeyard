@@ -9,18 +9,18 @@ logger = logging.getLogger(__name__)
 DOCKER_ENV_KEYS = ['DOCKER_TLS_VERIFY', 'DOCKER_HOST', 'DOCKER_CERT_PATH', 'DOCKER_API_VERSION']
 
 
-def ensure_minikube_set_up():
-    ensure_minikube_started()
-    ensure_hosthome_mounted()
-
-
 def ensure_minikube_started():
     running_machines = sh.VBoxManage('list', 'runningvms')
     if 'minikube' not in running_machines:
-        logger.info("Starting minikube...")
-        minikube_iso = 'https://storage.googleapis.com/minikube-builds/1542/minikube-testing.iso'
-        sh.minikube('start', '--memory', '4096', '--iso-url', minikube_iso)
-        sh.minikube('ssh', 'sudo sysctl fs.inotify.max_user_watches=16382')
+        start_minikube()
+        ensure_hosthome_mounted()
+
+
+def start_minikube():
+    logger.info("Starting minikube...")
+    minikube_iso = 'https://storage.googleapis.com/minikube-builds/1542/minikube-testing.iso'
+    sh.minikube('start', '--memory', '4096', '--iso-url', minikube_iso)
+    sh.minikube('ssh', 'sudo sysctl fs.inotify.max_user_watches=16382')
 
 
 def ensure_hosthome_mounted():

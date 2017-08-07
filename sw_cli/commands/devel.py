@@ -46,7 +46,7 @@ class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
 
     def _prepare_minikube(self):
         logger.info('Checking if minikube is running and configured...')
-        minikube.ensure_minikube_set_up()
+        minikube.ensure_minikube_started()
         self.context.update(minikube.docker_env())
         logger.info('Minikube is ready')
 
