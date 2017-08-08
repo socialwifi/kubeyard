@@ -29,6 +29,7 @@ class RunCompletion(base_command.BaseCommand):
     from its start to cursor position.
     """
     def run(self):
+        logging.getLogger('sw_cli').setLevel('WARNING')
         line = os.environ.get('COMP_LINE', '')
         point = int(os.environ.get('COMP_POINT', '0'))
         prefix = line[:point].split(' ')[-1]
