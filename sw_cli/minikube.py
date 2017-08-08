@@ -1,5 +1,6 @@
 import functools
 import logging
+import re
 
 import sh
 
@@ -7,19 +8,34 @@ import sh
 logger = logging.getLogger(__name__)
 
 DOCKER_ENV_KEYS = ['DOCKER_TLS_VERIFY', 'DOCKER_HOST', 'DOCKER_CERT_PATH', 'DOCKER_API_VERSION']
+MINIMUM_MINIKUBE_VERSION = (0, 21, 0)
 
 
 def ensure_minikube_started():
     running_machines = sh.VBoxManage('list', 'runningvms')
     if 'minikube' not in running_machines:
+        check_minikube_version()
         start_minikube()
         ensure_hosthome_mounted()
 
 
+def check_minikube_version():
+    version = str(sh.minikube('version'))
+    version_pattern = r'v(\d+)\.(\d+)\.(\d+)'
+    match = re.search(version_pattern, version)
+    if not match:
+        logger.warning('Could not determine minikube version. Got: "{}"'.format(version))
+    else:
+        version = tuple(map(int, match.groups()))
+        if version < MINIMUM_MINIKUBE_VERSION:
+            logger.warning('Minikube version {} is not supported, you may run into issues. '
+                           'Minimum supported version: {}'.format(version, MINIMUM_MINIKUBE_VERSION))
+
+
 def start_minikube():
     logger.info("Starting minikube...")
-    minikube_iso = 'https://storage.googleapis.com/minikube-builds/1542/minikube-testing.iso'
-    sh.minikube('start', '--memory', '4096', '--iso-url', minikube_iso)
+    minikube_iso = 'https://storage.googleapis.com/minikube/iso/minikube-v0.23.2.iso'
+    sh.minikube('start', '--memory', '4096', '--iso-url', minikube_iso, '--docker-opt', 'storage-driver=overlay2')
     sh.minikube('ssh', 'sudo sysctl fs.inotify.max_user_watches=16382')
 
 
