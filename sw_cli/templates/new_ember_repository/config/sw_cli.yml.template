@@ -5,7 +5,7 @@ kube_live_reload_port: "{{ KUBE_LIVE_RELOAD_PORT }}"
 jenkins_url: "{{ JENKINS_URL }}"
 jenkins_email_recipients: "{{ JENKINS_EMAIL_RECIPIENTS }}"
 dev_mounted_paths:
-  - name: dev-volume
+  - name: dev-app-volume
     host-path: docker/source/app
     mount-in-tests:
       path: /ember-app/app
@@ -15,4 +15,29 @@ dev_mounted_paths:
     mount-in-tests:
       path: /ember-app/tests
       image-name: {{ DOCKER_IMAGE_NAME }}
+  - name: dev-coverage-volume
+    host-path: docker/source/coverage
+    mount-in-tests:
+      path: /ember-app/coverage
+      mount-mode: rw
+      image-name: {{ DOCKER_IMAGE_NAME }}
+  - name: dev-config-volume
+    host-path: docker/source/config
+    mount-in-tests:
+      path: /ember-app/config
+      image-name: {{ DOCKER_IMAGE_NAME }}
+  - name: dev-mirage-volume
+    host-path: docker/source/mirage
+    mount-in-tests:
+      path: /ember-app/mirage
+      image-name: {{ DOCKER_IMAGE_NAME }}
+  - name: dev-package-json-volume
+    host-path: docker/source
+  - name: dev-yarn-lock-volume
+    host-path: docker/source
+  - name: dev-bower-json-volume
+    host-path: docker/source
+  - name: dev-ember-cli-build-js-volume
+    host-path: docker/source
 statics_directory: {{ DOCKER_IMAGE_NAME }}
+

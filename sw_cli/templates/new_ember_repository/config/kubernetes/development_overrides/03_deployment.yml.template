@@ -21,9 +21,25 @@ spec:
           requests:
             cpu: 10m
         volumeMounts:
-        - name: dev-volume
+        - name: dev-app-volume
           mountPath: /ember-app/app
         - name: dev-test-volume
           mountPath: /ember-app/tests
+        - name: dev-config-volume
+          mountPath: /ember-app/config
+        - name: dev-mirage-volume
+          mountPath: /ember-app/mirage
+        - name: dev-package-json-volume
+          mountPath: /ember-app/package.json
+          subPath: package.json
+        - name: dev-yarn-lock-volume
+          mountPath: /ember-app/yarn.lock
+          subPath: yarn.lock
+        - name: dev-bower-json-volume
+          mountPath: /ember-app/bower.json
+          subPath: bower.json
+        - name: dev-ember-cli-build-js-volume
+          mountPath: /ember-app/ember-cli-build.js
+          subPath: ember-cli-build.js
       imagePullSecrets:
       - name: docker.socialwifi.com
