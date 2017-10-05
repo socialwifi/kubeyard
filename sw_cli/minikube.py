@@ -38,6 +38,7 @@ def start_minikube():
     minikube_iso = 'https://storage.googleapis.com/minikube/iso/minikube-v0.23.2.iso'
     sh.minikube('start',
                 '--memory', '4096',
+                '--disk-size', '30g',
                 '--iso-url', minikube_iso,
                 '--docker-opt', 'storage-driver=overlay2',
                 _out=sys.stdout.buffer, _err=sys.stdout.buffer)
