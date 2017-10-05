@@ -35,7 +35,7 @@ def check_minikube_version():
 
 def start_minikube():
     logger.info("Starting minikube...")
-    minikube_iso = 'https://storage.googleapis.com/minikube/iso/minikube-v0.23.2.iso'
+    minikube_iso = 'https://storage.googleapis.com/minikube/iso/minikube-v0.23.4.iso'
     sh.minikube('start',
                 '--memory', '4096',
                 '--disk-size', '30g',
