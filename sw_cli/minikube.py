@@ -36,8 +36,11 @@ def check_minikube_version():
 def start_minikube():
     logger.info("Starting minikube...")
     minikube_iso = 'https://storage.googleapis.com/minikube/iso/minikube-v0.23.2.iso'
-    sh.minikube('start', '--memory', '4096', '--iso-url', minikube_iso, '--docker-opt', 'storage-driver=overlay2',
-                _out=sys.stdout.buffer, _err=sys.stdout.buffer,)
+    sh.minikube('start',
+                '--memory', '4096',
+                '--iso-url', minikube_iso,
+                '--docker-opt', 'storage-driver=overlay2',
+                _out=sys.stdout.buffer, _err=sys.stdout.buffer)
     sh.minikube('ssh', 'sudo sysctl fs.inotify.max_user_watches=16382')
 
 
