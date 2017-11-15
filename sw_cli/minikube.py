@@ -4,12 +4,15 @@ import sys
 
 import sh
 
+from sw_cli import settings
+
 
 logger = logging.getLogger(__name__)
 
 
-def cluster_factory():
-    return VirtualboxCluster()
+def cluster_factory(context):
+    vm_driver = context.get('SWCLI_VM_DRIVER', settings.DEFAULT_SWCLI_VM_DRIVER)
+    return CLUSTER_VM_DRIVERS[vm_driver]()
 
 
 class Cluster:
@@ -92,3 +95,8 @@ class VirtualboxCluster(Cluster):
         result = sh.bash('-c', 'eval $(minikube docker-env); echo "%s"' % '|'.join(variables))
         values = result.strip("\n").split('|')
         return dict(zip(self.docker_env_keys, values))
+
+
+CLUSTER_VM_DRIVERS = {
+    'virtualbox': VirtualboxCluster,
+}

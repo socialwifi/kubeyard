@@ -33,6 +33,8 @@ class SetupCommand(GlobalCommand):
             user_context['SWCLI_GLOBAL_SECRETS'] = str(self.default_global_secrets_directory)
         if 'SWCLI_LOG_LEVEL' not in user_context:
             user_context['SWCLI_LOG_LEVEL'] = settings.DEFAULT_SWCLI_LOG_LEVEL
+        if 'SWCLI_VM_DRIVER' not in user_context:
+            user_context['SWCLI_VM_DRIVER'] = settings.DEFAULT_SWCLI_VM_DRIVER
         sw_cli_mode = self.get_sw_cli_mode()
         user_context['SWCLI_MODE'] = sw_cli_mode
         self.print_info(sw_cli_mode)

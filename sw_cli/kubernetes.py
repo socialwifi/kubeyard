@@ -43,7 +43,7 @@ def get_global_secrets_manipulator(context, secret_name):
 def _get_kubernetes_commands(context):
     if context['SWCLI_MODE'] == 'development':
         return KubernetesCommands(
-            context_setup=DevelopmentKubernetesContext().setup,
+            context_setup=DevelopmentKubernetesContext(context).setup,
             install_secrets=DevelopmentKubernetesSecretsInstaller(context).install,
         )
     else:
@@ -88,8 +88,8 @@ class DevelopmentKubernetesContext(BaseKubernetesContext):
     alternative_domain = 'pl-testing'
     debug = 'True'
 
-    def __init__(self):
-        self.cluster = minikube.cluster_factory()
+    def __init__(self, context):
+        self.cluster = minikube.cluster_factory(context)
 
     def setup(self):
         self.cluster.ensure_started()

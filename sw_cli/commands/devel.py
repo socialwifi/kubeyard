@@ -27,14 +27,14 @@ class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
     def __init__(self, *args):
         super().__init__(*args)
         if self.is_development:
-            cluster = self._prepare_cluster()
+            cluster = self._prepare_cluster(self.context)
             self.context.update(cluster.docker_env())
         self.docker_runner = DockerRunner(self.context)
 
     @staticmethod
-    def _prepare_cluster():
+    def _prepare_cluster(context):
         logger.info('Checking if cluster is running and configured...')
-        cluster = minikube.cluster_factory()
+        cluster = minikube.cluster_factory(context)
         cluster.ensure_started()
         logger.info('Cluster is ready')
         return cluster
