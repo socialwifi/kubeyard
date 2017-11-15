@@ -8,22 +8,28 @@ import sh
 logger = logging.getLogger(__name__)
 
 
+def cluster_factory():
+    return VirtualboxCluster()
+
+
 class Cluster:
-    DOCKER_ENV_KEYS = ['DOCKER_TLS_VERIFY', 'DOCKER_HOST', 'DOCKER_CERT_PATH', 'DOCKER_API_VERSION']
-    MINIMUM_MINIKUBE_VERSION = (0, 21, 0)
+    docker_env_keys = ['DOCKER_TLS_VERIFY', 'DOCKER_HOST', 'DOCKER_CERT_PATH', 'DOCKER_API_VERSION']
+    minimum_minikube_version = (0, 21, 0)
 
     def ensure_started(self):
         if not self.is_running():
             self.start()
 
     def is_running(self):
-        running_machines = sh.VBoxManage('list', 'runningvms')
-        return 'minikube' in running_machines
+        raise NotImplementedError
 
     def start(self):
         self._before_start()
         self._start()
         self._after_start()
+
+    def docker_env(self):
+        return {}
 
     def _before_start(self):
         self._check_version()
@@ -36,9 +42,21 @@ class Cluster:
             logger.warning('Could not determine minikube version. Got: "{}"'.format(version))
         else:
             version = tuple(map(int, match.groups()))
-            if version < self.MINIMUM_MINIKUBE_VERSION:
+            if version < self.minimum_minikube_version:
                 logger.warning('Minikube version {} is not supported, you may run into issues. '
-                               'Minimum supported version: {}'.format(version, self.MINIMUM_MINIKUBE_VERSION))
+                               'Minimum supported version: {}'.format(version, self.minimum_minikube_version))
+
+    def _start(self):
+        raise NotImplementedError
+
+    def _after_start(self):
+        pass
+
+
+class VirtualboxCluster(Cluster):
+    def is_running(self):
+        running_machines = sh.VBoxManage('list', 'runningvms')
+        return 'minikube' in running_machines
 
     def _start(self):
         logger.info("Starting minikube...")
@@ -51,6 +69,7 @@ class Cluster:
                     _out=sys.stdout.buffer, _err=sys.stdout.buffer)
 
     def _after_start(self):
+        super()._after_start()
         self._increase_inotify_limit()
         self._ensure_hosthome_mounted()
 
@@ -69,7 +88,7 @@ class Cluster:
             sh.minikube('ssh', 'sudo mount -t vboxsf -o uid=$(id -u),gid=$(id -g) hosthome /hosthome')
 
     def docker_env(self):
-        variables = map(lambda x: '$' + x, self.DOCKER_ENV_KEYS)
+        variables = map(lambda x: '$' + x, self.docker_env_keys)
         result = sh.bash('-c', 'eval $(minikube docker-env); echo "%s"' % '|'.join(variables))
         values = result.strip("\n").split('|')
-        return dict(zip(self.DOCKER_ENV_KEYS, values))
+        return dict(zip(self.docker_env_keys, values))

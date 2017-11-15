@@ -88,8 +88,11 @@ class DevelopmentKubernetesContext(BaseKubernetesContext):
     alternative_domain = 'pl-testing'
     debug = 'True'
 
+    def __init__(self):
+        self.cluster = minikube.cluster_factory()
+
     def setup(self):
-        minikube.Cluster().ensure_started()
+        self.cluster.ensure_started()
         super().setup()
 
     @property

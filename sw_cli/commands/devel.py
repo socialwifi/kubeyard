@@ -27,8 +27,17 @@ class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
     def __init__(self, *args):
         super().__init__(*args)
         if self.is_development:
-            self._prepare_cluster()
+            cluster = self._prepare_cluster()
+            self.context.update(cluster.docker_env())
         self.docker_runner = DockerRunner(self.context)
+
+    @staticmethod
+    def _prepare_cluster():
+        logger.info('Checking if cluster is running and configured...')
+        cluster = minikube.cluster_factory()
+        cluster.ensure_started()
+        logger.info('Cluster is ready')
+        return cluster
 
     def run(self):
         super().run()
@@ -43,13 +52,6 @@ class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
     def options(self):
         parser = self.get_parser()
         return parser.parse_known_args()[0]
-
-    def _prepare_cluster(self):
-        logger.info('Checking if cluster is running and configured...')
-        cluster = minikube.Cluster()
-        cluster.ensure_started()
-        self.context.update(cluster.docker_env())
-        logger.info('Cluster is ready')
 
     @classmethod
     def get_parser(cls, **kwargs):
