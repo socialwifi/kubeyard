@@ -13,11 +13,20 @@ class Cluster:
     MINIMUM_MINIKUBE_VERSION = (0, 21, 0)
 
     def ensure_started(self):
+        if not self.is_running():
+            self.start()
+
+    def is_running(self):
         running_machines = sh.VBoxManage('list', 'runningvms')
-        if 'minikube' not in running_machines:
-            self._check_version()
-            self._start()
-            self._ensure_hosthome_mounted()
+        return 'minikube' in running_machines
+
+    def start(self):
+        self._before_start()
+        self._start()
+        self._after_start()
+
+    def _before_start(self):
+        self._check_version()
 
     def _check_version(self):
         version = str(sh.minikube('version'))
@@ -40,6 +49,12 @@ class Cluster:
                     '--iso-url', minikube_iso,
                     '--docker-opt', 'storage-driver=overlay2',
                     _out=sys.stdout.buffer, _err=sys.stdout.buffer)
+
+    def _after_start(self):
+        self._increase_inotify_limit()
+        self._ensure_hosthome_mounted()
+
+    def _increase_inotify_limit(self):
         sh.minikube('ssh', 'sudo sysctl fs.inotify.max_user_watches=16382')
 
     def _ensure_hosthome_mounted(self):
