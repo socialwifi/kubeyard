@@ -1,4 +1,6 @@
+import getpass
 import logging
+import os
 import pathlib
 import re
 import sys
@@ -18,7 +20,7 @@ def cluster_factory(context):
 
 class Cluster:
     docker_env_keys = ['DOCKER_TLS_VERIFY', 'DOCKER_HOST', 'DOCKER_CERT_PATH', 'DOCKER_API_VERSION']
-    minimum_minikube_version = (0, 21, 0)
+    minimum_minikube_version = (0, 23, 0)
 
     def ensure_started(self):
         if not self.is_running():
@@ -60,6 +62,56 @@ class Cluster:
         pass
 
 
+class NativeLocalkubeCluster(Cluster):
+    def is_running(self):
+        try:
+            status = sh.systemctl('is-active', 'localkube')
+        except sh.ErrorReturnCode_3:
+            return False
+        else:
+            return status.strip().lower() == 'active'
+
+    def get_mounted_project_dir(self, project_dir):
+        return project_dir
+
+    def _start(self):
+        logger.info('Starting minikube without a VM...')
+        sh.sudo('-S',
+                *self._start_env_as_arguments,
+                'minikube', 'start',
+                '--vm-driver', 'none',
+                '--extra-config', 'apiserver.ServiceNodePortRange=1-32767',
+                _in=self._sudo_password, _out=sys.stdout.buffer, _err=sys.stdout.buffer)
+
+    @property
+    def _start_env_as_arguments(self):
+        env = {
+            'MINIKUBE_HOME': os.environ['HOME'],
+            'CHANGE_MINIKUBE_NONE_USER': 'true',
+        }
+        return ['{}={}'.format(key, value) for key, value in env.items()]
+
+    @property
+    def _sudo_password(self):
+        prompt = "[sudo] password for %s: " % getpass.getuser()
+        return getpass.getpass(prompt=prompt) + "\n"
+
+    def _after_start(self):
+        super()._after_start()
+        self._apply_kube_dns_fix()
+
+    @staticmethod
+    def _apply_kube_dns_fix():
+        """
+        Fix needed on Ubuntu with systemd-resolved.
+        https://github.com/kubernetes/minikube/issues/2027
+        """
+        logger.info('Applying kube-dns fix...')
+        fix_path = pathlib.Path(__file__).parent / 'definitions' / 'kube-dns-fix'
+        sh.kubectl('apply', '--record', '-f', fix_path)
+        logger.info('kube-dns fix applied')
+
+
 class VirtualboxCluster(Cluster):
     def is_running(self):
         running_machines = sh.VBoxManage('list', 'runningvms')
@@ -69,7 +121,7 @@ class VirtualboxCluster(Cluster):
         return pathlib.Path('/hosthome') / project_dir.relative_to('/home')
 
     def _start(self):
-        logger.info("Starting minikube...")
+        logger.info('Starting minikube with VirtualBox...')
         minikube_iso = 'https://storage.googleapis.com/minikube/iso/minikube-v0.23.4.iso'
         sh.minikube('start',
                     '--memory', '4096',
@@ -105,5 +157,6 @@ class VirtualboxCluster(Cluster):
 
 
 CLUSTER_VM_DRIVERS = {
+    'none': NativeLocalkubeCluster,
     'virtualbox': VirtualboxCluster,
 }
