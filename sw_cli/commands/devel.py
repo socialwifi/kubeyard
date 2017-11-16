@@ -27,8 +27,8 @@ class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
     def __init__(self, *args):
         super().__init__(*args)
         if self.is_development:
-            cluster = self._prepare_cluster(self.context)
-            self.context.update(cluster.docker_env())
+            self.cluster = self._prepare_cluster(self.context)
+            self.context.update(self.cluster.docker_env())
         self.docker_runner = DockerRunner(self.context)
 
     @staticmethod
@@ -197,7 +197,7 @@ class TestCommand(BaseDevelCommand):
     @property
     def volumes(self):
         if self.is_development:
-            mounted_project_dir = pathlib.Path('/hosthome') / self.project_dir.relative_to('/home')
+            mounted_project_dir = self.cluster.get_mounted_project_dir(self.project_dir)
             for volume in self.context.get('DEV_MOUNTED_PATHS', []):
                 if 'mount-in-tests' in volume and volume['mount-in-tests']['image-name'] == self.image_name:
                     host_path = str(mounted_project_dir / volume['host-path'])
@@ -316,7 +316,7 @@ class DeployCommand(BaseDevelCommand):
     @property
     def host_volumes(self):
         if self.is_development:
-            mounted_project_dir = pathlib.Path('/hosthome') / self.project_dir.relative_to('/home')
+            mounted_project_dir = self.cluster.get_mounted_project_dir(self.project_dir)
             return {
                 volume['name']: mounted_project_dir / volume['host-path']
                 for volume in self.context.get('DEV_MOUNTED_PATHS', [])

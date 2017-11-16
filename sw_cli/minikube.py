@@ -1,4 +1,5 @@
 import logging
+import pathlib
 import re
 import sys
 
@@ -34,6 +35,9 @@ class Cluster:
     def docker_env(self):
         return {}
 
+    def get_mounted_project_dir(self, project_dir):
+        raise NotImplementedError
+
     def _before_start(self):
         self._check_version()
 
@@ -60,6 +64,9 @@ class VirtualboxCluster(Cluster):
     def is_running(self):
         running_machines = sh.VBoxManage('list', 'runningvms')
         return 'minikube' in running_machines
+
+    def get_mounted_project_dir(self, project_dir):
+        return pathlib.Path('/hosthome') / project_dir.relative_to('/home')
 
     def _start(self):
         logger.info("Starting minikube...")
