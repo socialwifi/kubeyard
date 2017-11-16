@@ -1,5 +1,5 @@
-import contextlib
 import logging
+import time
 
 import sh
 
@@ -16,38 +16,82 @@ def is_command_available(name):
         return True
 
 
-class ContainerRunningEnsurer:
+class KubernetesDependency:
     look_in_stream = 'out'
 
-    def __init__(self, docker_runner, name):
-        self.docker_runner = docker_runner
-        self.name = name
-
-    def ensure(self):
+    def ensure_running(self):
         logger.debug('Checking if container "{}" is running...'.format(self.name))
-        try:
-            container_status = str(self.docker_runner.run('inspect', '--format={{.State.Status}}', self.name)).strip()
-        except sh.ErrorReturnCode:
-            container_status = 'error'
-        if container_status == 'running':
-            logger.debug('{} is running'.format(self.name))
+        if self.is_container_running():
+            logger.debug('"{}" is running'.format(self.name))
         else:
-            with contextlib.suppress(sh.ErrorReturnCode):
-                self.docker_runner.run('rm', '-fv', self.name)
-            logger.debug('Starting {}...'.format(self.name))
+            logger.debug('Starting "{}"...'.format(self.name))
             self.run_container()
-            logger.debug('{} started'.format(self.name))
+            logger.debug('"{}" started'.format(self.name))
 
     def run_container(self):
-        self.docker_run()
-        logger.debug('Waiting for {} to start...'.format(self.name))
-        for log in self.docker_runner.run('logs', '-f', self.name, _iter=self.look_in_stream):
+        self._apply_definition()
+        self._wait_until_ready()
+        self._wait_for_started_log()
+
+    def _apply_definition(self):
+        sh.kubectl('apply', '--record', '-f', self.definition)
+        sh.kubectl('expose', '-f', self.definition)
+
+    def _wait_until_ready(self):
+        logger.debug('Waiting for "{}" to start (possibly downloading image)...'.format(self.name))
+        ready = False
+        while not ready:
+            ready = self.is_container_running()
+            if not ready:
+                time.sleep(1)
+        logger.debug('"{}" started'.format(self.name))
+
+    def _wait_for_started_log(self):
+        logger.debug('Waiting for started log for "{}"...'.format(self.name))
+        for log in sh.kubectl('logs', '-f', self.pod_name, _iter=self.look_in_stream):
             if self.started_log in log:
                 break
+        logger.debug('Started log for "{}" found'.format(self.name))
+
+    def is_container_running(self):
+        try:
+            container_ready = str(sh.kubectl(
+                'get', 'pods',
+                '--selector', self.selector,
+                '--output', 'jsonpath="{.items[*].status.containerStatuses[*].ready}"'
+            )).strip()
+        except sh.ErrorReturnCode as e:
+            logger.debug(e)
+            return False
+        else:
+            return container_ready == '"true"'
+
+    def run_command(self, *args):
+        return sh.kubectl('exec', self.pod_name, '--', *args)
+
+    @property
+    def pod_name(self):
+        return str(sh.kubectl(
+            'get', 'pods',
+            '--output', 'custom-columns=NAME:.metadata.name',
+            '--no-headers',
+            '--selector', self.selector
+        )).strip()
+
+    @property
+    def selector(self):
+        return 'app={}'.format(self.name)
 
     @property
     def started_log(self):
         raise NotImplementedError
 
-    def docker_run(self):
+    @property
+    def name(self):
         raise NotImplementedError
+
+    @property
+    def definition(self):
+        raise NotImplementedError
+
+

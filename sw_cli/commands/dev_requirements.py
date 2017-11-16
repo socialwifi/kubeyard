@@ -1,12 +1,13 @@
 import logging
+import pathlib
 
 import sh
 
 from sw_cli import dependencies
 from sw_cli import kubernetes
-from sw_cli.commands.devel import DockerRunner
 
 logger = logging.getLogger(__name__)
+definitions_directory = pathlib.Path(__file__).parent.parent / 'definitions' / 'dev_requirements'
 
 
 class SetupDevBaseCommand:
@@ -14,7 +15,6 @@ class SetupDevBaseCommand:
 
     def __init__(self, context: dict):
         self.context = context
-        self.docker_runner = DockerRunner(context)
 
     def __call__(self, arguments: dict):
         if all(key in self.valid_arguments for key in arguments.keys()):
@@ -37,18 +37,21 @@ class SetupDevDbCommand(SetupDevBaseCommand):
     valid_arguments = ('name')
 
     def run(self, arguments: dict):
-        postgres_name = self.context['DEV_POSTGRES_NAME']
         database_name = arguments.get('name') or self.context['KUBE_SERVICE_NAME']
-        self.ensure_postgres_running(postgres_name)
-        self.ensure_database_present(postgres_name, database_name)
+        dependency = PostgresDependency()
+        dependency.ensure_running()
+        dependency.ensure_database_present(database_name)
 
-    def ensure_postgres_running(self, postgres_name):
-        PostgresRunningEnsurer(self.docker_runner, postgres_name).ensure()
 
-    def ensure_database_present(self, postgres_name, database_name):
+class PostgresDependency(dependencies.KubernetesDependency):
+    name = 'dev-postgres'
+    definition = definitions_directory / 'postgres.yaml'
+    started_log = 'PostgreSQL init process complete; ready for start up.'
+
+    def ensure_database_present(self, database_name):
         logger.debug('Ensuring that database "{}" exists...'.format(database_name))
         try:
-            self.docker_runner.run('exec', postgres_name, 'createdb', database_name, '-U', 'postgres')
+            self.run_command('createdb', database_name, '-U', 'postgres')
         except sh.ErrorReturnCode as e:
             if b'already exists' not in e.stderr:
                 raise e
@@ -56,18 +59,6 @@ class SetupDevDbCommand(SetupDevBaseCommand):
                 logger.debug('Database "{}" exists'.format(database_name))
         else:
             logger.debug('Database "{}" created'.format(database_name))
-
-
-class PostgresRunningEnsurer(dependencies.ContainerRunningEnsurer):
-    postgres_version = '9.6.1'
-    started_log = 'PostgreSQL init process complete; ready for start up.'
-
-    def docker_run(self):
-        self.docker_runner.run_with_output(
-            'run', '-d', '--restart=always',
-            '--name={}'.format(self.name),
-            '-p', '172.17.0.1:35432:5432',
-            'postgres:{}'.format(self.postgres_version))
 
 
 class SetupDevElasticsearchCommand(SetupDevBaseCommand):
@@ -79,25 +70,16 @@ class SetupDevElasticsearchCommand(SetupDevBaseCommand):
     valid_arguments = ()
 
     def run(self, arguments: dict):
-        elastic_name = self.context['DEFAULT_DEV_ELASTIC_NAME']
-        self.ensure_elastic_running(elastic_name)
+        self.ensure_elastic_running()
 
-    def ensure_elastic_running(self, elastic_name):
-        ElasticsearchRunningEnsurer(self.docker_runner, elastic_name).ensure()
+    def ensure_elastic_running(self):
+        ElasticsearchDependency().ensure_running()
 
 
-class ElasticsearchRunningEnsurer(dependencies.ContainerRunningEnsurer):
-    elastic_version = '5.2.1'
+class ElasticsearchDependency(dependencies.KubernetesDependency):
+    name = 'dev-elasticsearch'
+    definition = definitions_directory / 'elasticsearch.yaml'
     started_log = '] started'
-
-    def docker_run(self):
-        self.docker_runner.run_with_output(
-            'run', '-d', '--restart=always',
-            '--name={}'.format(self.name),
-            '-e', 'ES_JAVA_OPTS=-Xms200m -Xmx200m',
-            '-p', '172.17.0.1:9300:9300',
-            '-p', '172.17.0.1:9200:9200',
-            'elasticsearch:{}'.format(self.elastic_version))
 
 
 class SetupPubSubEmulatorCommand(SetupDevBaseCommand):
@@ -110,24 +92,28 @@ class SetupPubSubEmulatorCommand(SetupDevBaseCommand):
     valid_arguments = ('topic', 'subscription')
 
     def run(self, arguments: dict):
-        pubsub_name = self.context['DEV_PUBSUB_NAME']
         topic_name = arguments.get('topic') or self.context['KUBE_SERVICE_NAME']
-        self.ensure_pubsub_running(pubsub_name)
-        self.ensure_topic_present(pubsub_name, topic_name)
+        dependency = PubSubDependency()
+        dependency.ensure_running()
+        dependency.ensure_topic_present(topic_name)
         try:
             subscription_name = arguments['subscription']
         except KeyError:
             logger.debug("Subscription not specified, it won't be created")
         else:
-            self.ensure_subscription_present(pubsub_name, topic_name, subscription_name)
+            dependency.ensure_subscription_present(topic_name, subscription_name)
 
-    def ensure_pubsub_running(self, pubsub_name):
-        PubSubRunningEnsurer(self.docker_runner, pubsub_name).ensure()
 
-    def ensure_topic_present(self, pubsub_name, topic_name):
+class PubSubDependency(dependencies.KubernetesDependency):
+    name = 'dev-pubsub'
+    definition = definitions_directory / 'pubsub-emulator.yaml'
+    started_log = '[pubsub] INFO: Server started, listening on'
+    look_in_stream = 'err'
+
+    def ensure_topic_present(self, topic_name):
         logger.debug('Ensuring that topic "{}" exists...'.format(topic_name))
         try:
-            self.docker_runner.run('exec', pubsub_name, 'pubsub_add_topic', topic_name)
+            self.run_command('pubsub_add_topic', topic_name)
         except sh.ErrorReturnCode as e:
             if b'Topic already exists' not in e.stderr:
                 raise
@@ -136,10 +122,10 @@ class SetupPubSubEmulatorCommand(SetupDevBaseCommand):
         else:
             logger.debug('Topic "{}" created'.format(topic_name))
 
-    def ensure_subscription_present(self, pubsub_name, topic_name, subscription_name):
+    def ensure_subscription_present(self, topic_name, subscription_name):
         logger.debug('Ensuring that subscription "{}" exists...'.format(subscription_name))
         try:
-            self.docker_runner.run('exec', pubsub_name, 'pubsub_add_subscription', topic_name, subscription_name)
+            self.run_command('pubsub_add_subscription', topic_name, subscription_name)
         except sh.ErrorReturnCode as e:
             if b'Subscription already exists' not in e.stderr:
                 raise
@@ -147,18 +133,6 @@ class SetupPubSubEmulatorCommand(SetupDevBaseCommand):
                 logger.debug('Subscription "{}" exists'.format(subscription_name))
         else:
             logger.debug('Subscription "{}" created'.format(subscription_name))
-
-
-class PubSubRunningEnsurer(dependencies.ContainerRunningEnsurer):
-    started_log = '[pubsub] INFO: Server started, listening on'
-    look_in_stream = 'err'
-
-    def docker_run(self):
-        self.docker_runner.run_with_output(
-            'run', '-d', '--restart=always',
-            '--name={}'.format(self.name),
-            '-p', '172.17.0.1:8042:8042',
-            'docker.socialwifi.com/sw-pubsub-emulator-helper')
 
 
 class SetupDevRedisCommand(SetupDevBaseCommand):
@@ -171,36 +145,28 @@ class SetupDevRedisCommand(SetupDevBaseCommand):
     valid_arguments = ()
 
     def run(self, arguments: dict):
-        redis_name = self.context['DEV_REDIS_NAME']
-        self.ensure_redis_running(redis_name)
-        self.reset_global_secrets()
+        dependency = RedisDependency()
+        dependency.ensure_running()
+        self.reset_global_secrets(redis_host=dependency.name)
 
-    def reset_global_secrets(self):
+    def reset_global_secrets(self, redis_host):
         manipulator = kubernetes.get_global_secrets_manipulator(self.context, 'redis-urls')
         redis_urls = manipulator.get_literal_secrets_mapping()
         if self.secret_key not in redis_urls:
             count = len(redis_urls)
-            manipulator.set_literal_secret(self.secret_key, 'redis://172.17.0.1:6379/{}'.format(count))
+            manipulator.set_literal_secret(self.secret_key, 'redis://{}:6379/{}'.format(redis_host, count))
             kubernetes.install_global_secrets(self.context)
 
     @property
     def secret_key(self):
         return self.context['KUBE_SERVICE_NAME']
 
-    def ensure_redis_running(self, redis_name):
-        RedisRunningEnsurer(self.docker_runner, redis_name).ensure()
 
-
-class RedisRunningEnsurer(dependencies.ContainerRunningEnsurer):
+class RedisDependency(dependencies.KubernetesDependency):
+    name = 'dev-redis'
+    definition = definitions_directory / 'redis.yaml'
     started_log = 'The server is now ready to accept connections'
     look_in_stream = 'out'
-
-    def docker_run(self):
-        self.docker_runner.run_with_output(
-            'run', '-d', '--restart=always',
-            '--name={}'.format(self.name),
-            '-p', '172.17.0.1:6379:6379',
-            'redis:3.0.7')
 
 
 class SetupDevCassandraCommand(SetupDevBaseCommand):
@@ -212,27 +178,24 @@ class SetupDevCassandraCommand(SetupDevBaseCommand):
     valid_arguments = ('keyspace')
 
     def run(self, arguments: dict):
-        cassandra_name = self.context['DEV_CASSANDRA_NAME']
         keyspace_name = arguments.get('keyspace') or self.context['KUBE_SERVICE_NAME']
+        dependency = CassandraDependency()
+        dependency.ensure_running()
+        dependency.ensure_database_present(keyspace_name)
+
+
+class CassandraDependency(dependencies.KubernetesDependency):
+    name = 'dev-cassandra'
+    definition = definitions_directory / 'cassandra.yaml'
+    started_log = "Created default superuser role 'cassandra'"
+
+    def ensure_database_present(self, keyspace_name):
         keyspace_name = self.clean_keyspace_name(keyspace_name)
-        self.ensure_cassandra_running(cassandra_name)
-        self.ensure_database_present(cassandra_name, keyspace_name)
-
-    def clean_keyspace_name(self, original):
-        cleaned = original.replace('-', '_')
-        if cleaned != original:
-            logger.warning("Keyspace name can't contain dashes (-), so it's been changed to: %s" % cleaned)
-        return cleaned
-
-    def ensure_cassandra_running(self, cassandra_name):
-        CassandraRunningEnsurer(self.docker_runner, cassandra_name).ensure()
-
-    def ensure_database_present(self, cassandra_name, keyspace_name):
         logger.debug('Ensuring that keyspace "{}" exists...'.format(keyspace_name))
         query = ("create keyspace %s with replication = {'class': 'SimpleStrategy', "
                  "'replication_factor': 1}" % keyspace_name)
         try:
-            self.docker_runner.run('exec', cassandra_name, 'cqlsh', '-e', query)
+            self.run_command('cqlsh', '-e', query)
         except sh.ErrorReturnCode as e:
             if b'already exists' not in e.stderr:
                 raise e
@@ -241,17 +204,11 @@ class SetupDevCassandraCommand(SetupDevBaseCommand):
         else:
             logger.debug('Keyspace "{}" created'.format(keyspace_name))
 
-
-class CassandraRunningEnsurer(dependencies.ContainerRunningEnsurer):
-    cassandra_version = '3.0.10'
-    started_log = "Created default superuser role 'cassandra'"
-
-    def docker_run(self):
-        self.docker_runner.run_with_output(
-            'run', '-d', '--restart=always', '--name={}'.format(self.name),
-            '-e', 'HEAP_NEWSIZE=1M', '-e', 'MAX_HEAP_SIZE=128M',
-            '-p', '172.17.0.1:9042:9042',
-            'cassandra:{}'.format(self.cassandra_version))
+    def clean_keyspace_name(self, original):
+        cleaned = original.replace('-', '_')
+        if cleaned != original:
+            logger.warning("Keyspace name can't contain dashes (-), so it's been changed to: %s" % cleaned)
+        return cleaned
 
 
 class SetupDevCommandDispatcher:

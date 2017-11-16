@@ -1,0 +1,26 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: dev-cassandra
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: dev-cassandra
+  template:
+    metadata:
+      labels:
+        app: dev-cassandra
+    spec:
+      containers:
+      - name: cassandra
+        image: cassandra:3.0.10
+        ports:
+        - containerPort: 9042
+          name: cassandra
+        env:
+        - name: HEAP_NEWSIZE
+          value: "1M"
+        - name: MAX_HEAP_SIZE
+          value: "128M"

@@ -1,0 +1,26 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: dev-elasticsearch
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: dev-elasticsearch
+  template:
+    metadata:
+      labels:
+        app: dev-elasticsearch
+    spec:
+      containers:
+      - name: elasticsearch
+        image: elasticsearch:5.2.1
+        ports:
+        - containerPort: 9200
+          name: http
+        - containerPort: 9300
+          name: transport
+        env:
+        - name: ES_JAVA_OPTS
+          value: "-Xms200m -Xmx200m"
