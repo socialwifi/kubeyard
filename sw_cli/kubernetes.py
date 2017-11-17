@@ -89,7 +89,7 @@ class DevelopmentKubernetesContext(BaseKubernetesContext):
     debug = 'True'
 
     def __init__(self, context):
-        self.cluster = minikube.cluster_factory(context)
+        self.cluster = minikube.ClusterFactory().get(context)
 
     def setup(self):
         self.cluster.ensure_started()

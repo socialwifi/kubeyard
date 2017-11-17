@@ -34,7 +34,7 @@ class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
     @staticmethod
     def _prepare_cluster(context):
         logger.info('Checking if cluster is running and configured...')
-        cluster = minikube.cluster_factory(context)
+        cluster = minikube.ClusterFactory().get(context)
         cluster.ensure_started()
         logger.info('Cluster is ready')
         return cluster

@@ -14,11 +14,6 @@ from sw_cli import settings
 logger = logging.getLogger(__name__)
 
 
-def cluster_factory(context):
-    vm_driver = context.get('SWCLI_VM_DRIVER', settings.DEFAULT_SWCLI_VM_DRIVER)
-    return CLUSTER_VM_DRIVERS[vm_driver]()
-
-
 class Cluster:
     docker_env_keys = ['DOCKER_TLS_VERIFY', 'DOCKER_HOST', 'DOCKER_CERT_PATH', 'DOCKER_API_VERSION']
     minimum_minikube_version = (0, 23, 0)
@@ -194,7 +189,12 @@ class VirtualboxCluster(Cluster):
         return dict(zip(self.docker_env_keys, values))
 
 
-CLUSTER_VM_DRIVERS = {
-    'none': NativeLocalkubeCluster,
-    'virtualbox': VirtualboxCluster,
-}
+class ClusterFactory:
+    VM_DRIVERS = {
+        'none': NativeLocalkubeCluster,
+        'virtualbox': VirtualboxCluster,
+    }
+
+    def get(self, context):
+        vm_driver = context.get('SWCLI_VM_DRIVER', settings.DEFAULT_SWCLI_VM_DRIVER)
+        return self.VM_DRIVERS[vm_driver]()
