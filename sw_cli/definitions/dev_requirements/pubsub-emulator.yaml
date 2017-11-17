@@ -19,3 +19,5 @@ spec:
         ports:
         - containerPort: 8042
           name: pubsub
+      imagePullSecrets:
+      - name: docker.socialwifi.com

@@ -96,6 +96,7 @@ class NativeLocalkubeCluster(Cluster):
         super()._after_start()
         self._apply_kube_dns_fix()
         self._apply_dashboard_fix_if_needed()
+        self._create_docker_registry_secret()
 
     @staticmethod
     def _apply_kube_dns_fix():
@@ -123,6 +124,25 @@ class NativeLocalkubeCluster(Cluster):
                 logger.info('Dashboard addon file replaced')
             else:
                 logger.info('No need to replace dashboard addon file')
+
+    def _create_docker_registry_secret(self):
+        logger.info('Creating Docker registry secret...')
+        registry_name = 'docker.socialwifi.com'
+        config_path = pathlib.Path.home() / '.docker' / 'config.json'
+        try:
+            sh.kubectl(
+                'create', 'secret', 'generic',
+                registry_name,
+                '--from-file=.dockerconfigjson={}'.format(config_path),
+                '--type=kubernetes.io/dockerconfigjson',
+            )
+        except sh.ErrorReturnCode as e:
+            if b'already exists' not in e.stderr:
+                raise e
+            else:
+                logger.info('Docker registry secret already exists')
+        else:
+            logger.info('Docker registry secret created')
 
     @cached_property
     def _sudo_password(self):
