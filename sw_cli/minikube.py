@@ -35,14 +35,20 @@ class Cluster:
         self._start()
         self._after_start()
 
+    def _before_start(self):
+        self._check_version()
+
+    def _start(self):
+        raise NotImplementedError
+
+    def _after_start(self):
+        pass
+
     def docker_env(self):
         return {}
 
     def get_mounted_project_dir(self, project_dir):
         raise NotImplementedError
-
-    def _before_start(self):
-        self._check_version()
 
     def _check_version(self):
         version = str(sh.minikube('version'))
@@ -56,12 +62,6 @@ class Cluster:
                 logger.warning('Minikube version {} is not supported, you may run into issues. '
                                'Minimum supported version: {}'.format(version, self.minimum_minikube_version))
 
-    def _start(self):
-        raise NotImplementedError
-
-    def _after_start(self):
-        pass
-
 
 class NativeLocalkubeCluster(Cluster):
     def is_running(self):
@@ -72,9 +72,6 @@ class NativeLocalkubeCluster(Cluster):
         else:
             return status.strip().lower() == 'active'
 
-    def get_mounted_project_dir(self, project_dir):
-        return project_dir
-
     def _start(self):
         logger.info('Starting minikube without a VM...')
         sh.sudo('-S',
@@ -84,6 +81,15 @@ class NativeLocalkubeCluster(Cluster):
                 '--extra-config', 'apiserver.ServiceNodePortRange=1-32767',
                 _in=self._sudo_password, _out=sys.stdout.buffer, _err=sys.stdout.buffer)
 
+    def _after_start(self):
+        super()._after_start()
+        self._apply_kube_dns_fix()
+        self._apply_dashboard_fix_if_needed()
+        self._create_docker_registry_secret()
+
+    def get_mounted_project_dir(self, project_dir):
+        return project_dir
+
     @property
     def _start_env_as_arguments(self):
         env = {
@@ -91,12 +97,6 @@ class NativeLocalkubeCluster(Cluster):
             'CHANGE_MINIKUBE_NONE_USER': 'true',
         }
         return ['{}={}'.format(key, value) for key, value in env.items()]
-
-    def _after_start(self):
-        super()._after_start()
-        self._apply_kube_dns_fix()
-        self._apply_dashboard_fix_if_needed()
-        self._create_docker_registry_secret()
 
     @staticmethod
     def _apply_kube_dns_fix():
@@ -155,9 +155,6 @@ class VirtualboxCluster(Cluster):
         running_machines = sh.VBoxManage('list', 'runningvms')
         return 'minikube' in running_machines
 
-    def get_mounted_project_dir(self, project_dir):
-        return pathlib.Path('/hosthome') / project_dir.relative_to('/home')
-
     def _start(self):
         logger.info('Starting minikube with VirtualBox...')
         minikube_iso = 'https://storage.googleapis.com/minikube/iso/minikube-v0.23.4.iso'
@@ -186,6 +183,9 @@ class VirtualboxCluster(Cluster):
                     raise
             sh.minikube('ssh', 'sudo chmod 777 /hosthome')
             sh.minikube('ssh', 'sudo mount -t vboxsf -o uid=$(id -u),gid=$(id -g) hosthome /hosthome')
+
+    def get_mounted_project_dir(self, project_dir):
+        return pathlib.Path('/hosthome') / project_dir.relative_to('/home')
 
     def docker_env(self):
         variables = map(lambda x: '$' + x, self.docker_env_keys)
