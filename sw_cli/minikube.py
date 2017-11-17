@@ -5,6 +5,7 @@ import pathlib
 import re
 import sys
 
+from cached_property import cached_property
 import sh
 
 from sw_cli import settings
@@ -91,14 +92,10 @@ class NativeLocalkubeCluster(Cluster):
         }
         return ['{}={}'.format(key, value) for key, value in env.items()]
 
-    @property
-    def _sudo_password(self):
-        prompt = "[sudo] password for %s: " % getpass.getuser()
-        return getpass.getpass(prompt=prompt) + "\n"
-
     def _after_start(self):
         super()._after_start()
         self._apply_kube_dns_fix()
+        self._apply_dashboard_fix_if_needed()
 
     @staticmethod
     def _apply_kube_dns_fix():
@@ -110,6 +107,27 @@ class NativeLocalkubeCluster(Cluster):
         fix_path = pathlib.Path(__file__).parent / 'definitions' / 'kube-dns-fix'
         sh.kubectl('apply', '--record', '-f', fix_path)
         logger.info('kube-dns fix applied')
+
+    def _apply_dashboard_fix_if_needed(self):
+        """
+        Fix needed on minikube 0.23.
+        https://github.com/kubernetes/minikube/issues/2130
+        """
+        logger.info('Applying dashboard fix...')
+        with sh.contrib.sudo(password=self._sudo_password, _with=True):
+            dashboard_addon_path = '/etc/kubernetes/addons/dashboard-rc.yaml'
+            if '1.7.0' in sh.cat(dashboard_addon_path):
+                logger.info('Replacing dashboard addon file...')
+                fix_path = pathlib.Path(__file__).parent / 'definitions' / 'dashboard_fix' / 'dashboard-rc.yaml'
+                sh.cp(fix_path, dashboard_addon_path)
+                logger.info('Dashboard addon file replaced')
+            else:
+                logger.info('No need to replace dashboard addon file')
+
+    @cached_property
+    def _sudo_password(self):
+        prompt = "[sudo] password for %s: " % getpass.getuser()
+        return getpass.getpass(prompt=prompt) + "\n"
 
 
 class VirtualboxCluster(Cluster):
