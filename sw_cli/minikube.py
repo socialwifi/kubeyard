@@ -120,6 +120,13 @@ class NativeLocalkubeCluster(Cluster):
                 logger.info('No need to replace dashboard addon file')
 
     def _create_docker_registry_secret(self):
+        """
+        This secret is needed for PubSub dependency, to allow it to pull the image
+        from SocialWiFi's private Docker registry.
+        You need to issue a "docker login docker.socialwifi.com" command locally.
+        This fix can be removed when PubSub emulator is moved to a public registry.
+        Docs: https://kubernetes.io/docs/concepts/containers/images/#creating-a-secret-with-a-docker-config
+        """
         logger.info('Creating Docker registry secret...')
         registry_name = 'docker.socialwifi.com'
         config_path = pathlib.Path.home() / '.docker' / 'config.json'
