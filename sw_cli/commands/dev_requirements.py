@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 definitions_directory = pathlib.Path(__file__).parent.parent / 'definitions' / 'dev_requirements'
 
 
-class SetupDevBaseCommand:
+class Requirement:
     valid_arguments = ()
 
     def __init__(self, context: dict):
@@ -28,12 +28,7 @@ class SetupDevBaseCommand:
         raise NotImplementedError
 
 
-class SetupDevDbCommand(SetupDevBaseCommand):
-    """
-    Command used in development. It should be configured in sw_cli.yml if microservice needs
-    postgresql. By default it creates database KUBE_SERVICE_NAME (configured in context)
-    available at 172.17.0.1:35432 by user postgres without password.
-    """
+class Postgres(Requirement):
     valid_arguments = ('name')
 
     def run(self, arguments: dict):
@@ -61,12 +56,7 @@ class PostgresDependency(dependencies.KubernetesDependency):
             logger.debug('Database "{}" created'.format(database_name))
 
 
-class SetupDevElasticsearchCommand(SetupDevBaseCommand):
-    """
-    Command used in development. It should be configured in sw_cli.yml if microservice needs
-    elasticsearch. By default it creates elasticsearch container DEFAULT_DEV_ELASTIC_NAME (configured in context)
-    available at 172.17.0.1:9200.
-    """
+class Elasticsearch(Requirement):
     valid_arguments = ()
 
     def run(self, arguments: dict):
@@ -82,13 +72,7 @@ class ElasticsearchDependency(dependencies.KubernetesDependency):
     started_log = '] started'
 
 
-class SetupPubSubEmulatorCommand(SetupDevBaseCommand):
-    """
-    Command used in development. It should be configured in sw_cli.yml if microservice needs
-    google pub sub. By default it creates pubsub container DEV_PUBSUB_NAME (configured in context)
-    available at 172.17.0.1:8042. It also creates topic and can create subscription. When used, support for pubsub
-    emulator should be added to microservice.
-    """
+class PubSubEmulator(Requirement):
     valid_arguments = ('topic', 'subscription')
 
     def run(self, arguments: dict):
@@ -135,13 +119,7 @@ class PubSubDependency(dependencies.KubernetesDependency):
             logger.debug('Subscription "{}" created'.format(subscription_name))
 
 
-class SetupDevRedisCommand(SetupDevBaseCommand):
-    """
-    Command used in development. It should be configured in sw_cli.yml if microservice needs
-    redis By default it creates redis container DEV_REDIS_NAME (configured in context)
-    available at 172.17.0.1:6379. It also checks and updates if needed global secret redis-urls with next in order
-    database.
-    """
+class Redis(Requirement):
     valid_arguments = ()
 
     def run(self, arguments: dict):
@@ -169,12 +147,7 @@ class RedisDependency(dependencies.KubernetesDependency):
     look_in_stream = 'out'
 
 
-class SetupDevCassandraCommand(SetupDevBaseCommand):
-    """
-    Command used in development. It should be configured in sw_cli.yml if microservice needs
-    cassandra. By default it creates cassandra container DEV_CASSANDRA_NAME (configured in context)
-    available at 172.17.0.1:9042.
-    """
+class Cassandra(Requirement):
     valid_arguments = ('keyspace')
 
     def run(self, arguments: dict):
@@ -211,13 +184,13 @@ class CassandraDependency(dependencies.KubernetesDependency):
         return cleaned
 
 
-class SetupDevCommandDispatcher:
+class RequirementsDispatcher:
     commands = {
-        'postgres': SetupDevDbCommand,
-        'redis': SetupDevRedisCommand,
-        'elastic': SetupDevElasticsearchCommand,
-        'pubsub': SetupPubSubEmulatorCommand,
-        'cassandra': SetupDevCassandraCommand,
+        'postgres': Postgres,
+        'redis': Redis,
+        'elastic': Elasticsearch,
+        'pubsub': PubSubEmulator,
+        'cassandra': Cassandra,
     }
 
     def __init__(self, context: dict):

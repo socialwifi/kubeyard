@@ -326,8 +326,8 @@ class DeployCommand(BaseDevelCommand):
 
     def run_dev_requirements_deploy(self):
         logger.info('Checking development requirements...')
-        from sw_cli.commands.dev_requirements import SetupDevCommandDispatcher
-        dispatcher = SetupDevCommandDispatcher(self.context)
+        from sw_cli.commands.dev_requirements import RequirementsDispatcher
+        dispatcher = RequirementsDispatcher(self.context)
         dispatcher.dispatch_all(self.dev_requirements)
         logger.info('Development requirements are satisfied')
 
