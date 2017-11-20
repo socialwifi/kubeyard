@@ -17,8 +17,6 @@ def is_command_available(name):
 
 
 class KubernetesDependency:
-    look_in_stream = 'out'
-
     def ensure_running(self):
         logger.debug('Checking if container "{}" is running...'.format(self.name))
         if self.is_container_running():
@@ -48,7 +46,7 @@ class KubernetesDependency:
 
     def _wait_for_started_log(self):
         logger.debug('Waiting for started log for "{}"...'.format(self.name))
-        for log in sh.kubectl('logs', '-f', self.pod_name, _iter=self.look_in_stream):
+        for log in sh.kubectl('logs', '-f', self.pod_name, _iter='out'):
             if self.started_log in log:
                 break
         logger.debug('Started log for "{}" found'.format(self.name))

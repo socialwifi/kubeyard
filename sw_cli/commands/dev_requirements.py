@@ -92,7 +92,6 @@ class PubSubDependency(dependencies.KubernetesDependency):
     name = 'dev-pubsub'
     definition = definitions_directory / 'pubsub-emulator.yaml'
     started_log = '[pubsub] INFO: Server started, listening on'
-    look_in_stream = 'err'
 
     def ensure_topic_present(self, topic_name):
         logger.debug('Ensuring that topic "{}" exists...'.format(topic_name))
@@ -144,7 +143,6 @@ class RedisDependency(dependencies.KubernetesDependency):
     name = 'dev-redis'
     definition = definitions_directory / 'redis.yaml'
     started_log = 'The server is now ready to accept connections'
-    look_in_stream = 'out'
 
 
 class Cassandra(Requirement):
