@@ -19,3 +19,9 @@ spec:
         ports:
         - containerPort: 6379
           name: redis
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: data
+        emptyDir: {}

@@ -24,3 +24,9 @@ spec:
           value: "1M"
         - name: MAX_HEAP_SIZE
           value: "128M"
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/cassandra
+      volumes:
+      - name: data
+        emptyDir: {}

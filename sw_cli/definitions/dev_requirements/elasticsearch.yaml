@@ -24,3 +24,9 @@ spec:
         env:
         - name: ES_JAVA_OPTS
           value: "-Xms200m -Xmx200m"
+        volumeMounts:
+        - name: data
+          mountPath: /usr/share/elasticsearch/data
+      volumes:
+      - name: data
+        emptyDir: {}

@@ -19,3 +19,9 @@ spec:
         ports:
         - containerPort: 5432
           name: postgresql
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: data
+        emptyDir: {}
