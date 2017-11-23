@@ -1,6 +1,6 @@
 colorlog
 jinja2
-kubepy>=1.7.1
+kubepy>=1.9.0
 python-jenkins
 pyYAML
 GitPython
