@@ -146,6 +146,18 @@ class KubernetesSecretsManipulator:
         with contextlib.suppress(FileExistsError):
             self.secrets_path.mkdir(parents=True)
 
+    def is_key_present(self, key):
+        try:
+            yml_output = str(sh.kubectl(
+                'get', 'secrets', self.secret_name,
+                '--output', 'yaml'
+            ))
+        except sh.ErrorReturnCode:
+            return False
+        else:
+            secret = yaml.load(yml_output)
+            return key in secret['data']
+
 
 class BaseKubernetesSecretsInstaller:
     def __init__(self, context):

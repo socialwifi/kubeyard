@@ -120,20 +120,34 @@ class PubSubDependency(dependencies.KubernetesDependency):
 
 class Redis(Requirement):
     valid_arguments = ('name', )
+    secret_name = 'redis-urls'
 
     def run(self, arguments: dict):
         dependency = RedisDependency()
         dependency.ensure_running()
         secret_key = arguments.get('name') or self.context['KUBE_SERVICE_NAME']
-        self.reset_global_secrets(redis_host=dependency.name, secret_key=secret_key)
+        secrets_manipulator = kubernetes.get_global_secrets_manipulator(self.context, self.secret_name)
+        self.ensure_secret_is_present_in_file(secrets_manipulator, secret_key, redis_host=dependency.name)
+        self.ensure_secret_is_installed(secrets_manipulator, secret_key)
 
-    def reset_global_secrets(self, redis_host, secret_key):
-        manipulator = kubernetes.get_global_secrets_manipulator(self.context, 'redis-urls')
-        redis_urls = manipulator.get_literal_secrets_mapping()
-        if secret_key not in redis_urls:
+    def ensure_secret_is_present_in_file(self, secrets_manipulator, secret_key, redis_host):
+        logger.debug('Ensuring that secret key "{}" is present in file...'.format(secret_key))
+        redis_urls = secrets_manipulator.get_literal_secrets_mapping()
+        if secret_key in redis_urls:
+            logger.debug('Secret key is already present in file')
+        else:
             count = len(redis_urls)
-            manipulator.set_literal_secret(secret_key, 'redis://{}:6379/{}'.format(redis_host, count))
+            secrets_manipulator.set_literal_secret(
+                key=secret_key, value='redis://{}:6379/{}'.format(redis_host, count))
+            logger.debug('Secret key added to file')
+
+    def ensure_secret_is_installed(self, secrets_manipulator, secret_key):
+        logger.debug('Ensuring that secret key "{}" is present in secret "{}"...'.format(secret_key, self.secret_name))
+        if secrets_manipulator.is_key_present(secret_key):
+            logger.debug('Secret key is already present in secret')
+        else:
             kubernetes.install_global_secrets(self.context)
+            logger.debug('Secret key added to secret')
 
 
 class RedisDependency(dependencies.KubernetesDependency):
