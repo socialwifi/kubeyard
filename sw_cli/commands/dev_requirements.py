@@ -119,24 +119,21 @@ class PubSubDependency(dependencies.KubernetesDependency):
 
 
 class Redis(Requirement):
-    valid_arguments = ()
+    valid_arguments = ('name', )
 
     def run(self, arguments: dict):
         dependency = RedisDependency()
         dependency.ensure_running()
-        self.reset_global_secrets(redis_host=dependency.name)
+        secret_key = arguments.get('name') or self.context['KUBE_SERVICE_NAME']
+        self.reset_global_secrets(redis_host=dependency.name, secret_key=secret_key)
 
-    def reset_global_secrets(self, redis_host):
+    def reset_global_secrets(self, redis_host, secret_key):
         manipulator = kubernetes.get_global_secrets_manipulator(self.context, 'redis-urls')
         redis_urls = manipulator.get_literal_secrets_mapping()
-        if self.secret_key not in redis_urls:
+        if secret_key not in redis_urls:
             count = len(redis_urls)
-            manipulator.set_literal_secret(self.secret_key, 'redis://{}:6379/{}'.format(redis_host, count))
+            manipulator.set_literal_secret(secret_key, 'redis://{}:6379/{}'.format(redis_host, count))
             kubernetes.install_global_secrets(self.context)
-
-    @property
-    def secret_key(self):
-        return self.context['KUBE_SERVICE_NAME']
 
 
 class RedisDependency(dependencies.KubernetesDependency):
