@@ -33,7 +33,13 @@ class KubernetesDependency:
 
     def _apply_definition(self):
         sh.kubectl('apply', '--record', '-f', self.definition)
-        sh.kubectl('expose', '-f', self.definition)
+        try:
+            sh.kubectl('expose', '-f', self.definition)
+        except sh.ErrorReturnCode_1 as e:
+            if b'already exists' not in e.stderr:
+                raise e
+            else:
+                logger.debug('Service for "{}" exists'.format(self.name))
 
     def _wait_until_ready(self):
         logger.debug('Waiting for "{}" to start (possibly downloading image)...'.format(self.name))
