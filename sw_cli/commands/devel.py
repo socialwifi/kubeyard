@@ -259,38 +259,25 @@ class DeployCommand(BaseDevelCommand):
         return parser
 
     def run_default(self):
-        if self.statics_directory and self.aws_credentials and not self.is_development:
+        if self.should_deploy_statics:
             self.run_statics_deploy()
         if self.definition_directories:
             if self.dev_requirements and self.is_development:
                 self.run_dev_requirements_deploy()
             self.run_kubernetes_deploy()
 
+    @property
+    def should_deploy_statics(self):
+        return not self.is_development and self.static_files_storage
+
+    @cached_property
+    def static_files_storage(self):
+        return static_files_storage_factory(self.options, self.context, self.image)
+
     def run_statics_deploy(self):
-        access_key, secret_key = self.aws_credentials
-        collect_statics_command = self.context.get('COLLECT_STATICS_COMMAND', 'collect_statics_tar')
-        statics_tar_process = self.docker('run', '-i', '--rm', self.image, collect_statics_command, _piped=True)
-        upload_statics_run_command = [
-            'run', '-i', '--rm', '-e', 'AWS_ACCESS_KEY={}'.format(access_key),
-            '-e',  'AWS_SECRET_KEY={}'.format(secret_key), '-e', 'UPLOAD_BUCKET=socialwifi-static',
-            '-e', 'UPLOAD_PATH={}/'.format(self.statics_directory),
-            'docker.socialwifi.com/aws-utils', 'upload_tar'
-        ]
-        self.docker_with_output(statics_tar_process, *upload_statics_run_command)
-
-    @property
-    def aws_credentials(self):
-        if self.options.aws_credentials:
-            if ':' in self.options.aws_credentials:
-                return self.options.aws_credentials.split(':', 2)
-            else:
-                raise base_command.CommandException('Aws credentials should be in form access_key:secret_key.')
-        else:
-            return None
-
-    @property
-    def statics_directory(self):
-        return self.context.get('STATICS_DIRECTORY')
+        logger.info('Uploading static files...')
+        self.static_files_storage.collect_and_upload()
+        logger.info('Static files uploaded')
 
     def run_kubernetes_deploy(self):
         options = appliers_options.Options(
@@ -334,6 +321,62 @@ class DeployCommand(BaseDevelCommand):
     @property
     def dev_requirements(self):
         return self.context.get('DEV_REQUIREMENTS')
+
+
+def static_files_storage_factory(options, context, image):
+    statics_directory = context.get('STATICS_DIRECTORY')
+    collect_statics_command = context.get('COLLECT_STATICS_COMMAND', 'collect_statics_tar')
+    docker_runner = DockerRunner(context)
+    arguments = {
+        'statics_directory': statics_directory,
+        'collect_statics_command': collect_statics_command,
+        'image': image,
+        'docker_runner': docker_runner,
+    }
+    if statics_directory and options.aws_credentials:
+        return S3FilesStorage(
+            **arguments,
+            credentials=options.aws_credentials,
+        )
+    else:
+        return None
+
+
+class FilesStorage:
+    def __init__(self, statics_directory, collect_statics_command, image, docker_runner):
+        self.statics_directory = statics_directory
+        self.collect_statics_command = collect_statics_command
+        self.image = image
+        self.docker_runner = docker_runner
+
+    def collect_and_upload(self):
+        statics_tar_process = self.get_statics_tar_process()
+        self.upload_tarred_files(statics_tar_process)
+
+    def get_statics_tar_process(self):
+        return self.docker_runner.run('run', '-i', '--rm', self.image, self.collect_statics_command, _piped=True)
+
+    def upload_tarred_files(self, statics_tar_process):
+        raise NotImplementedError
+
+
+class S3FilesStorage(FilesStorage):
+    def __init__(self, statics_directory, collect_statics_command, image, docker_runner, credentials):
+        super().__init__(statics_directory, collect_statics_command, image, docker_runner)
+        if ':' in credentials:
+            self.access_key, self.secret_key = credentials.split(':', 2)
+        else:
+            raise base_command.CommandException('Aws credentials should be in form access_key:secret_key.')
+
+    def upload_tarred_files(self, statics_tar_process):
+        logger.info('Uploading to AWS S3...')
+        upload_statics_run_command = [
+            'run', '-i', '--rm', '-e', 'AWS_ACCESS_KEY={}'.format(self.access_key),
+            '-e',  'AWS_SECRET_KEY={}'.format(self.secret_key), '-e', 'UPLOAD_BUCKET=socialwifi-static',
+            '-e', 'UPLOAD_PATH={}/'.format(self.statics_directory),
+            'docker.socialwifi.com/aws-utils', 'upload_tar'
+        ]
+        self.docker_runner.run_with_output(statics_tar_process, *upload_statics_run_command)
 
 
 class DockerRunner:
