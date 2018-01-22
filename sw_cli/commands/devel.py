@@ -2,6 +2,7 @@ import io
 import logging
 import os
 import sys
+import tempfile
 
 import kubepy.appliers
 from kubepy import appliers_options
@@ -255,7 +256,13 @@ class DeployCommand(BaseDevelCommand):
         parser = super().get_parser(**kwargs)
         parser.add_argument(
             '--aws-credentials', dest='aws_credentials', action='store', default=None,
-            help='Needed to deploy static data. AWS_KEY:AWS_SECRET.')
+            help='AWS key and secret. Required to deploy static files. Format: AWS_KEY:AWS_SECRET.')
+        parser.add_argument(
+            '--gcs-service-key-file', dest='gcs_service_key_file', action='store', default=None,
+            help='Service account key path for Google Cloud Storage. Required to deploy static files.')
+        parser.add_argument(
+            '--gcs-bucket-name', dest='gcs_bucket_name', action='store', default=None,
+            help='Google Cloud Storage bucket name. Required to deploy static files.')
         return parser
 
     def run_default(self):
@@ -333,7 +340,13 @@ def static_files_storage_factory(options, context, image):
         'image': image,
         'docker_runner': docker_runner,
     }
-    if statics_directory and options.aws_credentials:
+    if statics_directory and options.gcs_service_key_file and options.gcs_bucket_name:
+        return GCSFilesStorage(
+            **arguments,
+            service_key_file=options.gcs_service_key_file,
+            bucket_name=options.gcs_bucket_name,
+        )
+    elif statics_directory and options.aws_credentials:
         return S3FilesStorage(
             **arguments,
             credentials=options.aws_credentials,
@@ -377,6 +390,33 @@ class S3FilesStorage(FilesStorage):
             'docker.socialwifi.com/aws-utils', 'upload_tar'
         ]
         self.docker_runner.run_with_output(statics_tar_process, *upload_statics_run_command)
+
+
+class GCSFilesStorage(FilesStorage):
+    cloud_sdk_image = 'google/cloud-sdk:183.0.0'
+
+    def __init__(self, statics_directory, collect_statics_command, image, docker_runner, service_key_file, bucket_name):
+        super().__init__(statics_directory, collect_statics_command, image, docker_runner)
+        self.service_key_file = service_key_file
+        self.bucket_name = bucket_name
+
+    def upload_tarred_files(self, statics_tar_process):
+        logger.info('Uploading to GCS...')
+        with tempfile.TemporaryDirectory() as files_path:
+            self._save_tar_to_directory(statics_tar_process, files_path)
+            self.docker_runner.run_with_output(
+                'run', '-i', '--rm',
+                '-v', '{}:/service-account.json:ro'.format(self.service_key_file),
+                '-v', '{}:/upload/:ro'.format(files_path),
+                self.cloud_sdk_image,
+                'gsutil',
+                '-m',
+                '-o', 'Credentials:gs_service_key_file=/service-account.json',
+                'cp', '-r', '/upload/*', 'gs://{}/{}/'.format(self.bucket_name, self.statics_directory)
+            )
+
+    def _save_tar_to_directory(self, tar_process, directory):
+        sh.tar(tar_process, 'xf', '-', '-C', directory)
 
 
 class DockerRunner:
