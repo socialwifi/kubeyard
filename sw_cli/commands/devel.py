@@ -402,18 +402,19 @@ class GCSFilesStorage(FilesStorage):
 
     def upload_tarred_files(self, statics_tar_process):
         logger.info('Uploading to GCS...')
-        with tempfile.TemporaryDirectory() as files_path:
-            self._save_tar_to_directory(statics_tar_process, files_path)
-            self.docker_runner.run_with_output(
-                'run', '-i', '--rm',
-                '-v', '{}:/service-account.json:ro'.format(self.service_key_file),
-                '-v', '{}:/upload/:ro'.format(files_path),
-                self.cloud_sdk_image,
-                'gsutil',
-                '-m',
-                '-o', 'Credentials:gs_service_key_file=/service-account.json',
-                'cp', '-r', '/upload/*', 'gs://{}/{}/'.format(self.bucket_name, self.statics_directory)
-            )
+        files_path = tempfile.mkdtemp()
+        logger.info('Local directory path: {}'.format(files_path))
+        self._save_tar_to_directory(statics_tar_process, files_path)
+        self.docker_runner.run_with_output(
+            'run', '-i', '--rm',
+            '-v', '{}:/service-account.json:ro'.format(self.service_key_file),
+            '-v', '{}:/upload/:ro'.format(files_path),
+            self.cloud_sdk_image,
+            'gsutil',
+            '-m',
+            '-o', 'Credentials:gs_service_key_file=/service-account.json',
+            'cp', '-r', '/upload/*', 'gs://{}/{}/'.format(self.bucket_name, self.statics_directory)
+        )
 
     def _save_tar_to_directory(self, tar_process, directory):
         sh.tar(tar_process, 'xf', '-', '-C', directory)
