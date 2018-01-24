@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import io
 import logging
 import os
@@ -367,7 +368,8 @@ class FilesStorage:
         self.upload_tarred_files(statics_tar_process)
 
     def get_statics_tar_process(self):
-        return self.docker_runner.run('run', '-i', '--rm', self.image, self.collect_statics_command, _piped=True)
+        return self.docker_runner.run(
+            'run', '-i', '--rm', self.image, self.collect_statics_command, _err=sys.stdout.buffer, _piped=True)
 
     def upload_tarred_files(self, statics_tar_process):
         raise NotImplementedError
@@ -402,12 +404,12 @@ class GCSFilesStorage(FilesStorage):
 
     def upload_tarred_files(self, statics_tar_process):
         logger.info('Uploading to GCS...')
-        with tempfile.TemporaryDirectory() as files_path:
-            self._save_tar_to_directory(statics_tar_process, files_path)
+        with self.docker_runner.temporary_volume() as volume_name:
+            self._save_tar_to_volume(statics_tar_process, volume_name)
             self.docker_runner.run_with_output(
                 'run', '-i', '--rm',
                 '-v', '{}:/service-account.json:ro'.format(self.service_key_file),
-                '-v', '{}:/upload/:ro'.format(files_path),
+                '-v', '{}:/upload/:ro'.format(volume_name),
                 self.cloud_sdk_image,
                 'gsutil',
                 '-m',
@@ -415,8 +417,14 @@ class GCSFilesStorage(FilesStorage):
                 'cp', '-r', '/upload/*', 'gs://{}/{}/'.format(self.bucket_name, self.statics_directory)
             )
 
-    def _save_tar_to_directory(self, tar_process, directory):
-        sh.tar(tar_process, 'xf', '-', '-C', directory)
+    def _save_tar_to_volume(self, tar_process, volume_name):
+        self.docker_runner.run_with_output(
+            tar_process,
+            'run', '-i', '--rm',
+            '-v', '{}:/extracted/'.format(volume_name),
+            'busybox:1.28.0',
+            'tar', 'xf', '-', '-C', '/extracted/'
+        )
 
 
 class DockerRunner:
@@ -434,3 +442,10 @@ class DockerRunner:
         env = os.environ.copy()
         env.update(self.context.as_environment())
         return env
+
+    @contextmanager
+    def temporary_volume(self):
+        volume_name = self.run('volume', 'create').strip()
+        logger.debug('volume_name: {}'.format(volume_name))
+        yield volume_name
+        self.run('volume', 'remove', volume_name)
