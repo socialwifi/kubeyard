@@ -256,6 +256,9 @@ class DeployCommand(BaseDevelCommand):
     def get_parser(cls, **kwargs):
         parser = super().get_parser(**kwargs)
         parser.add_argument(
+            '--build-url', dest='build_url', action='store', default=None,
+            help='URL to a CI/CD (eg. Jenkins) build. It will be used as a pod annotation.')
+        parser.add_argument(
             '--aws-credentials', dest='aws_credentials', action='store', default=None,
             help='AWS key and secret. Required to deploy static files. Format: AWS_KEY:AWS_SECRET.')
         parser.add_argument(
@@ -288,9 +291,12 @@ class DeployCommand(BaseDevelCommand):
         logger.info('Static files uploaded')
 
     def run_kubernetes_deploy(self):
+        pod_annotations = {}
+        if self.options.build_url is not None:
+            pod_annotations['sw-cli/build-url'] = self.options.build_url
         options = appliers_options.Options(
             build_tag=self.tag, replace=self.is_development, host_volumes=self.host_volumes,
-            max_job_retries=MAX_JOB_RETRIES,
+            max_job_retries=MAX_JOB_RETRIES, pod_annotations=pod_annotations,
         )
         kubernetes.install_secrets(self.context)
         logger.info('Applying Kubernetes definitions from YAML files...')
