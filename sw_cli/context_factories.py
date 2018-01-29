@@ -99,6 +99,7 @@ class EmptyRepoContextFactory(BaseRepoContextFactory):
                 prompt_config.prompt,
                 prompt_config.default.format(docker_image)
             )
+        context['DOCKER_REGISTRY_DOMAIN'] = context['DOCKER_REGISTRY_NAME'].split('/', 1)[0]
         return context
 
 

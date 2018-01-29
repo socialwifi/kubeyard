@@ -40,7 +40,9 @@ class PythonPackageInitType:
         context_factories.PromptedContext(
             'KUBE_SERVICE_NAME', 'service name', settings.DEFAULT_KUBE_SERVICE_NAME_PATTERN),
         context_factories.PromptedContext(
-            'KUBE_SERVICE_PORT', 'service port', settings.DEFAULT_KUBE_SERVICE_PORT)
+            'KUBE_SERVICE_PORT', 'service port', settings.DEFAULT_KUBE_SERVICE_PORT),
+        context_factories.PromptedContext(
+            'DOCKER_REGISTRY_NAME', 'docker registry name', settings.DEFAULT_DOCKER_REGISTRY_NAME),
     ]
 
 
@@ -48,5 +50,7 @@ class EmberInitType:
     template_directory = 'new_ember_repository'
     prompted_context = PythonPackageInitType.prompted_context + [
         context_factories.PromptedContext(
-            'KUBE_LIVE_RELOAD_PORT', 'live reload development port', settings.DEFAULT_KUBE_LIVE_RELOAD_PORT)
+            'KUBE_LIVE_RELOAD_PORT', 'live reload development port', settings.DEFAULT_KUBE_LIVE_RELOAD_PORT),
+        context_factories.PromptedContext(
+            'DOCKER_REGISTRY_NAME', 'docker registry name', settings.DEFAULT_DOCKER_REGISTRY_NAME),
     ]

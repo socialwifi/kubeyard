@@ -4,6 +4,7 @@ kube_service_port: "{{ KUBE_SERVICE_PORT }}"
 kube_live_reload_port: "{{ KUBE_LIVE_RELOAD_PORT }}"
 jenkins_url: "{{ JENKINS_URL }}"
 jenkins_email_recipients: "{{ JENKINS_EMAIL_RECIPIENTS }}"
+docker_registry_name: "{{ DOCKER_REGISTRY_NAME }}"
 dev_mounted_paths:
   - name: dev-app-volume
     host-path: docker/source/app

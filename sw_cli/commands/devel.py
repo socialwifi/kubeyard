@@ -24,8 +24,6 @@ MAX_JOB_RETRIES = 2
 
 
 class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
-    docker_repository = 'docker.socialwifi.com'
-
     def __init__(self, *args):
         super().__init__(*args)
         if self.is_development:
@@ -81,6 +79,10 @@ class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
     @property
     def latest_image(self):
         return '{}/{}:latest'.format(self.docker_repository, self.image_name)
+
+    @property
+    def docker_repository(self):
+        return self.context.get("DOCKER_REGISTRY_NAME") or settings.DEFAULT_DOCKER_REGISTRY_NAME
 
     @property
     def image_name(self):

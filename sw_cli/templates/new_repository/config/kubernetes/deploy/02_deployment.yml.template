@@ -12,11 +12,11 @@ spec:
     spec:
       containers:
       - name: {{ KUBE_SERVICE_NAME }}
-        image: "docker.socialwifi.com/{{ DOCKER_IMAGE_NAME }}"
+        image: "{{ DOCKER_REGISTRY_NAME }}/{{ DOCKER_IMAGE_NAME }}"
         ports:
         - containerPort: {{ KUBE_SERVICE_PORT }}
         resources:
           requests:
             cpu: 10m
       imagePullSecrets:
-      - name: docker.socialwifi.com
+      - name: {{ DOCKER_REGISTRY_DOMAIN }}

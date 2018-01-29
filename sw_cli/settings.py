@@ -9,6 +9,7 @@ DEFAULT_KUBERNETES_DEV_DEPLOY_OVERRIDES_DIR = 'config/kubernetes/development_ove
 DEFAULT_KUBERNETES_DEV_SECRETS_DIR = 'config/kubernetes/dev_secrets'
 KUBERNETES_PROD_SECRETS_DIR = 'kubernetes_secrets'
 DEFAULT_JENKINS_URL = 'https://jenkins.socialwifi.com'
+DEFAULT_DOCKER_REGISTRY_NAME = 'docker.socialwifi.com'
 DEFAULT_JENKINS_EMAIL_RECIPIENTS = 'developers@socialwifi.com'
 DEFAULT_JENKINS_JOB_CONFIG_FILEPATH = 'config/jenkins_job.xml'
 DEFAULT_JENKINS_JOB_TEST_PATCHSET_FILEPATH = 'config/jenkins_job_test_patchset.xml'

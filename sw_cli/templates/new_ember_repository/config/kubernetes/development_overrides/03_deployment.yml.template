@@ -12,7 +12,7 @@ spec:
     spec:
       containers:
       - name: {{ KUBE_SERVICE_NAME }}-development
-        image: "docker.socialwifi.com/{{ DOCKER_IMAGE_NAME }}"
+        image: "{{ DOCKER_REGISTRY_NAME }}/{{ DOCKER_IMAGE_NAME }}"
         command: [bash, -c, 'exec ember serve --port {{ KUBE_SERVICE_PORT }} --live-reload-port {{ KUBE_LIVE_RELOAD_PORT }}']
         ports:
         - containerPort: {{ KUBE_SERVICE_PORT }}
@@ -42,4 +42,4 @@ spec:
           mountPath: /ember-app/ember-cli-build.js
           subPath: ember-cli-build.js
       imagePullSecrets:
-      - name: docker.socialwifi.com
+      - name: {{ DOCKER_REGISTRY_DOMAIN }}
