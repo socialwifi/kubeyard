@@ -107,8 +107,9 @@
     <concurrentBuild>true</concurrentBuild>
     <builders>
         <hudson.tasks.Shell>
-            <command>sw-cli build --tag test-$EXECUTOR_NUMBER
-                sw-cli test --tag test-$EXECUTOR_NUMBER
+            <command>
+sw-cli build --tag test-$EXECUTOR_NUMBER
+sw-cli test --tag test-$EXECUTOR_NUMBER
             </command>
         </hudson.tasks.Shell>
     </builders>

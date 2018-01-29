@@ -50,12 +50,15 @@
   <builders>
     <hudson.tasks.Shell>
       <command>
-        echo "sw-cli deploy start"
-        sw-cli build --tag $BUILD_NUMBER
-        sw-cli test --tag $BUILD_NUMBER
-        sw-cli push --tag $BUILD_NUMBER
-        . /var/jenkins_home/credentials/socialwifi_static_bucket_access_key
-        sw-cli deploy --tag $BUILD_NUMBER --aws-credentials $AWS_ACCESS_KEY:$AWS_SECRET_KEY
+echo "sw-cli deploy start"
+sw-cli build --tag $BUILD_NUMBER
+sw-cli test --tag $BUILD_NUMBER
+sw-cli push --tag $BUILD_NUMBER
+. /var/jenkins_home/credentials/socialwifi_static_bucket_access_key
+sw-cli deploy \
+  --tag $BUILD_NUMBER \
+  --build-url $BUILD_URL \
+  --aws-credentials $AWS_ACCESS_KEY:$AWS_SECRET_KEY
       </command>
     </hudson.tasks.Shell>
   </builders>

@@ -50,11 +50,13 @@
   <builders>
     <hudson.tasks.Shell>
       <command>
-        echo "sw-cli deploy start"
-        sw-cli build --tag $BUILD_NUMBER
-        sw-cli test --tag $BUILD_NUMBER
-        sw-cli push --tag $BUILD_NUMBER
-        sw-cli deploy --tag $BUILD_NUMBER
+echo "sw-cli deploy start"
+sw-cli build --tag $BUILD_NUMBER
+sw-cli test --tag $BUILD_NUMBER
+sw-cli push --tag $BUILD_NUMBER
+sw-cli deploy \
+  --tag $BUILD_NUMBER \
+  --build-url $BUILD_URL
       </command>
     </hudson.tasks.Shell>
   </builders>
