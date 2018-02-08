@@ -108,8 +108,8 @@
     <builders>
         <hudson.tasks.Shell>
             <command>
-sw-cli build --tag test-$EXECUTOR_NUMBER
-sw-cli test --tag test-$EXECUTOR_NUMBER
+sw-cli build --tag test-$BUILD_NUMBER
+sw-cli test --tag test-$BUILD_NUMBER
             </command>
         </hudson.tasks.Shell>
     </builders>
