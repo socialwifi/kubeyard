@@ -170,8 +170,10 @@ class UpdateRequirementsCommand(BaseDevelCommand):
     def get_pip_freeze_output(self):
         output = io.StringIO()
         input = sh.cat("docker/source/base_requirements.txt")
-        self.docker('run', '--rm', '-i', self.image, 'freeze_requirements', _in=input, _out=output,
-                    _err=sys.stdout.buffer)
+        self.docker('run', '--rm', '-i',
+                    '-e', 'CUSTOM_COMPILE_COMMAND="sw-cli update_requirements"',
+                    self.image, 'freeze_requirements',
+                    _in=input, _out=output, _err=sys.stdout.buffer)
         return output.getvalue()
 
 
