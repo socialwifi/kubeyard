@@ -112,7 +112,7 @@ class NativeLocalkubeCluster(Cluster):
         logger.info('Applying dashboard fix...')
         with sh.contrib.sudo(password=self._sudo_password, _with=True):
             dashboard_addon_path = '/etc/kubernetes/addons/dashboard-rc.yaml'
-            if '1.7.0' in sh.cat(dashboard_addon_path):
+            if os.path.isfile(dashboard_addon_path) and '1.7.0' in sh.cat(dashboard_addon_path):
                 logger.info('Replacing dashboard addon file...')
                 sh.sed('-i', 's/1.7.0/1.7.1/g', dashboard_addon_path)
                 logger.info('Dashboard addon file replaced')
