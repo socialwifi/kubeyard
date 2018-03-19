@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class Cluster:
     docker_env_keys = ['DOCKER_TLS_VERIFY', 'DOCKER_HOST', 'DOCKER_CERT_PATH', 'DOCKER_API_VERSION']
-    minimum_minikube_version = (0, 23, 0)
+    minimum_minikube_version = (0, 25, 0)
 
     def ensure_started(self):
         if not self.is_running():
@@ -106,15 +106,15 @@ class NativeLocalkubeCluster(Cluster):
 
     def _apply_dashboard_fix_if_needed(self):
         """
-        Fix needed on minikube 0.23.
-        https://github.com/kubernetes/minikube/issues/2130
+        Fix needed on minikube 0.25.
+        https://github.com/kubernetes/dashboard/issues/2767
         """
         logger.info('Applying dashboard fix...')
         with sh.contrib.sudo(password=self._sudo_password, _with=True):
-            dashboard_addon_path = '/etc/kubernetes/addons/dashboard-rc.yaml'
-            if os.path.isfile(dashboard_addon_path) and '1.7.0' in sh.cat(dashboard_addon_path):
+            dashboard_addon_path = '/etc/kubernetes/addons/dashboard-dp.yaml'
+            if os.path.isfile(dashboard_addon_path) and '1.8.1' in sh.cat(dashboard_addon_path):
                 logger.info('Replacing dashboard addon file...')
-                sh.sed('-i', 's/1.7.0/1.7.1/g', dashboard_addon_path)
+                sh.sed('-i', 's/1.8.1/1.8.3/g', dashboard_addon_path)
                 logger.info('Dashboard addon file replaced')
             else:
                 logger.info('No need to replace dashboard addon file')
