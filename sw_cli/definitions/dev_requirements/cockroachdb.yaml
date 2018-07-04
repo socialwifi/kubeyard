@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dev-cockroachdb
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: dev-cockroachdb
+  template:
+    metadata:
+      labels:
+        app: dev-cockroachdb
+    spec:
+      containers:
+      - name: cockroachdb
+        image: cockroachdb/cockroach:v2.0.3
+        command: ["/cockroach/cockroach", "start", "--insecure", "--host=0.0.0.0"]
+        ports:
+        - containerPort: 26257
+          name: grpc
+        - containerPort: 8080
+          name: http
+        volumeMounts:
+        - name: data
+          mountPath: /cockroach/cockroach-data
+      volumes:
+      - name: data
+        emptyDir: {}

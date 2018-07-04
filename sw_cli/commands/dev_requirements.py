@@ -56,6 +56,35 @@ class PostgresDependency(dependencies.KubernetesDependency):
             logger.debug('Database "{}" created'.format(database_name))
 
 
+class CockroachDB(Requirement):
+    valid_arguments = ('name',)
+
+    def run(self, arguments: dict):
+        database_name = arguments.get('name') or self.context['KUBE_SERVICE_NAME']
+        dependency = CockroachDBDependency()
+        dependency.ensure_running()
+        dependency.ensure_database_present(database_name)
+
+
+class CockroachDBDependency(dependencies.KubernetesDependency):
+    name = 'dev-cockroachdb'
+    definition = definitions_directory / 'cockroachdb.yaml'
+    started_log = 'CockroachDB node starting'
+
+    def ensure_database_present(self, database_name):
+        logger.debug('Ensuring that database "{}" exists...'.format(database_name))
+        try:
+            self.run_command('/cockroach/cockroach', 'sql', '--insecure',
+                             '-e', 'CREATE DATABASE "{}";'.format(database_name))
+        except sh.ErrorReturnCode as e:
+            if b'already exists' not in e.stderr:
+                raise e
+            else:
+                logger.debug('Database "{}" exists'.format(database_name))
+        else:
+            logger.debug('Database "{}" created'.format(database_name))
+
+
 class Elasticsearch(Requirement):
     valid_arguments = ()
 
@@ -196,6 +225,7 @@ class CassandraDependency(dependencies.KubernetesDependency):
 class RequirementsDispatcher:
     commands = {
         'postgres': Postgres,
+        'cockroachdb' : CockroachDB,
         'redis': Redis,
         'elastic': Elasticsearch,
         'pubsub': PubSubEmulator,
