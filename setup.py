@@ -1,4 +1,3 @@
-from pip.req import parse_requirements
 from setuptools import find_packages
 from setuptools import setup
 import pathlib
@@ -10,11 +9,17 @@ def templates():
             yield str(path.relative_to('sw_cli'))
 
 
+def parse_requirements(filename, *args, **kwargs):
+    """ load requirements from a pip requirements file """
+    lineiter = (line.strip() for line in open(filename))
+    return [line for line in lineiter if line and not line.startswith("#")]
+
+
 setup(
     name='Sw-Cli',
     version='docker',
     packages=find_packages(exclude=['tests']),
-    install_requires=[str(ir.req) for ir in parse_requirements('base_requirements.txt', session=False)],
+    install_requires=[str(r) for r in parse_requirements('base_requirements.txt', session=False)],
     test_suite='tests',
     entry_points={
         'console_scripts': [
