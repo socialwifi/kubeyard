@@ -1,3 +1,5 @@
+import os
+
 DEFAULT_SWCLI_PROJECT_DIR = '.'
 DEFAULT_SWCLI_SCRIPTS_DIR = 'scripts'
 DEFAULT_SWCLI_CONTEXT_FILEPATH = 'config/sw_cli.yml'
@@ -7,7 +9,7 @@ DEFAULT_SWCLI_VM_DRIVER = 'none'
 DEFAULT_KUBERNETES_DEPLOY_DIR = 'config/kubernetes/deploy'
 DEFAULT_KUBERNETES_DEV_DEPLOY_OVERRIDES_DIR = 'config/kubernetes/development_overrides'
 DEFAULT_KUBERNETES_DEV_SECRETS_DIR = 'config/kubernetes/dev_secrets'
-KUBERNETES_PROD_SECRETS_DIR = 'kubernetes_secrets'
+KUBERNETES_PROD_SECRETS_DIR = os.environ.get('SW_CLI_KUBERNETES_PROD_SECRETS_DIR') or 'kubernetes_secrets'
 DEFAULT_JENKINS_URL = 'https://jenkins.socialwifi.com'
 DEFAULT_DOCKER_REGISTRY_NAME = 'docker.socialwifi.com'
 DEFAULT_JENKINS_EMAIL_RECIPIENTS = 'developers@socialwifi.com'
