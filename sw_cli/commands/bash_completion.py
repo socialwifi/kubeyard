@@ -2,6 +2,9 @@ import logging
 import pathlib
 import os
 import sys
+import tempfile
+
+import sh
 
 import sw_cli.files_generator
 from sw_cli import base_command
@@ -18,8 +21,15 @@ class InstallCompletion(base_command.BaseCommand):
     def run(self):
         logger.info("Installing sw-cli...")
         sw_cli_dst = pathlib.Path('/etc/bash_completion.d/sw-cli')
-        sw_cli.files_generator.copy_template('sw-cli-completion.sh', sw_cli_dst)
-        sw_cli_dst.chmod(0o644)
+        if sw_cli_dst.exists():
+            logger.warning('File {} already exists. Skipping.'.format(str(sw_cli_dst)))
+        else:
+            with tempfile.NamedTemporaryFile(mode='r') as f:
+                sw_cli_dst_tmp = pathlib.Path(f.name)
+                sw_cli.files_generator.copy_template('sw-cli-completion.sh', sw_cli_dst_tmp, replace=True)
+                sw_cli_dst_tmp.chmod(0o644)
+                with sh.contrib.sudo(_with=True):
+                    sh.cp(str(sw_cli_dst_tmp), str(sw_cli_dst))
 
 
 class RunCompletion(base_command.BaseCommand):
