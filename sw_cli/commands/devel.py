@@ -3,6 +3,7 @@ import io
 import logging
 import os
 import sys
+import signal
 import tempfile
 
 import kubepy.appliers
@@ -442,7 +443,14 @@ class DockerRunner:
         self.context = context
 
     def run(self, *args, **kwargs):
-        return sh.docker(*args, _env=self.sh_env, **kwargs)
+        process: sh.RunningCommand = sh.docker(*args, _env=self.sh_env, _bg=True, **kwargs)
+        try:
+            process.wait()
+        except KeyboardInterrupt:
+            logger.info("Stopping running command...")
+            process.signal(signal.SIGINT)
+        finally:
+            return process
 
     def run_with_output(self, *args, **kwargs):
         return self.run(*args, _out=sys.stdout.buffer, _err=sys.stdout.buffer, **kwargs)
