@@ -52,6 +52,7 @@ def _get_kubernetes_commands(context):
             install_secrets=ProductionKubernetesSecretsInstaller(context).install,
         )
 
+
 KubernetesCommands = collections.namedtuple('KubernetesCommand', ['context_setup', 'install_secrets'])
 
 
@@ -185,7 +186,6 @@ class BaseKubernetesSecretsInstaller:
     @property
     def secrets_path(self):
         raise NotImplementedError
-
 
 
 class BaseProjectKubernetesSecretsInstaller(BaseKubernetesSecretsInstaller):

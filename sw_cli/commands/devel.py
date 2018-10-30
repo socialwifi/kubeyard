@@ -5,12 +5,10 @@ import logging
 import os
 import sys
 import signal
-import tempfile
 
 import kubepy.appliers
 from kubepy import appliers_options
 import kubepy.base_commands
-import pathlib
 import sh
 from cached_property import cached_property
 

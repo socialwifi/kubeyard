@@ -38,11 +38,12 @@ def recursive_chown(directory, uid):
         os.chown(str(path), uid=uid, gid=-1)
 
 
-def traverse(path : pathlib.Path):
+def traverse(path: pathlib.Path):
     yield path
     if path.is_dir():
         for sub in path.iterdir():
             yield from traverse(sub)
+
 
 CopyEnvironment = collections.namedtuple('CopyEnvironment', ['source_root', 'destination_root', 'context'])
 

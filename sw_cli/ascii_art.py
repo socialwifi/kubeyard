@@ -1,5 +1,3 @@
-import sys
-
 from termcolor import cprint
 from pyfiglet import figlet_format
 

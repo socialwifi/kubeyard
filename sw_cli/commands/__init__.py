@@ -1,12 +1,10 @@
 import pathlib
-from collections import namedtuple
 
 from sw_cli import settings
 from sw_cli.commands import custom_script
 from . import bash_completion
 from . import debug
 from . import devel
-from . import dev_requirements
 from . import global_commands
 from . import help
 from . import init
@@ -19,6 +17,7 @@ class CommandDeclaration:
         self.name = name
         self.source = source
         self.kwargs = kwargs or {}
+
 
 commands = [
     CommandDeclaration('help', help.HelpCommand),

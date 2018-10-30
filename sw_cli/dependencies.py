@@ -97,5 +97,3 @@ class KubernetesDependency:
     @property
     def definition(self):
         raise NotImplementedError
-
-

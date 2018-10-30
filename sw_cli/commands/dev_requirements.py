@@ -225,7 +225,7 @@ class CassandraDependency(dependencies.KubernetesDependency):
 class RequirementsDispatcher:
     commands = {
         'postgres': Postgres,
-        'cockroachdb' : CockroachDB,
+        'cockroachdb': CockroachDB,
         'redis': Redis,
         'elastic': Elasticsearch,
         'pubsub': PubSubEmulator,
