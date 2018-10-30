@@ -1,3 +1,4 @@
+import getpass
 from contextlib import contextmanager
 import io
 import logging
@@ -240,6 +241,8 @@ class DeployCommand(BaseDevelCommand):
             if self.dev_requirements and self.is_development:
                 self.run_dev_requirements_deploy()
             self.run_kubernetes_deploy()
+        if self.is_development:
+            DomainConfigurator(self.context).configure()
 
     @property
     def should_deploy_statics(self):
@@ -426,3 +429,62 @@ class DockerRunner:
         logger.debug('volume_name: {}'.format(volume_name))
         yield volume_name
         self.run('volume', 'remove', volume_name)
+
+
+class DomainConfigurator:
+    hosts_watermark = '# The following line is added by sw-cli\n'
+    host_format = '{minikube_ip}\t{domain}\n'
+    hosts_filename = '/etc/hosts'
+
+    def __init__(self, context: dict):
+        self.context = context
+
+    def configure(self):
+        if self.custom_domains_to_be_configured:
+            logger.info(
+                f'{len(self.custom_domains_to_be_configured)} domains need to be configured: '
+                f'{self.custom_domains_to_be_configured}. '
+                f'Updating {self.hosts_filename}...'
+            )
+            self.run_update_hosts()
+        else:
+            logger.info('All domains already configured, no action required.')
+
+    def run_update_hosts(self):
+        for domain in self.custom_domains_to_be_configured:
+            hosts_entry = self.host_format.format(minikube_ip=self.minikube_ip, domain=domain)
+            sh.sudo(
+                '-S',
+                'tee', '--append', self.hosts_filename,
+                _in=self._sudo_password + self.hosts_watermark + hosts_entry,
+            )
+
+    @cached_property
+    def minikube_ip(self) -> str:
+        return sh.minikube('ip').strip()
+
+    @cached_property
+    def _sudo_password(self):
+        prompt = f"[sudo] password for {getpass.getuser()}: "
+        return getpass.getpass(prompt=prompt) + "\n"
+
+    @cached_property
+    def custom_domains_to_be_configured(self) -> [str]:
+        result = []
+        top_level_domain = self.context['DEV_TLD']
+        for domain in self.context['DEV_DOMAINS']:
+            domain = f'{domain}.{top_level_domain}'
+            if not self.domain_exists_in_hosts(domain):
+                result.append(domain)
+        return result
+
+    def domain_exists_in_hosts(self, domain: str) -> bool:
+        previous_line = ''
+        with open(self.hosts_filename) as hosts_file:
+            for line in hosts_file:
+                if domain in line:
+                    if previous_line != self.hosts_watermark:
+                        logger.warning(f'Hostname: {domain} not added by sw-cli, please remove manually added entry.')
+                    return True
+                previous_line = line
+        return False

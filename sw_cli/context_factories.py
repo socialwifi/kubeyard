@@ -46,6 +46,7 @@ class GlobalContextFactory:
             'DEFAULT_DEV_ELASTIC_NAME': settings.DEFAULT_DEV_ELASTIC_NAME,
             'DEV_REDIS_NAME': settings.DEFAULT_DEV_REDIS_NAME,
             'DEV_CASSANDRA_NAME': settings.DEFAULT_DEV_CASSANDRA_NAME,
+            'DEV_TLD': settings.DEFAULT_DEV_TLD,
         })
 
     @cached_property
