@@ -120,6 +120,10 @@ class InitialisedRepoContextFactory(BaseRepoContextFactory):
             'KUBERNETES_DEV_SECRETS_DIR': settings.DEFAULT_KUBERNETES_DEV_SECRETS_DIR,
             'DEV_TLD': settings.DEFAULT_DEV_TLD,
             'DEV_DOMAINS': settings.DEFAULT_DEV_DOMAINS,
+            'TEST_DATABASE_IMAGE': settings.DEFAULT_TEST_DATABASE_IMAGE,
+            'TEST_DATABASE_NAME': settings.DEFAULT_TEST_DATABASE_NAME,
+            'TEST_MIGRATION_COMMAND': settings.DEFAULT_TEST_MIGRATION_COMMAND,
+            'TEST_COMMAND': settings.DEFAULT_TEST_COMMAND,
         })
         context.update(self.saved_context)
         return context

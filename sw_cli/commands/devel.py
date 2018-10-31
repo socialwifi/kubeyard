@@ -49,8 +49,16 @@ class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
 
     @cached_property
     def options(self):
+        return self.all_parameters[0]
+
+    @cached_property
+    def additional_parameters(self):
+        return self.all_parameters[1]
+
+    @cached_property
+    def all_parameters(self):
         parser = self.get_parser()
-        return parser.parse_known_args()[0]
+        return parser.parse_known_args()
 
     @classmethod
     def get_parser(cls, **kwargs):
