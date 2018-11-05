@@ -24,3 +24,4 @@ DEFAULT_DEV_REDIS_NAME = 'kubernetes-redis'
 DEFAULT_DEV_ELASTIC_NAME = 'kubernetes-es'
 DEFAULT_DEV_CASSANDRA_NAME = 'kubernetes-cassandra'
 DEFAULT_DEV_TLD = 'testing'
+DEFAULT_DEV_DOMAINS = ()

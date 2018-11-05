@@ -46,7 +46,6 @@ class GlobalContextFactory:
             'DEFAULT_DEV_ELASTIC_NAME': settings.DEFAULT_DEV_ELASTIC_NAME,
             'DEV_REDIS_NAME': settings.DEFAULT_DEV_REDIS_NAME,
             'DEV_CASSANDRA_NAME': settings.DEFAULT_DEV_CASSANDRA_NAME,
-            'DEV_TLD': settings.DEFAULT_DEV_TLD,
         })
 
     @cached_property
@@ -119,6 +118,8 @@ class InitialisedRepoContextFactory(BaseRepoContextFactory):
             'SWCLI_CONTEXT_FILEPATH': self.context_filepath,
             'SWCLI_SCRIPTS_DIR': settings.DEFAULT_SWCLI_SCRIPTS_DIR,
             'KUBERNETES_DEV_SECRETS_DIR': settings.DEFAULT_KUBERNETES_DEV_SECRETS_DIR,
+            'DEV_TLD': settings.DEFAULT_DEV_TLD,
+            'DEV_DOMAINS': settings.DEFAULT_DEV_DOMAINS,
         })
         context.update(self.saved_context)
         return context
