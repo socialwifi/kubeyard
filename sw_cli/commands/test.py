@@ -51,6 +51,20 @@ class TestCommand(BaseDevelCommand):
         super().__init__(*args)
         self.context['HOST_VOLUMES'] = ' '.join(self.volumes)
 
+    @classmethod
+    def get_parser(cls, **kwargs):
+        parser = super().get_parser(**kwargs)
+        parser.add_argument(
+            '--force-migrate-db', '-f-m-db', dest='force_migrate_database', action='store_true',
+            help='On dev environment DB is cached, so if you have some new migrations, you should use this flag.',
+        )
+        parser.add_argument(
+            '--force-recreate-db', '-f-r-db', dest='force_recreate_database', action='store_true',
+            help='On dev environment DB is cached, '
+                 'so you can use this flag to remove existing DB before tests and create new one.'
+        )
+        return parser
+
     @property
     def volumes(self) -> typing.Iterable[str]:
         if self.is_development:
@@ -70,7 +84,14 @@ class TestCommand(BaseDevelCommand):
 
     def run_default(self):
         if self.context.get('TESTS_WITH_DATABASE', False):
-            with Database(self.is_development, self.volumes, self.context, self.tag, self.image) as database:
+            with Database(
+                    is_development=self.is_development,
+                    volumes=self.volumes,
+                    context=self.context, tag=self.tag,
+                    tested_image_name=self.image,
+                    force_recreate=self.options.force_recreate_database,
+                    force_migrate=self.options.force_migrate_database,
+            ) as database:
                 self.run_tests(database)
         else:
             self.run_tests()
@@ -97,19 +118,26 @@ class Database:
             volumes: typing.Iterable[str],
             context: dict, tag: str,
             tested_image_name: str,
+            force_recreate: bool = False,
+            force_migrate: bool = False,
     ):
         self.is_development = is_development
         self.volumes = volumes
         self.context = context
         self.tag = tag
         self.tested_image_name = tested_image_name
+        self.force_migrate = force_migrate
+        self.force_recreate = force_recreate
+        self._migrated = False
 
     def __enter__(self):
-        if not self.is_development:
+        if not self.is_development or self.force_recreate:
             self.remove_database()
         if not self.already_up:
             self.create()
             self.wait_until_ready()
+            self.migrate()
+        if self.force_migrate:
             self.migrate()
         return self
 
@@ -164,17 +192,19 @@ class Database:
                 break
 
     def migrate(self):
-        logger.info('Running migrations...')
-        sh.docker.run.bake(
-            net=self.network,
-            rm=True,
-            _err_to_out=True,
-        )(
-            *self.volumes,
-            self.tested_image_name,
-            self.context['TEST_MIGRATION_COMMAND'],
-        )
-        logger.info('Migrations done!')
+        if not self._migrated:
+            logger.info('Running migrations...')
+            sh.docker.run.bake(
+                net=self.network,
+                rm=True,
+                _err_to_out=True,
+            )(
+                *self.volumes,
+                self.tested_image_name,
+                self.context['TEST_MIGRATION_COMMAND'],
+            )
+            logger.info('Migrations done!')
+        self._migrated = True
 
     @property
     def network(self) -> str:
