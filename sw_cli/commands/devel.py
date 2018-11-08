@@ -3,6 +3,7 @@ from contextlib import contextmanager
 import io
 import logging
 import os
+import signal
 import sys
 
 import kubepy.appliers
@@ -365,7 +366,7 @@ class S3FilesStorage(FilesStorage):
         logger.info('Uploading to AWS S3...')
         upload_statics_run_command = [
             'run', '-i', '--rm', '-e', 'AWS_ACCESS_KEY={}'.format(self.access_key),
-            '-e',  'AWS_SECRET_KEY={}'.format(self.secret_key), '-e', 'UPLOAD_BUCKET=socialwifi-static',
+            '-e', 'AWS_SECRET_KEY={}'.format(self.secret_key), '-e', 'UPLOAD_BUCKET=socialwifi-static',
             '-e', 'UPLOAD_PATH={}/'.format(self.statics_directory),
             'docker.socialwifi.com/aws-utils', 'upload_tar'
         ]
@@ -410,7 +411,21 @@ class DockerRunner:
         self.context = context
 
     def run(self, *args, **kwargs):
-        return sh.docker(*args, _env=self.sh_env, **kwargs)
+        if self.run_can_be_waited(*args, **kwargs):
+            process: sh.RunningCommand = sh.docker(*args, _env=self.sh_env, _bg=True, **kwargs)
+            try:
+                process.wait()
+            except KeyboardInterrupt as e:
+                logger.info("Stopping running command...")
+                process.signal(signal.SIGINT)
+                raise e
+        else:
+            process: sh.RunningCommand = sh.docker(*args, _env=self.sh_env, **kwargs)
+        return process
+
+    def run_can_be_waited(self, *args, _piped=False, _iter=False, _iter_noblock=False, **kwargs) -> bool:
+        """Check special cases when sh require to not use .wait() method"""
+        return not any((_piped, _iter, _iter_noblock))
 
     def run_with_output(self, *args, **kwargs):
         return self.run(*args, _out=sys.stdout.buffer, _err=sys.stdout.buffer, **kwargs)
