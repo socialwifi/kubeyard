@@ -2,11 +2,12 @@ import getpass
 import logging
 
 import jenkins
+
 from cached_property import cached_property
-from sw_cli import settings
+
 from sw_cli import base_command
 from sw_cli import files_generator
-
+from sw_cli import settings
 
 logger = logging.getLogger(__name__)
 

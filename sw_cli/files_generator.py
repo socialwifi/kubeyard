@@ -7,7 +7,6 @@ import shutil
 
 import jinja2
 
-
 logger = logging.getLogger(__name__)
 
 templates_directory = pathlib.Path(__file__).parent / 'templates'

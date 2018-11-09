@@ -5,7 +5,6 @@ from cached_property import cached_property
 
 from sw_cli import base_command
 
-
 logger = logging.getLogger(__name__)
 
 

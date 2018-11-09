@@ -1,12 +1,12 @@
-from argparse import ArgumentParser
 import logging
 import pathlib
 
+from argparse import ArgumentParser
+
 from cached_property import cached_property
 
-from sw_cli import settings
 from sw_cli import context_factories
-
+from sw_cli import settings
 
 logger = logging.getLogger(__name__)
 

@@ -5,11 +5,11 @@ import pathlib
 import re
 import sys
 
-from cached_property import cached_property
 import sh
 
-from sw_cli import settings
+from cached_property import cached_property
 
+from sw_cli import settings
 
 logger = logging.getLogger(__name__)
 

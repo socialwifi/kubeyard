@@ -1,9 +1,10 @@
 import collections
 import pathlib
 
-from cached_property import cached_property
-import yaml
 import git
+import yaml
+
+from cached_property import cached_property
 
 from sw_cli import io_utils
 from sw_cli import settings

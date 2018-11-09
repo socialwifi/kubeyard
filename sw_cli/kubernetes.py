@@ -1,16 +1,14 @@
+import collections
 import contextlib
 import logging
+import pathlib
 import socket
 
-import pathlib
-
-import collections
 import sh
 import yaml
 
-from sw_cli import settings
 from sw_cli import minikube
-
+from sw_cli import settings
 
 logger = logging.getLogger(__name__)
 

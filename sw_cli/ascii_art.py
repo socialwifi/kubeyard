@@ -1,6 +1,5 @@
-from termcolor import cprint
 from pyfiglet import figlet_format
-
+from termcolor import cprint
 
 TEXT = 'Social WiFi\nCLI'
 FONT_COLOR = 'cyan'

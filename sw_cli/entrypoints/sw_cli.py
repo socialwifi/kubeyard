@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 
+import logging
 import os
 import sys
-import logging
 
 from sw_cli import commands
 from sw_cli import logging as sw_cli_logging
 from sw_cli.commands import help
-
 
 logger = logging.getLogger(__name__)
 

@@ -1,16 +1,18 @@
 import getpass
-from contextlib import contextmanager
 import io
 import logging
 import os
 import signal
 import sys
 
+from contextlib import contextmanager
+
 import kubepy.appliers
-from kubepy import appliers_options
 import kubepy.base_commands
 import sh
+
 from cached_property import cached_property
+from kubepy import appliers_options
 
 from sw_cli import base_command
 from sw_cli import kubernetes

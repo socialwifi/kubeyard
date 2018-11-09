@@ -11,7 +11,6 @@ from sw_cli import dependencies
 from sw_cli import kubernetes
 from sw_cli import settings
 
-
 logger = logging.getLogger(__name__)
 
 

@@ -3,7 +3,6 @@ import time
 
 import sh
 
-
 logger = logging.getLogger(__name__)
 
 
