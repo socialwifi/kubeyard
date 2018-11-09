@@ -54,6 +54,7 @@ class TestCommand(BaseDevelCommand):
     @classmethod
     def get_parser(cls, **kwargs):
         parser = super().get_parser(**kwargs)
+        parser.add_argument('test', help='SW-CLI subcommand - in this case is `test`.')
         parser.add_argument(
             '--force-migrate-db', '-f-m-db', dest='force_migrate_database', action='store_true',
             help='On dev environment DB is cached, so if you have some new migrations, you should use this flag.',

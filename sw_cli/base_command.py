@@ -31,9 +31,7 @@ class BaseCommand:
 
     @classmethod
     def get_parser(cls, **kwargs):
-        parser = ArgumentParser(description=cls.__doc__, **kwargs)
-        parser.add_argument('command')
-        return parser
+        return ArgumentParser(description=cls.__doc__, **kwargs)
 
 
 class InitialisedRepositoryCommand(BaseCommand):
