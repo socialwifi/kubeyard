@@ -5,6 +5,7 @@ from sw_cli.commands import custom_script
 from . import bash_completion
 from . import debug
 from . import devel
+from . import fix_code_style
 from . import global_commands
 from . import help
 from . import init
@@ -36,6 +37,7 @@ commands = [
     CommandDeclaration('deploy', devel.DeployCommand),
     CommandDeclaration('setup', global_commands.SetupCommand),
     CommandDeclaration('install_global_secrets', global_commands.InstallGlobalSecretsCommand),
+    CommandDeclaration('fix_code_style', fix_code_style.FixCodeStyle),
 ]
 
 
