@@ -1,16 +1,15 @@
+import abc
 import getpass
 import io
 import logging
 import os
 import signal
 import sys
-
 from contextlib import contextmanager
 
 import kubepy.appliers
 import kubepy.base_commands
 import sh
-
 from cached_property import cached_property
 from kubepy import appliers_options
 
@@ -25,9 +24,12 @@ logger = logging.getLogger(__name__)
 MAX_JOB_RETRIES = 2
 
 
-class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
-    def __init__(self, *args):
-        super().__init__(*args)
+class BaseDevelCommand(base_command.InitialisedRepositoryCommand, metaclass=abc.ABCMeta):
+    def __init__(self, *, use_default_implementation, image_name, tag, **kwargs):
+        super().__init__(**kwargs)
+        self._image_name = image_name
+        self._tag = tag
+        self.use_default_implementation = use_default_implementation
         if self.is_development:
             self.cluster = self._prepare_cluster(self.context)
             self.context.update(self.cluster.docker_env())
@@ -45,36 +47,10 @@ class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
         super().run()
         custom_script_runner = custom_script.CustomScriptRunner(self.project_dir, self.context)
         custom_script_exists = custom_script_runner.exists(self.custom_script_name)
-        if self.options.default or not custom_script_exists:
+        if self.use_default_implementation or not custom_script_exists:
             self.run_default()
         else:
             custom_script_runner.run(self.custom_script_name, self.args)
-
-    @cached_property
-    def options(self):
-        return self.all_parameters[0]
-
-    @cached_property
-    def additional_parameters(self):
-        return self.all_parameters[1]
-
-    @cached_property
-    def all_parameters(self):
-        parser = self.get_parser()
-        return parser.parse_known_args()
-
-    @classmethod
-    def get_parser(cls, **kwargs):
-        parser = super().get_parser(**kwargs)
-        parser.add_argument(
-            '--tag', dest='tag', action='store', default=None, help='Used image tag.')
-        parser.add_argument(
-            '--default', dest='default', action='store_true', default=False,
-            help='Don\'t try to execute custom script. Useful when you need original behaviour in overridden method.')
-        parser.add_argument(
-            '--image-name', dest='image_name', action='store', default=None,
-            help='Image name (without repository). Default is set in sw-cli.yml.')
-        return parser
 
     def docker(self, *args, **kwargs):
         return self.docker_runner.run(*args, **kwargs)
@@ -96,11 +72,11 @@ class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
 
     @property
     def image_name(self):
-        return self.options.image_name or self.context["DOCKER_IMAGE_NAME"]
+        return self._image_name or self.context["DOCKER_IMAGE_NAME"]
 
     @property
     def tag(self):
-        return self.options.tag or self.default_tag
+        return self._tag or self.default_tag
 
     @property
     def default_tag(self):

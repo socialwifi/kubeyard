@@ -1,7 +1,6 @@
+import abc
 import logging
 import pathlib
-
-from argparse import ArgumentParser
 
 from cached_property import cached_property
 
@@ -15,26 +14,18 @@ class CommandException(Exception):
     pass
 
 
-class BaseCommand:
-    def __init__(self, sw_cli_name, command_name, args):
-        self.sw_cli_name = sw_cli_name
-        self.command_name = command_name
-        self.args = args
-
+class BaseCommand(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
     def run(self):
         raise NotImplementedError
 
-    @cached_property
-    def options(self):
-        parser = self.get_parser(prog='{} {}'.format(self.sw_cli_name, self.command_name))
-        return parser.parse_args(self.args)
 
-    @classmethod
-    def get_parser(cls, **kwargs):
-        return ArgumentParser(description=cls.__doc__, **kwargs)
+class InitialisedRepositoryCommand(BaseCommand, metaclass=abc.ABCMeta):
+    def __init__(self, *, directory, log_level):
+        super().__init__()
+        self.directory = directory
+        self._log_level = log_level
 
-
-class InitialisedRepositoryCommand(BaseCommand):
     def run(self):
         self.set_log_level()
 
@@ -43,7 +34,7 @@ class InitialisedRepositoryCommand(BaseCommand):
 
     @property
     def log_level(self):
-        return self.options.log_level or self.context.get('SWCLI_LOG_LEVEL', settings.DEFAULT_SWCLI_LOG_LEVEL)
+        return self._log_level or self.context.get('SWCLI_LOG_LEVEL', settings.DEFAULT_SWCLI_LOG_LEVEL)
 
     @cached_property
     def context(self):
@@ -55,13 +46,4 @@ class InitialisedRepositoryCommand(BaseCommand):
 
     @cached_property
     def project_dir(self):
-        return pathlib.Path(self.options.directory).resolve()
-
-    @classmethod
-    def get_parser(cls, **kwargs):
-        parser = super().get_parser(**kwargs)
-        parser.add_argument("--directory", dest="directory", default=settings.DEFAULT_SWCLI_PROJECT_DIR,
-                            help="Select project root directory.")
-        parser.add_argument("--verbose", dest="log_level", action='store_const', const='DEBUG', default=None,
-                            help="Outputs debug logs.")
-        return parser
+        return pathlib.Path(self.directory)

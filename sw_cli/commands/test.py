@@ -50,9 +50,8 @@ class TestCommand(BaseDevelCommand):
     """
     custom_script_name = 'test'
 
-    def __init__(self, *args, force_recreate_database, force_migrate_database, options, test_options):
-        super().__init__(*args)
-        self.options = options
+    def __init__(self, *, force_recreate_database, force_migrate_database, test_options, **kwargs):
+        super().__init__(**kwargs)
         self.test_options = test_options
         self.force_recreate_database = force_recreate_database
         self.force_migrate_database = force_migrate_database

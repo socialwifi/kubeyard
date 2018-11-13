@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-import argparse
-
 import click
 
 from sw_cli import settings
@@ -9,6 +7,12 @@ from sw_cli.commands.test import TestCommand
 
 @click.group()
 def cli():
+    """
+    If some command allows you to pass additional arguments (for example to pytest),
+    you should use double dash `--` to separate it from command args.
+
+    sw-cli [OPTIONS] COMMAND [ARGS] -- [ARGS SHOULD BE PASSED]
+    """
     pass
 
 
@@ -25,7 +29,11 @@ initialized_repository_options = (
     click.option(
         "--directory",
         default=settings.DEFAULT_SWCLI_PROJECT_DIR,
-        type=click.Path(file_okay=False),
+        type=click.Path(
+            file_okay=False,
+            exists=True,
+            resolve_path=True,
+        ),
         help="Select project root directory.",
     ),
     click.option(
@@ -44,6 +52,7 @@ devel_options = (
     ),
     click.option(
         "--default",
+        "use_default_implementation",
         is_flag=True,
         help="Don't try to execute custom script. Useful when you need original behaviour in overridden method.",
     ),
@@ -78,16 +87,8 @@ devel_options = (
          "so you can use this flag to remove existing DB before tests and create new one.",
 )
 @click.argument('test_options', nargs=-1, type=click.UNPROCESSED)
-def test(*, force_migrate_database, force_recreate_database, test_options: tuple, **kwargs):
-    print(test_options)
-    options = argparse.Namespace(**kwargs)  # FIXME: temporary solution
-    TestCommand(
-        None, None, None,  # FIXME: old args, not necessary
-        force_migrate_database=force_migrate_database,
-        force_recreate_database=force_recreate_database,
-        options=options,
-        test_options=test_options,
-    ).run()
+def test(**kwargs):
+    TestCommand(**kwargs).run()
 
 
 if __name__ == "__main__":
