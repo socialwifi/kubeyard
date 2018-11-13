@@ -1,43 +1,94 @@
 #!/usr/bin/env python
+import argparse
 
-import logging
-import os
-import sys
+import click
 
-from sw_cli import commands
-from sw_cli import logging as sw_cli_logging
-from sw_cli.commands import help
-
-logger = logging.getLogger(__name__)
+from sw_cli import settings
+from sw_cli.commands.test import TestCommand
 
 
-def run():
-    sw_cli_logging.init_logging()
-    try:
-        command_name = sys.argv[1]
-        sw_cli_name = os.path.basename(sys.argv[0])
-    except (KeyError, IndexError):
-        help.HelpCommand.print_basic_help()
-    else:
-        run_command(command_name, sw_cli_name, sys.argv[2:])
+@click.group()
+def cli():
+    pass
 
 
-def run_command(command_name, sw_cli_name, arguments):
-    for command in commands.get_all_commands():
-        if command_name == command.name:
-            try:
-                command.source(sw_cli_name, command_name, arguments, **command.kwargs).run()
-            except Exception as e:
-                logger.error(e)
-                logger.debug('', exc_info=True)
-                exit(1)
-            else:
-                logger.info('Done')
-                break
-    else:
-        help.HelpCommand.print_basic_help()
-        exit(1)
+def apply_common_options(options):
+    def wrap(func):
+        for option in reversed(options):
+            func = option(func)
+        return func
+
+    return wrap
 
 
-if __name__ == '__main__':
-    run()
+initialized_repository_options = (
+    click.option(
+        "--directory",
+        default=settings.DEFAULT_SWCLI_PROJECT_DIR,
+        type=click.Path(file_okay=False),
+        help="Select project root directory.",
+    ),
+    click.option(
+        "--verbose",
+        "-v",
+        "log_level",
+        flag_value="DEBUG",
+        help="Outputs debug logs.",
+    ),
+)
+
+devel_options = (
+    click.option(
+        "--tag",
+        help="Used image tag.",
+    ),
+    click.option(
+        "--default",
+        is_flag=True,
+        help="Don't try to execute custom script. Useful when you need original behaviour in overridden method.",
+    ),
+    click.option(
+        "--image-name",
+        help="Image name (without repository). Default is set in sw-cli.yml.",
+    ),
+)
+
+
+@cli.command(
+    help=TestCommand.__doc__,
+    context_settings=dict(
+        ignore_unknown_options=True,
+    ),
+)
+@apply_common_options(initialized_repository_options)
+@apply_common_options(devel_options)
+@click.option(
+    "--force-migrate-db",
+    "-f-m-db",
+    "force_migrate_database",
+    is_flag=True,
+    help="On dev environment DB is cached, so if you have some new migrations, you should use this flag.",
+)
+@click.option(
+    "--force-recreate-db",
+    "-f-r-db",
+    "force_recreate_database",
+    is_flag=True,
+    help="On dev environment DB is cached, "
+         "so you can use this flag to remove existing DB before tests and create new one.",
+)
+@click.argument('test_options', nargs=-1, type=click.UNPROCESSED)
+def test(*, force_migrate_database, force_recreate_database, test_options: tuple, **kwargs):
+    print(test_options)
+    options = argparse.Namespace(**kwargs)  # FIXME: temporary solution
+    TestCommand(
+        None, None, None,  # FIXME: old args, not necessary
+        force_migrate_database=force_migrate_database,
+        force_recreate_database=force_recreate_database,
+        options=options,
+        test_options=test_options,
+    ).run()
+
+
+if __name__ == "__main__":
+    cli()

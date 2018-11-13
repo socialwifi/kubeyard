@@ -10,7 +10,6 @@ from . import global_commands
 from . import help
 from . import init
 from . import jenkins
-from . import test
 
 
 class CommandDeclaration:
@@ -31,7 +30,6 @@ commands = [
     CommandDeclaration('jenkins_info', jenkins.JenkinsInfoCommand),
     CommandDeclaration('variables', debug.DebugCommand),
     CommandDeclaration('build', devel.BuildCommand),
-    CommandDeclaration('test', test.TestCommand),
     CommandDeclaration('update_requirements', devel.UpdateRequirementsCommand),
     CommandDeclaration('push', devel.PushCommand),
     CommandDeclaration('deploy', devel.DeployCommand),

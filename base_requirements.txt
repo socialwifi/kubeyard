@@ -1,3 +1,4 @@
+click
 colorlog
 jinja2
 kubepy>=1.11.1

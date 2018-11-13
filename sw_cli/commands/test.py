@@ -15,20 +15,19 @@ logger = logging.getLogger(__name__)
 class TestCommand(BaseDevelCommand):
     """
     Runs tests in docker image built by build command. Can be overridden in <project_dir>/sripts/test.
+
     **IMPORTANT** for now only Postgres database is supported.
     You can override migration command and test command passed to docker container with code.
 
+    \b
     Example:
     test_migration_command: migrate_user
     test_command: db_tests_for_user
 
-    You can use additional parameters that will be passed to test command.
-    Example:
-    sw-cli test -v
-
     If sw-cli is set up in development mode it uses minikube as docker host and mounts volumes configured in
     dev_mounted_paths in config/sw_cli.yml if they have mount-in-test set.
 
+    \b
     Example:
     dev_mounted_paths:
     - name: dev-volume
@@ -41,6 +40,7 @@ class TestCommand(BaseDevelCommand):
     You can setup database before tests
     (on dev environment db will be cached, otherwise it will be removed immediately after tests).
 
+    \b
     Example:
     tests_with_database: true
     test_database_type: postgres <- Available types: `postgres`, `cockroach`. `postgres` is default.
@@ -50,24 +50,13 @@ class TestCommand(BaseDevelCommand):
     """
     custom_script_name = 'test'
 
-    def __init__(self, *args):
+    def __init__(self, *args, force_recreate_database, force_migrate_database, options, test_options):
         super().__init__(*args)
+        self.options = options
+        self.test_options = test_options
+        self.force_recreate_database = force_recreate_database
+        self.force_migrate_database = force_migrate_database
         self.context['HOST_VOLUMES'] = ' '.join(self.volumes)
-
-    @classmethod
-    def get_parser(cls, **kwargs):
-        parser = super().get_parser(**kwargs)
-        parser.add_argument('test', help='SW-CLI subcommand - in this case is `test`.')
-        parser.add_argument(
-            '--force-migrate-db', '-f-m-db', dest='force_migrate_database', action='store_true',
-            help='On dev environment DB is cached, so if you have some new migrations, you should use this flag.',
-        )
-        parser.add_argument(
-            '--force-recreate-db', '-f-r-db', dest='force_recreate_database', action='store_true',
-            help='On dev environment DB is cached, '
-                 'so you can use this flag to remove existing DB before tests and create new one.'
-        )
-        return parser
 
     @property
     def volumes(self) -> typing.Iterable[str]:
@@ -94,8 +83,8 @@ class TestCommand(BaseDevelCommand):
                     volumes=self.volumes,
                     context=self.context, tag=self.tag,
                     tested_image_name=self.image,
-                    force_recreate=self.options.force_recreate_database,
-                    force_migrate=self.options.force_migrate_database,
+                    force_recreate=self.force_recreate_database,
+                    force_migrate=self.force_migrate_database,
             ) as database:
                 self.run_tests(database)
         else:
@@ -112,7 +101,7 @@ class TestCommand(BaseDevelCommand):
             *self.volumes,
             self.image,
             self.context['TEST_COMMAND'],
-            *self.additional_parameters,
+            *self.test_options,
         )
 
 
