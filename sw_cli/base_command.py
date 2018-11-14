@@ -14,13 +14,25 @@ class CommandException(Exception):
     pass
 
 
-class BaseCommand(metaclass=abc.ABCMeta):
+class BaseCommand:
     @abc.abstractmethod
     def run(self):
         raise NotImplementedError
 
 
-class InitialisedRepositoryCommand(BaseCommand, metaclass=abc.ABCMeta):
+class ContextFromClassPropertiesBuilderMetaclass(type):
+    def __new__(mcs, name, bases, dct):
+        dct['context_vars'] = dct.get('context_vars', [])
+        for base in bases:
+            if hasattr(base, 'context_vars'):
+                dct['context_vars'] += base.context_vars
+        obj = super().__new__(mcs, name, bases, dct)
+        return obj
+
+
+class InitialisedRepositoryCommand(BaseCommand, metaclass=ContextFromClassPropertiesBuilderMetaclass):
+    context_vars = ['directory']
+
     def __init__(self, *, directory, log_level):
         super().__init__()
         self.directory = directory
@@ -47,3 +59,15 @@ class InitialisedRepositoryCommand(BaseCommand, metaclass=abc.ABCMeta):
     @cached_property
     def project_dir(self):
         return pathlib.Path(self.directory)
+
+    @cached_property
+    def custom_command_context(self):
+        """
+        If you want to pass any property of class, you should OVERRIDE `context_vars` class property.
+        """
+        context = context_factories.Context()
+        context.update(self.context)
+        context.update(context_factories.Context(
+            {field.upper(): getattr(self, field) for field in self.context_vars}
+        ))
+        return context

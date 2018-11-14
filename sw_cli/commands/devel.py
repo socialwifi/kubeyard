@@ -24,7 +24,9 @@ logger = logging.getLogger(__name__)
 MAX_JOB_RETRIES = 2
 
 
-class BaseDevelCommand(base_command.InitialisedRepositoryCommand, metaclass=abc.ABCMeta):
+class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
+    context_vars = ['image_name', 'tag']
+
     def __init__(self, *, use_default_implementation, image_name, tag, **kwargs):
         super().__init__(**kwargs)
         self._image_name = image_name
@@ -43,9 +45,13 @@ class BaseDevelCommand(base_command.InitialisedRepositoryCommand, metaclass=abc.
         logger.info('Cluster is ready')
         return cluster
 
+    @property
+    def args(self) -> list:
+        return []
+
     def run(self):
         super().run()
-        custom_script_runner = custom_script.CustomScriptRunner(self.project_dir, self.context)
+        custom_script_runner = custom_script.CustomScriptRunner(self.project_dir, self.custom_command_context)
         custom_script_exists = custom_script_runner.exists(self.custom_script_name)
         if self.use_default_implementation or not custom_script_exists:
             self.run_default()
@@ -104,6 +110,7 @@ class BuildCommand(BaseDevelCommand):
     If sw-cli is set up in development mode it uses minikube as docker host.
     """
     custom_script_name = 'build'
+    context_vars = ['image_context']
 
     def __init__(self, *, image_context, **kwargs):
         super().__init__(**kwargs)
@@ -127,6 +134,7 @@ class UpdateRequirementsCommand(BaseDevelCommand):
     If sw-cli is set up in development mode it uses minikube as docker host.
     """
     custom_script_name = 'update_requirements'
+    context_vars = ['use_legacy_pip']
 
     def __init__(self, use_legacy_pip=False, **kwargs):
         super().__init__(**kwargs)
@@ -203,6 +211,7 @@ class DeployCommand(BaseDevelCommand):
     Can be overridden in <project_dir>/sripts/deploy.
     """
     custom_script_name = 'deploy'
+    context_vars = ["build_url", "aws_credentials", "gcs_service_key_file", "gcs_bucket_name"]
 
     def __init__(self, *, build_url, aws_credentials, gcs_service_key_file, gcs_bucket_name, **kwargs):
         super().__init__(**kwargs)

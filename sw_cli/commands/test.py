@@ -49,6 +49,7 @@ class TestCommand(BaseDevelCommand):
 
     """
     custom_script_name = 'test'
+    context_vars = ["force_recreate_database", "force_migrate_database"]
 
     def __init__(self, *, force_recreate_database, force_migrate_database, test_options, **kwargs):
         super().__init__(**kwargs)
@@ -56,6 +57,10 @@ class TestCommand(BaseDevelCommand):
         self.force_recreate_database = force_recreate_database
         self.force_migrate_database = force_migrate_database
         self.context['HOST_VOLUMES'] = ' '.join(self.volumes)
+
+    @property
+    def args(self) -> list:
+        return list(self.test_options)
 
     @property
     def volumes(self) -> typing.Iterable[str]:
