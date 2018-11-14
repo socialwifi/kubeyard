@@ -25,7 +25,6 @@ setup(
     entry_points={
         'console_scripts': [
             'sw-cli = sw_cli.entrypoints.sw_cli:cli',
-            'sw-cli-old = sw_cli.entrypoints.sw_cli_old:run',
         ],
     },
     package_dir={'sw_cli': 'sw_cli'},

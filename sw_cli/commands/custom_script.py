@@ -1,8 +1,6 @@
 import logging
 import os
 
-from cached_property import cached_property
-
 from sw_cli import base_command
 
 logger = logging.getLogger(__name__)
@@ -12,14 +10,10 @@ class CustomScriptCommand(base_command.InitialisedRepositoryCommand):
     """
     Custom script defined in ./scripts/ directory. Running it with sw-cli add current context to environment.
     """
-    def __init__(self, *args, script_name):
-        super().__init__(*args)
-        self.script_name = script_name
 
-    @cached_property
-    def options(self):
-        parser = self.get_parser()
-        return parser.parse_known_args()[0]
+    def __init__(self, script_name, **kwargs):
+        super().__init__(**kwargs)
+        self.script_name = script_name
 
     def run(self):
         super().run()

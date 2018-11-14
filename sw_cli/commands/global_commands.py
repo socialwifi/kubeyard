@@ -26,6 +26,10 @@ class SetupCommand(GlobalCommand):
     Production context requires configured docker and kubectl. Also needs your microservices secrets to be at
     ~/kubernetes_secrets/.
     """
+
+    def __init__(self, *, mode):
+        self.mode = mode
+
     def run(self):
         user_context = self.get_current_user_context()
         if 'SWCLI_GLOBAL_SECRETS' not in user_context:
@@ -47,19 +51,19 @@ class SetupCommand(GlobalCommand):
 
     def get_sw_cli_mode(self):
         minikube_installed = dependencies.is_command_available('minikube')
-        if self.options.mode == 'production':
+        if self.mode == 'production':
             if minikube_installed:
                 logger.error('Minikube installed! Use --development option')
                 exit(1)
             else:
                 return 'production'
-        elif self.options.mode == 'development':
+        elif self.mode == 'development':
             if not minikube_installed:
                 logger.error('Minikube not installed!')
                 exit(1)
             else:
                 return 'development'
-        elif self.options.mode is None:
+        elif self.mode is None:
             return 'development' if minikube_installed else 'production'
 
     def print_info(self, sw_cli_mode):
@@ -80,23 +84,15 @@ class SetupCommand(GlobalCommand):
             global_secrets.mkdir()
         return global_secrets
 
-    @classmethod
-    def get_parser(cls, **kwargs):
-        parser = super().get_parser(**kwargs)
-        group = parser.add_mutually_exclusive_group(required=False)
-        group.add_argument("--development", dest="mode", action='store_const', const='development',
-                           help="Sets development context using minikube. Development context "
-                                "uses secrets from repository.")
-        group.add_argument("--production", dest="mode", action='store_const', const='production')
-
-        return parser
-
 
 class InstallGlobalSecretsCommand(GlobalCommand):
     """
     Installs secrets from global secrets directory (usualy from ~/.sw_cli/global-secrets/).
-    Usualy secrets are maintained per microservice. Some secrets are easier to maintain if they are in one global file.
+    Usually secrets are maintained per microservice.
+    Some secrets are easier to maintain if they are in one global file.
+
     In example: redis databases.
     """
+
     def run(self):
         kubernetes.install_global_secrets(self.context)

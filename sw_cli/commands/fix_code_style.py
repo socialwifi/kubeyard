@@ -11,10 +11,14 @@ logger = logging.getLogger(__name__)
 
 
 class FixCodeStyle(BaseDevelCommand):
-    custom_script_name = 'fix_code_style'
+    """
+    Fix code style.
 
-    def __init__(self, *args):
-        super().__init__(*args)
+    Image should have `fix_code_style` command available.
+
+    You also need to configure volumes to apply changes to code on your machine.
+    """
+    custom_script_name = 'fix_code_style'
 
     @property
     def volumes(self) -> typing.Iterable[str]:

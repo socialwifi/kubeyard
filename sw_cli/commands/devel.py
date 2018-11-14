@@ -93,6 +93,7 @@ class BaseDevelCommand(base_command.InitialisedRepositoryCommand, metaclass=abc.
         raise NotImplementedError
 
     @property
+    @abc.abstractmethod
     def custom_script_name(self):
         raise NotImplementedError
 
@@ -104,40 +105,36 @@ class BuildCommand(BaseDevelCommand):
     """
     custom_script_name = 'build'
 
+    def __init__(self, *, image_context, **kwargs):
+        super().__init__(**kwargs)
+        self.image_context = image_context
+
     def run_default(self):
-        image_context = self.options.image_context or "{0}/docker".format(self.project_dir)
+        image_context = self.image_context or "{0}/docker".format(self.project_dir)
         logger.info('Building image "{}"...'.format(self.image))
         self.docker_with_output('build', '-t', self.image, image_context)
-
-    @classmethod
-    def get_parser(cls, **kwargs):
-        parser = super().get_parser(**kwargs)
-        parser.add_argument(
-            '--image-context', dest='image_context', action='store', default=None,
-            help='Image context containing Dockerfile. Defaults to <project_dir>/docker')
-        return parser
 
 
 class UpdateRequirementsCommand(BaseDevelCommand):
     """
     Updates docker/requirements/python.txt file based on docker/source/base_requirements.txt.
-    In container it creates virtualenv and runs
-    `pip install -r docker/source/base_requirements.txt && pip freeze > docker/source/base_requirements.txt`
+    In container it creates virtualenv and runs:
+
+        pip install -r docker/source/base_requirements.txt && pip freeze > docker/source/base_requirements.txt
+
     Can be overridden in <project_dir>/sripts/update_requirements.
+
     If sw-cli is set up in development mode it uses minikube as docker host.
     """
     custom_script_name = 'update_requirements'
 
-    @classmethod
-    def get_parser(cls, **kwargs):
-        parser = super().get_parser(**kwargs)
-        parser.add_argument('--before3.6.0-5', dest='before', action='store_true',
-                            default=False, help='Add this flag to use update for an older python application.')
-        return parser
+    def __init__(self, use_legacy_pip=False, **kwargs):
+        super().__init__(**kwargs)
+        self.use_legacy_pip = use_legacy_pip
 
     def run_default(self):
         logger.info('Updating requirements for "{}"...'.format(self.image))
-        if self.options.before is True:
+        if self.use_legacy_pip is True:
             os.system(self.legacy_pip_freeze_command)
         else:
             with open("docker/requirements/python.txt", "w") as output_file:
@@ -167,7 +164,9 @@ class PushCommand(BaseDevelCommand):
     """
     Runs `docker push` on docker image built by build command. It also tags image as latest adn push it as well.
     Can be overridden in <project_dir>/sripts/push.
+
     If sw-cli is set up in development mode it uses minikube as docker host.
+
     Normally you want to run it only in production.
     """
     custom_script_name = 'push'
@@ -183,15 +182,19 @@ class DeployCommand(BaseDevelCommand):
     Deploys application to kubernetes. If it got aws credentials and is not in development mode than it uploads static
     files to socialwifi-static s3 bucket in STATICS_DIRECTORY configured through context(config/sw_cli.yml).
     Image should implement collect_statics_tar command For this part to work.
+
     Next step is creating secret. Secret is named KUBE_SERVICE_NAME configured through context. its content is gathered
     either form repository in development mode or from global directory in production mode (see sw-cli help setup).
     key value pairs of this secrets are collected from files in this directory: keys are filenames and values are
     contents of these files. File secrets.yml is exception: it contains yaml encoded dictionary of additional key,
     value pairs. In genereal you should use secrets.yml for your short text secrets.
+
     Last step is deploying ./config/kubernetes/deploy/ using kubepy_deploy_all command
     (https://github.com/socialwifi/kubepy/). In development mode it also merges differences from
     config/development_overrides, and adds volumes to every pod configured in dev_mounted_paths in config/sw_cli.yml.
     These volumes should be mounted in selected pods using development_overrides.
+
+    \b
     Example:
     dev_mounted_paths:
     - name: dev-volume
@@ -201,22 +204,12 @@ class DeployCommand(BaseDevelCommand):
     """
     custom_script_name = 'deploy'
 
-    @classmethod
-    def get_parser(cls, **kwargs):
-        parser = super().get_parser(**kwargs)
-        parser.add_argument(
-            '--build-url', dest='build_url', action='store', default=None,
-            help='URL to a CI/CD (eg. Jenkins) build. It will be used as a pod annotation.')
-        parser.add_argument(
-            '--aws-credentials', dest='aws_credentials', action='store', default=None,
-            help='AWS key and secret. Required to deploy static files. Format: AWS_KEY:AWS_SECRET.')
-        parser.add_argument(
-            '--gcs-service-key-file', dest='gcs_service_key_file', action='store', default=None,
-            help='Service account key path for Google Cloud Storage. Required to deploy static files.')
-        parser.add_argument(
-            '--gcs-bucket-name', dest='gcs_bucket_name', action='store', default=None,
-            help='Google Cloud Storage bucket name. Required to deploy static files.')
-        return parser
+    def __init__(self, *, build_url, aws_credentials, gcs_service_key_file, gcs_bucket_name, **kwargs):
+        super().__init__(**kwargs)
+        self.build_url = build_url
+        self.aws_credentials = aws_credentials
+        self.gcs_service_key_file = gcs_service_key_file
+        self.gcs_bucket_name = gcs_bucket_name
 
     def run_default(self):
         if self.should_deploy_statics:
@@ -234,7 +227,13 @@ class DeployCommand(BaseDevelCommand):
 
     @cached_property
     def static_files_storage(self):
-        return static_files_storage_factory(self.options, self.context, self.image)
+        return static_files_storage_factory(
+            self.context,
+            self.image,
+            self.gcs_service_key_file,
+            self.gcs_bucket_name,
+            self.aws_credentials,
+        )
 
     def run_statics_deploy(self):
         logger.info('Uploading static files...')
@@ -243,8 +242,8 @@ class DeployCommand(BaseDevelCommand):
 
     def run_kubernetes_deploy(self):
         pod_annotations = {}
-        if self.options.build_url is not None:
-            pod_annotations['sw-cli/build-url'] = self.options.build_url
+        if self.build_url is not None:
+            pod_annotations['sw-cli/build-url'] = self.build_url
         options = appliers_options.Options(
             build_tag=self.tag, replace=self.is_development, host_volumes=self.host_volumes,
             max_job_retries=MAX_JOB_RETRIES, pod_annotations=pod_annotations,
@@ -288,7 +287,7 @@ class DeployCommand(BaseDevelCommand):
         return self.context.get('DEV_REQUIREMENTS')
 
 
-def static_files_storage_factory(options, context, image):
+def static_files_storage_factory(context, image, gcs_service_key_file, gcs_bucket_name, aws_credentials):
     statics_directory = context.get('STATICS_DIRECTORY')
     collect_statics_command = context.get('COLLECT_STATICS_COMMAND', 'collect_statics_tar')
     docker_runner = DockerRunner(context)
@@ -298,16 +297,16 @@ def static_files_storage_factory(options, context, image):
         'image': image,
         'docker_runner': docker_runner,
     }
-    if statics_directory and options.gcs_service_key_file and options.gcs_bucket_name:
+    if statics_directory and gcs_service_key_file and gcs_bucket_name:
         return GCSFilesStorage(
             **arguments,
-            service_key_file=options.gcs_service_key_file,
-            bucket_name=options.gcs_bucket_name,
+            service_key_file=gcs_service_key_file,
+            bucket_name=gcs_bucket_name,
         )
-    elif statics_directory and options.aws_credentials:
+    elif statics_directory and aws_credentials:
         return S3FilesStorage(
             **arguments,
-            credentials=options.aws_credentials,
+            credentials=aws_credentials,
         )
     else:
         return None

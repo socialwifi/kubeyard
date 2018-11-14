@@ -2,7 +2,6 @@ import logging
 import pathlib
 
 import sw_cli.files_generator
-
 from sw_cli import base_command
 from sw_cli import context_factories
 from sw_cli import settings
@@ -17,20 +16,17 @@ class InitCommand(base_command.BaseCommand):
     Most commands requires repository to have files structure as provisioned by this command.
     By default it uses python application template.
     """
+
+    def __init__(self, *, directory, init_type):
+        self.directory = directory
+        self.init_type = init_type
+
     def run(self):
         logger.info("Initialising repo...")
-        init_type = self.options.init_type
-        project_dst = pathlib.Path(self.options.directory)
-        context = context_factories.EmptyRepoContextFactory(self.options.directory, init_type.prompted_context).get()
+        init_type = self.init_type
+        project_dst = pathlib.Path(self.directory)
+        context = context_factories.EmptyRepoContextFactory(self.directory, init_type.prompted_context).get()
         sw_cli.files_generator.copy_template(init_type.template_directory, project_dst, context=context)
-
-    @classmethod
-    def get_parser(cls, **kwargs):
-        parser = super().get_parser(**kwargs)
-        parser.add_argument("--directory", dest="directory", default=".", help="Select project root directory.")
-        parser.add_argument("--ember", dest="init_type", action='store_const', const=EmberInitType,
-                            default=PythonPackageInitType, help="Select ember template.")
-        return parser
 
 
 class PythonPackageInitType:

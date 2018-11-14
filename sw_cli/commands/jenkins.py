@@ -13,8 +13,6 @@ logger = logging.getLogger(__name__)
 
 
 class JenkinsCommand(base_command.InitialisedRepositoryCommand):
-    def run(self):
-        super().run()
 
     @cached_property
     def server(self):
