@@ -8,17 +8,18 @@ logger = logging.getLogger(__name__)
 
 class CustomScriptCommand(base_command.InitialisedRepositoryCommand):
     """
-    Custom script defined in ./scripts/ directory. Running it with sw-cli add current context to environment.
+    * Custom script defined in ./scripts/ directory. Running it with sw-cli add current context to environment.
     """
 
-    def __init__(self, script_name, **kwargs):
+    def __init__(self, script_name, custom_script_args, **kwargs):
         super().__init__(**kwargs)
         self.script_name = script_name
+        self.custom_script_args = custom_script_args
 
     def run(self):
         super().run()
         logger.info('Running custom script command "{}"...'.format(self.script_name))
-        CustomScriptRunner(self.project_dir, self.context).run(self.script_name, self.args)
+        CustomScriptRunner(self.project_dir, self.context).run(self.script_name, self.custom_script_args)
 
 
 class CustomScriptRunner:

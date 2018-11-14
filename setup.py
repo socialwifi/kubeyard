@@ -24,7 +24,7 @@ setup(
     test_suite='tests',
     entry_points={
         'console_scripts': [
-            'sw-cli = sw_cli.entrypoints.sw_cli:cli',
+            'sw-cli = sw_cli.entrypoints.sw_cli:cli_with_custom_commands',
         ],
     },
     package_dir={'sw_cli': 'sw_cli'},

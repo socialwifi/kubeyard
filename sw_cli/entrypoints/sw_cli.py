@@ -19,6 +19,7 @@ from sw_cli.commands.jenkins import JenkinsInfoCommand
 from sw_cli.commands.jenkins import JenkinsInitCommand
 from sw_cli.commands.jenkins import JenkinsReconfigCommand
 from sw_cli.commands.test import TestCommand
+from sw_cli.entrypoints.custom_command_loader import CustomCommandsLoader
 
 logger = logging.getLogger(__name__)
 
@@ -253,6 +254,12 @@ def init(**kwargs):
     InitCommand(**kwargs).run()
 
 
+custom_commands = CustomCommandsLoader(cli, help="Collection of all custom commands")
+
+cli_with_custom_commands = click.CommandCollection(sources=[
+    cli,
+    custom_commands,
+])
 if __name__ == "__main__":
     try:
         cli()
