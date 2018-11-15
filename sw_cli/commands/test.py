@@ -1,3 +1,4 @@
+import json
 import logging
 import sys
 import typing
@@ -134,6 +135,9 @@ class Database:
     def __enter__(self):
         if not self.is_development or self.force_recreate:
             self.remove_database()
+        if self.container_stopped:
+            logger.info("Found stopped DB, restarting it!")
+            sh.docker.start(self.container_name)
         if not self.already_up:
             self.create()
             self.wait_until_ready()
@@ -145,6 +149,15 @@ class Database:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if not self.is_development:
             self.remove_database()
+
+    @property
+    def container_stopped(self) -> bool:
+        try:
+            container_info = json.loads(str(sh.docker.inspect(self.container_name)))
+        except sh.ErrorReturnCode_1:
+            return False
+        else:
+            return container_info[0]['State']['Running'] is False
 
     @property
     def already_up(self) -> bool:
