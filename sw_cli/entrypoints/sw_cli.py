@@ -3,6 +3,7 @@ import logging
 
 import click
 
+from sw_cli import logging as sw_cli_logging
 from sw_cli import settings
 from sw_cli.commands.bash_completion import InstallCompletion
 from sw_cli.commands.debug import DebugCommand
@@ -21,6 +22,7 @@ from sw_cli.commands.jenkins import JenkinsReconfigCommand
 from sw_cli.commands.test import TestCommand
 from sw_cli.entrypoints.custom_command_loader import CustomCommandsLoader
 
+sw_cli_logging.init_logging()
 logger = logging.getLogger(__name__)
 
 
