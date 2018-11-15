@@ -1,3 +1,4 @@
+import abc
 import json
 import logging
 import sys
@@ -42,6 +43,7 @@ class TestCommand(BaseDevelCommand):
 
     Example:
     tests_with_database: true
+    test_database_type: postgres <- Available types: `postgres`, `cockroach`. `postgres` is default.
     test_database_image: postgres:10.3
     test_database_name: test
 
@@ -85,8 +87,9 @@ class TestCommand(BaseDevelCommand):
         return mount_mode
 
     def run_default(self):
-        if self.context.get('TESTS_WITH_DATABASE', False):
-            with Database(
+        if self.context.get('TESTS_WITH_DATABASE'):
+            database_class = DATABASE_MAP[self.context.get("TEST_DATABASE_TYPE", "postgres")]
+            with database_class(
                     is_development=self.is_development,
                     volumes=self.volumes,
                     context=self.context, tag=self.tag,
@@ -113,7 +116,7 @@ class TestCommand(BaseDevelCommand):
         )
 
 
-class Database:
+class Database(metaclass=abc.ABCMeta):
     def __init__(
             self,
             is_development: bool,
@@ -185,25 +188,21 @@ class Database:
             logger.info('Database does not exist yet.')
             logger.debug(e)
 
+    @abc.abstractmethod
     def create(self):
-        logger.info('Setting up database...')
-        sh.docker.run.bake(
-            restart='always',
-            net='none',
-            name=self.container_name,
-            detach=True,
-            e='POSTGRES_DB={}'.format(self.context['TEST_DATABASE_NAME']),
-        )(
-            self.context['TEST_DATABASE_IMAGE']
-        )
+        raise NotImplementedError
 
     def wait_until_ready(self):
-        started_log = 'PostgreSQL init process complete; ready for start up.'
         logger.info('Waiting for database...')
         for log in sh.docker.logs.bake(follow=True, _err_to_out=True, _iter='out')(self.container_name):
-            if started_log in log:
+            if self.started_log in log:
                 logger.info('Database ready!')
                 break
+
+    @property
+    @abc.abstractmethod
+    def started_log(self):
+        raise NotImplementedError
 
     def migrate(self):
         if not self._migrated:
@@ -223,3 +222,58 @@ class Database:
     @property
     def network(self) -> str:
         return f'container:{self.container_name}'
+
+
+class PostgresDatabase(Database):
+    started_log = 'PostgreSQL init process complete; ready for start up.'
+
+    def create(self):
+        logger.info('Setting up database...')
+        sh.docker.run.bake(
+            restart='always',
+            net='none',
+            name=self.container_name,
+            detach=True,
+            e='POSTGRES_DB={}'.format(self.context['TEST_DATABASE_NAME']),
+        )(
+            self.context['TEST_DATABASE_IMAGE'],
+        )
+
+
+class CockroachDatabase(Database):
+    started_log = 'initialized new cluster'
+
+    def create(self):
+        logger.info('Releasing cockroaches...')
+        sh.docker.run.bake(
+            restart='always',
+            net='none',
+            name=self.container_name,
+            detach=True,
+        )(
+            self.context['TEST_DATABASE_IMAGE'],
+            'start',
+            '--insecure',
+            '--host=localhost',
+            '--logtostderr',
+        )
+        self._create_database()
+
+    def _create_database(self):
+        self.wait_until_ready()
+        sh.docker.run.bake(
+            net=self.network,
+            rm=True,
+        )(
+            self.context["TEST_DATABASE_IMAGE"],
+            "sql",
+            "--insecure",
+            "-e",
+            "CREATE DATABASE {}".format(self.context['TEST_DATABASE_NAME']),
+        )
+
+
+DATABASE_MAP = {
+    'postgres': PostgresDatabase,
+    'cockroach': CockroachDatabase,
+}
