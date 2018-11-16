@@ -5,23 +5,23 @@ import click
 
 from sw_cli import logging as sw_cli_logging
 from sw_cli import settings
-from sw_cli.commands.bash_completion import InstallCompletion
-from sw_cli.commands.debug import DebugCommand
-from sw_cli.commands.devel import BuildCommand
-from sw_cli.commands.devel import DeployCommand
-from sw_cli.commands.devel import PushCommand
-from sw_cli.commands.devel import UpdateRequirementsCommand
-from sw_cli.commands.fix_code_style import FixCodeStyle
-from sw_cli.commands.global_commands import InstallGlobalSecretsCommand
-from sw_cli.commands.global_commands import SetupCommand
+from sw_cli.commands import BuildCommand
+from sw_cli.commands import DebugCommand
+from sw_cli.commands import DeployCommand
+from sw_cli.commands import FixCodeStyle
+from sw_cli.commands import InitCommand
+from sw_cli.commands import InstallCompletion
+from sw_cli.commands import InstallGlobalSecretsCommand
+from sw_cli.commands import JenkinsBuildCommand
+from sw_cli.commands import JenkinsInfoCommand
+from sw_cli.commands import JenkinsInitCommand
+from sw_cli.commands import JenkinsReconfigCommand
+from sw_cli.commands import PushCommand
+from sw_cli.commands import SetupCommand
+from sw_cli.commands import TestCommand
+from sw_cli.commands import UpdateRequirementsCommand
 from sw_cli.commands.init import EmberInitType
-from sw_cli.commands.init import InitCommand
 from sw_cli.commands.init import PythonPackageInitType
-from sw_cli.commands.jenkins import JenkinsBuildCommand
-from sw_cli.commands.jenkins import JenkinsInfoCommand
-from sw_cli.commands.jenkins import JenkinsInitCommand
-from sw_cli.commands.jenkins import JenkinsReconfigCommand
-from sw_cli.commands.test import TestCommand
 from sw_cli.entrypoints.custom_command_loader import CustomCommandsLoader
 
 sw_cli_logging.init_logging()

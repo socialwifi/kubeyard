@@ -5,7 +5,7 @@ import click
 from cached_property import cached_property
 
 from sw_cli import settings
-from sw_cli.commands.custom_script import CustomScriptCommand
+from sw_cli.commands import CustomScriptCommand
 
 
 class CustomCommandsLoader(click.MultiCommand):
