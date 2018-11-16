@@ -6,7 +6,7 @@ from sw_cli.commands.deploy import DeployCommand
 from sw_cli.commands.shell import ShellCommand
 from sw_cli.commands.push import PushCommand
 from sw_cli.commands.update_requirements import UpdateRequirementsCommand
-from sw_cli.commands.fix_code_style import FixCodeStyle
+from sw_cli.commands.fix_code_style import FixCodeStyleCommand
 from sw_cli.commands.global_commands import InstallGlobalSecretsCommand
 from sw_cli.commands.global_commands import SetupCommand
 from sw_cli.commands.init import InitCommand
@@ -24,7 +24,7 @@ __all__ = [
     DeployCommand,
     PushCommand,
     UpdateRequirementsCommand,
-    FixCodeStyle,
+    FixCodeStyleCommand,
     InstallGlobalSecretsCommand,
     SetupCommand,
     InitCommand,

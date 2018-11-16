@@ -8,7 +8,7 @@ from sw_cli import settings
 from sw_cli.commands import BuildCommand
 from sw_cli.commands import DebugCommand
 from sw_cli.commands import DeployCommand
-from sw_cli.commands import FixCodeStyle
+from sw_cli.commands import FixCodeStyleCommand
 from sw_cli.commands import InitCommand
 from sw_cli.commands import InstallCompletion
 from sw_cli.commands import InstallGlobalSecretsCommand
@@ -118,11 +118,11 @@ def test(**kwargs):
     TestCommand(**kwargs).run()
 
 
-@cli.command(help=FixCodeStyle.__doc__)
+@cli.command(help=FixCodeStyleCommand.__doc__)
 @apply_common_options(initialized_repository_options)
 @apply_common_options(devel_options)
 def fix_code_style(**kwargs):
-    FixCodeStyle(**kwargs).run()
+    FixCodeStyleCommand(**kwargs).run()
 
 
 @cli.command(help=BuildCommand.__doc__)

@@ -9,7 +9,7 @@ from sw_cli.commands.devel import BaseDevelCommand
 logger = logging.getLogger(__name__)
 
 
-class FixCodeStyle(BaseDevelCommand):
+class FixCodeStyleCommand(BaseDevelCommand):
     """
     Fix code style.
 
