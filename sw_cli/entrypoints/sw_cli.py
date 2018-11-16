@@ -18,6 +18,7 @@ from sw_cli.commands import JenkinsInitCommand
 from sw_cli.commands import JenkinsReconfigCommand
 from sw_cli.commands import PushCommand
 from sw_cli.commands import SetupCommand
+from sw_cli.commands import ShellCommand
 from sw_cli.commands import TestCommand
 from sw_cli.commands import UpdateRequirementsCommand
 from sw_cli.commands.init import EmberInitType
@@ -256,6 +257,29 @@ def setup(**kwargs):
 )
 def init(**kwargs):
     InitCommand(**kwargs).run()
+
+
+@cli.command(help=ShellCommand.__doc__)
+@apply_common_options(initialized_repository_options)
+@apply_common_options(devel_options)
+@click.option(
+    "--pod",
+    "-p",
+    help="You can select pod to exec into.",
+)
+@click.option(
+    "--container",
+    "-c",
+    help="You can select container to exec into.",
+)
+@click.option(
+    "--shell",
+    "shell",
+    help="Which shell should be used in exec.",
+    default="bash",
+)
+def shell(**kwargs):
+    ShellCommand(**kwargs).run()
 
 
 custom_commands = CustomCommandsLoader(cli, help="Collection of all custom commands")
