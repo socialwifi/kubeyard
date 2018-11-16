@@ -3,7 +3,7 @@ from sw_cli.commands.custom_script import CustomScriptCommand
 from sw_cli.commands.debug import DebugCommand
 from sw_cli.commands.build import BuildCommand
 from sw_cli.commands.deploy import DeployCommand
-from sw_cli.commands.devel import PushCommand
+from sw_cli.commands.push import PushCommand
 from sw_cli.commands.devel import UpdateRequirementsCommand
 from sw_cli.commands.fix_code_style import FixCodeStyle
 from sw_cli.commands.global_commands import InstallGlobalSecretsCommand
