@@ -1,6 +1,7 @@
 import pathlib
 
 import click
+
 from cached_property import cached_property
 
 from sw_cli import settings

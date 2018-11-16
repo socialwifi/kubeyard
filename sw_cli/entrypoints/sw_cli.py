@@ -14,7 +14,9 @@ from sw_cli.commands.devel import UpdateRequirementsCommand
 from sw_cli.commands.fix_code_style import FixCodeStyle
 from sw_cli.commands.global_commands import InstallGlobalSecretsCommand
 from sw_cli.commands.global_commands import SetupCommand
-from sw_cli.commands.init import InitCommand, EmberInitType, PythonPackageInitType
+from sw_cli.commands.init import EmberInitType
+from sw_cli.commands.init import InitCommand
+from sw_cli.commands.init import PythonPackageInitType
 from sw_cli.commands.jenkins import JenkinsBuildCommand
 from sw_cli.commands.jenkins import JenkinsInfoCommand
 from sw_cli.commands.jenkins import JenkinsInitCommand

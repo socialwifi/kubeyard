@@ -5,6 +5,7 @@ import tempfile
 import sh
 
 import sw_cli.files_generator
+
 from sw_cli import base_command
 
 logger = logging.getLogger(__name__)

@@ -4,7 +4,6 @@ import typing
 
 import sh
 
-from sw_cli import base_command
 from sw_cli.commands.devel import BaseDevelCommand
 
 logger = logging.getLogger(__name__)

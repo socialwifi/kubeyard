@@ -2,6 +2,7 @@ import logging
 import pathlib
 
 import sw_cli.files_generator
+
 from sw_cli import base_command
 from sw_cli import context_factories
 from sw_cli import settings
