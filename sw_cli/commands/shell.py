@@ -94,7 +94,7 @@ class ShellCommand(BaseDevelCommand):
         )
 
     @property
-    def after_command(self) -> str:
+    def after_command(self) -> str:
         if self.root:
             return ""
         else:
