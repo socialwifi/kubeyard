@@ -274,9 +274,13 @@ def init(**kwargs):
 )
 @click.option(
     "--shell",
-    "shell",
     help="Which shell should be used in exec.",
     default="bash",
+)
+@click.option(
+    "--root",
+    is_flag=True,
+    help="Do not create user, use root.",
 )
 def shell(**kwargs):
     ShellCommand(**kwargs).run()
