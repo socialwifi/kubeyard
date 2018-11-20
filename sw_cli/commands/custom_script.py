@@ -14,7 +14,7 @@ class CustomScriptCommand(base_command.InitialisedRepositoryCommand):
     def __init__(self, script_name, custom_script_args, **kwargs):
         super().__init__(**kwargs)
         self.script_name = script_name
-        self.custom_script_args = custom_script_args
+        self.custom_script_args = list(custom_script_args)
 
     def run(self):
         super().run()
