@@ -96,17 +96,21 @@ class TestCommand(BaseDevelCommand):
 
     def run_tests(self, database: 'Database' = None):
         logger.info('Running tests...')
-        sh.docker.run.bake(
-            rm=True,
-            _out=sys.stdout.buffer,
-            _err=sys.stdout.buffer,
-            net=database.network if database else 'none',
-        )(
-            *self.volumes,
-            self.image,
-            self.context['TEST_COMMAND'],
-            *self.test_options,
-        )
+        try:
+            sh.docker.run.bake(
+                rm=True,
+                _out=sys.stdout.buffer,
+                _err=sys.stdout.buffer,
+                net=database.network if database else 'none',
+            )(
+                *self.volumes,
+                self.image,
+                self.context['TEST_COMMAND'],
+                *self.test_options,
+            )
+        except sh.ErrorReturnCode_1 as e:
+            logger.debug(e)
+            sys.exit(1)
 
 
 class Database(metaclass=abc.ABCMeta):
