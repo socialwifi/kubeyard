@@ -24,6 +24,7 @@ setup(
     test_suite='tests',
     entry_points={
         'console_scripts': [
+            'kubeyard = sw_cli.entrypoints.sw_cli:cli_with_custom_commands',
             'sw-cli = sw_cli.entrypoints.sw_cli:cli_with_custom_commands',
         ],
     },
