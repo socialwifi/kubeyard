@@ -1,13 +1,13 @@
-_sw_cli_completion() {
+_kubeyard_completion() {
     local IFS=$'
 '
     COMPREPLY=( $( env COMP_WORDS="${COMP_WORDS[*]}" \
                    COMP_CWORD=$COMP_CWORD \
-                   _SW_CLI_COMPLETE=complete $1 ) )
+                   _KUBEYARD_COMPLETE=complete $1 ) )
     return 0
 }
 
-_sw_cli_completionetup() {
+_kubeyard_completionetup() {
     local COMPLETION_OPTIONS=""
     local BASH_VERSION_ARR=(${BASH_VERSION//./ })
     # Only BASH version 4.4 and later have the nosort option.
@@ -15,7 +15,7 @@ _sw_cli_completionetup() {
         COMPLETION_OPTIONS="-o nosort"
     fi
 
-    complete $COMPLETION_OPTIONS -F _sw_cli_completion sw-cli
+    complete $COMPLETION_OPTIONS -F _kubeyard_completion kubeyard
 }
 
-_sw_cli_completionetup;
+_kubeyard_completionetup;
