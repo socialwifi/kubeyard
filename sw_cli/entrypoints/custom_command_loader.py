@@ -1,3 +1,4 @@
+import os
 import pathlib
 
 import click
@@ -24,9 +25,13 @@ class CustomCommandsLoader(click.MultiCommand):
         if self.scripts_dir.exists():
             scripts_dir = self.scripts_dir.resolve()
             for filepath in scripts_dir.glob("*"):
-                if filepath.is_file():
+                if filepath.is_file() and self.is_executable(filepath):
                     cmds[filepath.name] = filepath
         return cmds
+
+    @staticmethod
+    def is_executable(filepath: pathlib.Path) -> bool:
+        return os.access(filepath, os.X_OK)
 
     def list_commands(self, ctx):
         """Do not override commands from main CLI"""

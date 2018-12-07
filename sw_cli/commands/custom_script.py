@@ -29,9 +29,6 @@ class CustomScriptRunner:
 
     def run(self, script_name, args):
         filepath = self.scripts_dir_path / script_name
-        if not self.is_executable(script_name):
-            raise PermissionError("Could not execute %s command, script exists but is not executable: %s"
-                                  % (script_name, filepath))
         env = os.environ.copy()
         env.update(self.context.as_environment())
         os.execvpe(file=str(filepath), args=[str(filepath)] + args, env=env)
@@ -39,9 +36,6 @@ class CustomScriptRunner:
     def exists(self, script_name):
         return (self.scripts_dir_path / script_name).exists()
 
-    def is_executable(self, script_name):
-        filepath = self.scripts_dir_path / script_name
-        return os.access(str(filepath), os.X_OK)
 
     @property
     def scripts_dir_path(self):
