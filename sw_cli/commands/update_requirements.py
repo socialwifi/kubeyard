@@ -19,7 +19,7 @@ class UpdateRequirementsCommand(BaseDevelCommand):
 
     Can be overridden in <project_dir>/sripts/update_requirements.
 
-    If sw-cli is set up in development mode it uses minikube as docker host.
+    If kubeyard is set up in development mode it uses minikube as docker host.
     """
     custom_script_name = 'update_requirements'
     context_vars = ['use_legacy_pip']
@@ -50,7 +50,7 @@ class UpdateRequirementsCommand(BaseDevelCommand):
         output = io.StringIO()
         input = sh.cat("docker/source/base_requirements.txt")
         self.docker('run', '--rm', '-i',
-                    '-e', 'CUSTOM_COMPILE_COMMAND="sw-cli update_requirements"',
+                    '-e', 'CUSTOM_COMPILE_COMMAND="kubeyard update_requirements"',
                     self.image, 'freeze_requirements',
                     _in=input, _out=output, _err=sys.stdout.buffer)
         return output.getvalue()

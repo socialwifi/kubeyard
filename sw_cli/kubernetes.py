@@ -25,7 +25,7 @@ def install_secrets(context):
 
 def install_global_secrets(context):
     logger.info('Installing global secrets...')
-    for path in pathlib.Path(context['SWCLI_GLOBAL_SECRETS']).iterdir():
+    for path in pathlib.Path(context['KUBEYARD_GLOBAL_SECRETS']).iterdir():
         if path.is_dir():
             GlobalSecretsInstaller(context, path.name).install()
     logger.info('Global secrets installed')
@@ -34,12 +34,12 @@ def install_global_secrets(context):
 def get_global_secrets_manipulator(context, secret_name):
     return KubernetesSecretsManipulator(
         secret_name,
-        pathlib.Path(context['SWCLI_GLOBAL_SECRETS']) / secret_name
+        pathlib.Path(context['KUBEYARD_GLOBAL_SECRETS']) / secret_name
     )
 
 
 def _get_kubernetes_commands(context):
-    if context['SWCLI_MODE'] == 'development':
+    if context['KUBEYARD_MODE'] == 'development':
         return KubernetesCommands(
             context_setup=DevelopmentKubernetesContext(context).setup,
             install_secrets=DevelopmentKubernetesSecretsInstaller(context).install,
@@ -213,4 +213,4 @@ class GlobalSecretsInstaller(BaseKubernetesSecretsInstaller):
 
     @property
     def secrets_path(self):
-        return pathlib.Path(self.context['SWCLI_GLOBAL_SECRETS']) / self.secret_name
+        return pathlib.Path(self.context['KUBEYARD_GLOBAL_SECRETS']) / self.secret_name

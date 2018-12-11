@@ -21,18 +21,18 @@ logger = logging.getLogger(__name__)
 class DeployCommand(BaseDevelCommand):
     """
     Deploys application to kubernetes. If it got aws credentials and is not in development mode than it uploads static
-    files to socialwifi-static s3 bucket in STATICS_DIRECTORY configured through context(config/sw_cli.yml).
+    files to socialwifi-static s3 bucket in STATICS_DIRECTORY configured through context(config/kubeyard.yml).
     Image should implement collect_statics_tar command For this part to work.
 
     Next step is creating secret. Secret is named KUBE_SERVICE_NAME configured through context. its content is gathered
-    either form repository in development mode or from global directory in production mode (see sw-cli help setup).
+    either form repository in development mode or from global directory in production mode (see kubeyard help setup).
     key value pairs of this secrets are collected from files in this directory: keys are filenames and values are
     contents of these files. File secrets.yml is exception: it contains yaml encoded dictionary of additional key,
     value pairs. In genereal you should use secrets.yml for your short text secrets.
 
     Last step is deploying ./config/kubernetes/deploy/ using kubepy_deploy_all command
     (https://github.com/socialwifi/kubepy/). In development mode it also merges differences from
-    config/development_overrides, and adds volumes to every pod configured in dev_mounted_paths in config/sw_cli.yml.
+    config/development_overrides, and adds volumes to every pod configured in dev_mounted_paths in config/kubeyard.yml.
     These volumes should be mounted in selected pods using development_overrides.
 
     \b
@@ -130,7 +130,7 @@ class DeployCommand(BaseDevelCommand):
 
 
 class DomainConfigurator:
-    hosts_watermark = '# The following line is added by sw-cli\n'
+    hosts_watermark = '# The following line is added by kubeyard\n'
     host_format = '{minikube_ip}\t{domain}\n'
     hosts_filename = '/etc/hosts'
 
@@ -182,7 +182,7 @@ class DomainConfigurator:
             for line in hosts_file:
                 if domain in line:
                     if previous_line != self.hosts_watermark:
-                        logger.warning(f'Hostname: {domain} not added by sw-cli, please remove manually added entry.')
+                        logger.warning(f'Hostname: {domain} not added by kubeyard, please remove manually added entry.')
                     return True
                 previous_line = line
         return False

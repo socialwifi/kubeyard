@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 class BuildCommand(BaseDevelCommand):
     """
     Builds docker image required to run tests and deployment. Can be overridden in <project_dir>/sripts/build.
-    If sw-cli is set up in development mode it uses minikube as docker host.
+    If kubeyard is set up in development mode it uses minikube as docker host.
     """
     custom_script_name = 'build'
     context_vars = ['image_context']

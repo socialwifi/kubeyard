@@ -1,7 +1,7 @@
 from pyfiglet import figlet_format
 from termcolor import cprint
 
-TEXT = 'Social WiFi\nCLI'
+TEXT = 'KubeYard'
 FONT_COLOR = 'cyan'
 FONT = 'standard'
 

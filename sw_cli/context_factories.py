@@ -1,4 +1,5 @@
 import collections
+import logging
 import pathlib
 
 import git
@@ -8,6 +9,8 @@ from cached_property import cached_property
 
 from sw_cli import io_utils
 from sw_cli import settings
+
+logger = logging.getLogger(__name__)
 
 
 class Context(dict):
@@ -21,7 +24,7 @@ class Context(dict):
 
 class GlobalContextFactory:
     def __init__(self):
-        self.user_context_path = pathlib.Path.home() / settings.DEFAULT_SWCLI_USER_CONTEXT_FILEPATH
+        self.user_context_path = get_user_context_path()
 
     def get(self):
         context = Context()
@@ -40,8 +43,8 @@ class GlobalContextFactory:
     @cached_property
     def base_user_context(self):
         return Context({
-            'SWCLI_USER_CONTEXT_FILEPATH': str(self.user_context_path),
-            'SWCLI_MODE': 'production',
+            'KUBEYARD_USER_CONTEXT_FILEPATH': str(self.user_context_path),
+            'KUBEYARD_MODE': 'production',
             'DEV_POSTGRES_NAME': settings.DEFAULT_DEV_POSTGRES_NAME,
             'DEV_PUBSUB_NAME': settings.DEFAULT_DEV_PUBSUB_NAME,
             'DEFAULT_DEV_ELASTIC_NAME': settings.DEFAULT_DEV_ELASTIC_NAME,
@@ -60,7 +63,7 @@ class GlobalContextFactory:
 class BaseRepoContextFactory:
     def __init__(self, project_dir):
         self.project_dir = project_dir
-        self.user_context_path = pathlib.Path.home() / settings.DEFAULT_SWCLI_USER_CONTEXT_FILEPATH
+        self.user_context_path = get_user_context_path()
 
     def get(self):
         context = Context()
@@ -81,6 +84,23 @@ class BaseRepoContextFactory:
             'GIT_REMOTE_URL': origin_url,
             'GIT_REPO_NAME': origin_url.split('/')[-1]
         })
+
+
+def get_user_context_path():
+    """
+    Helper for legacy sw-cli support.
+    TODO: remove legacy
+    """
+    user_context_path = pathlib.Path.home() / settings.DEFAULT_KUBEYARD_USER_CONTEXT_FILEPATH
+    if not user_context_path.exists():
+        legacy_context_path = pathlib.Path.home() / settings.DEFAULT_SWCLI_USER_CONTEXT_FILEPATH
+        if legacy_context_path.exists():
+            logger.warning("Using legacy file: {}. Please rename it to: {}!".format(
+                settings.DEFAULT_SWCLI_USER_CONTEXT_FILEPATH,
+                settings.DEFAULT_KUBEYARD_USER_CONTEXT_FILEPATH,
+            ))
+            user_context_path = legacy_context_path
+    return user_context_path
 
 
 PromptedContext = collections.namedtuple('PromptedContext', ['variable', 'prompt', 'default'])
@@ -105,10 +125,17 @@ class EmptyRepoContextFactory(BaseRepoContextFactory):
 
 
 class InitialisedRepoContextFactory(BaseRepoContextFactory):
-    def __init__(self, project_dir, context_filepath=settings.DEFAULT_SWCLI_CONTEXT_FILEPATH):
+    def __init__(self, project_dir, context_filepath=settings.DEFAULT_KUBEYARD_CONTEXT_FILEPATH):
         super().__init__(project_dir)
         self.context_filepath = context_filepath
         self.filename = project_dir / context_filepath
+        if not self.filename.exists() and context_filepath == settings.DEFAULT_KUBEYARD_CONTEXT_FILEPATH:
+            # TODO: remove legacy
+            logger.warning("Using legacy file: {} file. Please rename it to: {}!".format(
+                settings.DEFAULT_SWCLI_CONTEXT_FILEPATH,
+                settings.DEFAULT_KUBEYARD_CONTEXT_FILEPATH,
+            ))
+            self.filename = project_dir / settings.DEFAULT_SWCLI_CONTEXT_FILEPATH
         if not self.filename.exists():
             raise FileNotFoundError("File does not exist: %s" % self.filename)
 
@@ -116,8 +143,8 @@ class InitialisedRepoContextFactory(BaseRepoContextFactory):
     def project_context(self):
         context = Context({
             'PROJECT_DIR': str(self.project_dir),
-            'SWCLI_CONTEXT_FILEPATH': self.context_filepath,
-            'SWCLI_SCRIPTS_DIR': settings.DEFAULT_SWCLI_SCRIPTS_DIR,
+            'KUBEYARD_CONTEXT_FILEPATH': self.context_filepath,
+            'KUBEYARD_SCRIPTS_DIR': settings.DEFAULT_KUBEYARD_SCRIPTS_DIR,
             'KUBERNETES_DEV_SECRETS_DIR': settings.DEFAULT_KUBERNETES_DEV_SECRETS_DIR,
             'DEV_TLD': settings.DEFAULT_DEV_TLD,
             'DEV_DOMAINS': settings.DEFAULT_DEV_DOMAINS,
@@ -136,7 +163,7 @@ class InitialisedRepoContextFactory(BaseRepoContextFactory):
 
 def load_context(path):
     with path.open() as fp:
-        return upper_keys(yaml.load(fp))
+        return de_legacy(upper_keys(yaml.load(fp)))
 
 
 def upper_keys(d):
@@ -144,3 +171,19 @@ def upper_keys(d):
     for k, v in d.items():
         ret.update({k.upper(): v})
     return ret
+
+
+def de_legacy(context: Context) -> Context:
+    """
+    :param context: ready context with capital letters keys.
+    :return: context with keys renamed from ..._SWCLI_.. to ..._KUBEYARD_...
+    TODO: remove legacy
+    """
+    new_context = Context()
+    for key, value in context.items():
+        if 'SWCLI' in key:
+            legacy_key = key
+            key = key.replace('SWCLI', 'KUBEYARD')
+            logger.warning("You have legacy entry: {} in context. Please rename it to: {}!".format(legacy_key, key))
+        new_context.update({key: value})
+    return new_context

@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 class CustomScriptCommand(base_command.InitialisedRepositoryCommand):
     """
-    * Custom script defined in ./scripts/ directory. Running it with sw-cli add current context to environment.
+    * Custom script defined in ./scripts/ directory. Running it with kubeyard add current context to environment.
     """
 
     def __init__(self, script_name, custom_script_args, **kwargs):
@@ -39,4 +39,4 @@ class CustomScriptRunner:
 
     @property
     def scripts_dir_path(self):
-        return self.project_dir / self.context.get('SWCLI_SCRIPTS_DIR')
+        return self.project_dir / self.context.get('KUBEYARD_SCRIPTS_DIR')

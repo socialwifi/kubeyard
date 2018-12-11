@@ -24,8 +24,8 @@ class TestCommand(BaseDevelCommand):
     test_migration_command: migrate_user
     test_command: db_tests_for_user
 
-    If sw-cli is set up in development mode it uses minikube as docker host and mounts volumes configured in
-    dev_mounted_paths in config/sw_cli.yml if they have mount-in-test set.
+    If kubeyard is set up in development mode it uses minikube as docker host and mounts volumes configured in
+    dev_mounted_paths in config/kubeyard.yml if they have mount-in-test set.
 
     \b
     Example:

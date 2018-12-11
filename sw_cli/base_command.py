@@ -46,7 +46,7 @@ class InitialisedRepositoryCommand(BaseCommand, metaclass=ContextFromClassProper
 
     @property
     def log_level(self):
-        return self._log_level or self.context.get('SWCLI_LOG_LEVEL', settings.DEFAULT_SWCLI_LOG_LEVEL)
+        return self._log_level or self.context.get('KUBEYARD_LOG_LEVEL', settings.DEFAULT_KUBEYARD_LOG_LEVEL)
 
     @cached_property
     def context(self):

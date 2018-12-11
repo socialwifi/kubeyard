@@ -89,7 +89,7 @@ class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
 
     @property
     def is_development(self):
-        return self.context['SWCLI_MODE'] == 'development'
+        return self.context['KUBEYARD_MODE'] == 'development'
 
     def run_default(self):
         raise NotImplementedError

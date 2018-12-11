@@ -33,12 +33,12 @@ logger = logging.getLogger(__name__)
 @click.version_option()
 def cli():
     """
-    sw-cli is a commandline tool for easier development and deployment of Social WiFi services.
+    kubeyard is a commandline tool for easier development and deployment of Social WiFi services.
 
     If some command allows you to pass additional arguments (for example to pytest),
     you should use double dash `--` to separate it from command args.
 
-    sw-cli [OPTIONS] COMMAND [ARGS] -- [ARGS SHOULD BE PASSED]
+    kubeyard [OPTIONS] COMMAND [ARGS] -- [ARGS SHOULD BE PASSED]
     """
     pass
 
@@ -55,7 +55,7 @@ def apply_common_options(options):
 initialized_repository_options = (
     click.option(
         "--directory",
-        default=settings.DEFAULT_SWCLI_PROJECT_DIR,
+        default=settings.DEFAULT_KUBEYARD_PROJECT_DIR,
         type=click.Path(
             file_okay=False,
             exists=True,
@@ -85,7 +85,7 @@ devel_options = (
     ),
     click.option(
         "--image-name",
-        help="Image name (without repository). Default is set in sw-cli.yml.",
+        help="Image name (without repository). Default is set in kubeyard.yml.",
     ),
 )
 

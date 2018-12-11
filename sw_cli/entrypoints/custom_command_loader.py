@@ -10,7 +10,7 @@ from sw_cli.commands import CustomScriptCommand
 
 
 class CustomCommandsLoader(click.MultiCommand):
-    scripts_dir = pathlib.Path(settings.DEFAULT_SWCLI_SCRIPTS_DIR)
+    scripts_dir = pathlib.Path(settings.DEFAULT_KUBEYARD_SCRIPTS_DIR)
 
     def __init__(self, main_cli: list, **attrs):
         """

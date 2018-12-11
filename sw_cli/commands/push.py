@@ -6,7 +6,7 @@ class PushCommand(BaseDevelCommand):
     Runs `docker push` on docker image built by build command. It also tags image as latest adn push it as well.
     Can be overridden in <project_dir>/sripts/push.
 
-    If sw-cli is set up in development mode it uses minikube as docker host.
+    If kubeyard is set up in development mode it uses minikube as docker host.
 
     Normally you want to run it only in production.
     """

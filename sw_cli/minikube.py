@@ -202,5 +202,5 @@ class ClusterFactory:
     }
 
     def get(self, context):
-        vm_driver = context.get('SWCLI_VM_DRIVER', settings.DEFAULT_SWCLI_VM_DRIVER)
+        vm_driver = context.get('KUBEYARD_VM_DRIVER', settings.DEFAULT_KUBEYARD_VM_DRIVER)
         return self.VM_DRIVERS[vm_driver]()
