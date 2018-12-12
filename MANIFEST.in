@@ -1,2 +1,2 @@
-recursive-include sw_cli/definitions *
-recursive-include sw_cli/templates *
+recursive-include kubeyard/definitions *
+recursive-include kubeyard/templates *

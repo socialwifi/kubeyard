@@ -5,9 +5,9 @@ from setuptools import setup
 
 
 def templates():
-    for path in pathlib.Path('sw_cli/templates').glob('**/*'):
+    for path in pathlib.Path('kubeyard/templates').glob('**/*'):
         if not path.is_dir():
-            yield str(path.relative_to('sw_cli'))
+            yield str(path.relative_to('kubeyard'))
 
 
 def parse_requirements(filename, *args, **kwargs):
@@ -17,18 +17,18 @@ def parse_requirements(filename, *args, **kwargs):
 
 
 setup(
-    name='Sw-Cli',
+    name='Kubeyard',
     version='docker',
     packages=find_packages(exclude=['tests']),
     install_requires=[str(r) for r in parse_requirements('base_requirements.txt', session=False)],
     test_suite='tests',
     entry_points={
         'console_scripts': [
-            'kubeyard = sw_cli.entrypoints.sw_cli:cli_with_custom_commands',
-            'sw-cli = sw_cli.entrypoints.sw_cli:cli_with_custom_commands',
+            'kubeyard = kubeyard.entrypoints.kubeyard:cli_with_custom_commands',
+            'sw-cli = kubeyard.entrypoints.kubeyard:cli_with_custom_commands',  # TODO: remove legacy
         ],
     },
-    package_dir={'sw_cli': 'sw_cli'},
-    package_data={'sw_cli': list(templates())},
+    package_dir={'kubeyard': 'kubeyard'},
+    package_data={'kubeyard': list(templates())},
     include_package_data=True,
 )
