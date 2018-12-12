@@ -16,7 +16,7 @@ KUBERNETES_PROD_SECRETS_DIR = (
         os.getenv('SW_CLI_KUBERNETES_PROD_SECRETS_DIR') or  # TODO: remove legacy
         'kubernetes_secrets'
 )
-DEFAULT_DOCKER_REGISTRY_NAME = 'docker.socialwifi.com'
+DEFAULT_DOCKER_REGISTRY_NAME = 'registry.hub.docker.com'
 DEFAULT_KUBE_SERVICE_NAME_PATTERN = '{0}'
 DEFAULT_KUBE_SERVICE_PORT = '80'
 DEFAULT_KUBE_LIVE_RELOAD_PORT = '30555'
