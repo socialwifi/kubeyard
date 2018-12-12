@@ -36,7 +36,6 @@ class CustomScriptRunner:
     def exists(self, script_name):
         return (self.scripts_dir_path / script_name).exists()
 
-
     @property
     def scripts_dir_path(self):
         return self.project_dir / self.context.get('KUBEYARD_SCRIPTS_DIR')
