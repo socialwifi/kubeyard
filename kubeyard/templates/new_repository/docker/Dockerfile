@@ -1,1 +1,1 @@
-FROM docker.socialwifi.com/python-package:3.6.3
+FROM socialwifi/kubeyard-python:3.7.0-0
