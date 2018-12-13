@@ -2,7 +2,6 @@ click
 colorlog
 jinja2
 kubepy>=1.11.1
-python-jenkins
 pyYAML
 GitPython
 cached-property

@@ -28,17 +28,9 @@ class GlobalContextFactory:
 
     def get(self):
         context = Context()
-        context.update(self.jenkins_info)
         context.update(self.base_user_context)
         context.update(self.user_context)
         return upper_keys(context)
-
-    @cached_property
-    def jenkins_info(self):
-        return Context({
-            'JENKINS_URL': settings.DEFAULT_JENKINS_URL,
-            'JENKINS_EMAIL_RECIPIENTS': settings.DEFAULT_JENKINS_EMAIL_RECIPIENTS,
-        })
 
     @cached_property
     def base_user_context(self):

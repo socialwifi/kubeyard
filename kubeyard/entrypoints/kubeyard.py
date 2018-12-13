@@ -12,10 +12,6 @@ from kubeyard.commands import FixCodeStyleCommand
 from kubeyard.commands import InitCommand
 from kubeyard.commands import InstallCompletion
 from kubeyard.commands import InstallGlobalSecretsCommand
-from kubeyard.commands import JenkinsBuildCommand
-from kubeyard.commands import JenkinsInfoCommand
-from kubeyard.commands import JenkinsInitCommand
-from kubeyard.commands import JenkinsReconfigCommand
 from kubeyard.commands import PushCommand
 from kubeyard.commands import SetupCommand
 from kubeyard.commands import ShellCommand
@@ -183,30 +179,6 @@ def deploy(**kwargs):
 @apply_common_options(initialized_repository_options)
 def variables(**kwargs):
     DebugCommand(**kwargs).run()
-
-
-@cli.command(help=JenkinsInfoCommand.__doc__)
-@apply_common_options(initialized_repository_options)
-def jenkins_info(**kwargs):
-    JenkinsInfoCommand(**kwargs).run()
-
-
-@cli.command(help=JenkinsInitCommand.__doc__)
-@apply_common_options(initialized_repository_options)
-def jenkins_init(**kwargs):
-    JenkinsInitCommand(**kwargs).run()
-
-
-@cli.command(help=JenkinsReconfigCommand.__doc__)
-@apply_common_options(initialized_repository_options)
-def jenkins_reconfig(**kwargs):
-    JenkinsReconfigCommand(**kwargs).run()
-
-
-@cli.command(help=JenkinsBuildCommand.__doc__)
-@apply_common_options(initialized_repository_options)
-def jenkins_build(**kwargs):
-    JenkinsBuildCommand(**kwargs).run()
 
 
 @cli.command(help=InstallCompletion.__doc__)

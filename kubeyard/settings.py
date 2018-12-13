@@ -16,11 +16,7 @@ KUBERNETES_PROD_SECRETS_DIR = (
         os.getenv('SW_CLI_KUBERNETES_PROD_SECRETS_DIR') or  # TODO: remove legacy
         'kubernetes_secrets'
 )
-DEFAULT_JENKINS_URL = 'https://jenkins.socialwifi.com'
 DEFAULT_DOCKER_REGISTRY_NAME = 'docker.socialwifi.com'
-DEFAULT_JENKINS_EMAIL_RECIPIENTS = 'developers@socialwifi.com'
-DEFAULT_JENKINS_JOB_CONFIG_FILEPATH = 'config/jenkins_job.xml'
-DEFAULT_JENKINS_JOB_TEST_PATCHSET_FILEPATH = 'config/jenkins_job_test_patchset.xml'
 DEFAULT_KUBE_SERVICE_NAME_PATTERN = '{0}'
 DEFAULT_KUBE_SERVICE_PORT = '80'
 DEFAULT_KUBE_LIVE_RELOAD_PORT = '30555'

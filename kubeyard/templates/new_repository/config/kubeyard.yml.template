@@ -1,8 +1,6 @@
 docker_image_name: "{{ DOCKER_IMAGE_NAME }}"
 kube_service_name: "{{ KUBE_SERVICE_NAME }}"
 kube_service_port: "{{ KUBE_SERVICE_PORT }}"
-jenkins_url: "{{ JENKINS_URL }}"
-jenkins_email_recipients: "{{ JENKINS_EMAIL_RECIPIENTS }}"
 docker_registry_name: "{{ DOCKER_REGISTRY_NAME }}"
 dev_mounted_paths:
   - name: dev-volume

@@ -10,10 +10,6 @@ from kubeyard.commands.fix_code_style import FixCodeStyleCommand
 from kubeyard.commands.global_commands import InstallGlobalSecretsCommand
 from kubeyard.commands.global_commands import SetupCommand
 from kubeyard.commands.init import InitCommand
-from kubeyard.commands.jenkins import JenkinsBuildCommand
-from kubeyard.commands.jenkins import JenkinsInfoCommand
-from kubeyard.commands.jenkins import JenkinsInitCommand
-from kubeyard.commands.jenkins import JenkinsReconfigCommand
 from kubeyard.commands.test import TestCommand
 
 __all__ = [
@@ -28,10 +24,6 @@ __all__ = [
     InstallGlobalSecretsCommand,
     SetupCommand,
     InitCommand,
-    JenkinsBuildCommand,
-    JenkinsInfoCommand,
-    JenkinsInitCommand,
-    JenkinsReconfigCommand,
     TestCommand,
     ShellCommand,
 ]
