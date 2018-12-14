@@ -1,8 +1,8 @@
+import abc
 import logging
 import pathlib
 
 import kubeyard.files_generator
-
 from kubeyard import base_command
 from kubeyard import context_factories
 from kubeyard import settings
@@ -18,7 +18,7 @@ class InitCommand(base_command.BaseCommand):
     By default it uses python application template.
     """
 
-    def __init__(self, *, directory, init_type):
+    def __init__(self, *, directory, init_type: 'InitType'):
         self.directory = directory
         self.init_type = init_type
 
@@ -30,7 +30,15 @@ class InitCommand(base_command.BaseCommand):
         kubeyard.files_generator.copy_template(init_type.template_directory, project_dst, context=context)
 
 
-class PythonPackageInitType:
+class InitType(metaclass=abc.ABCMeta):
+    name: str = NotImplemented
+    template_directory: str = NotImplemented
+    prompted_context: list = NotImplemented
+
+
+class PythonPackageInitType(InitType):
+    name = 'python'
+
     template_directory = 'new_repository'
     prompted_context = [
         context_factories.PromptedContext(
@@ -42,7 +50,9 @@ class PythonPackageInitType:
     ]
 
 
-class EmberInitType:
+class EmberInitType(InitType):
+    name = 'ember'
+
     template_directory = 'new_ember_repository'
     prompted_context = PythonPackageInitType.prompted_context + [
         context_factories.PromptedContext(
@@ -50,3 +60,9 @@ class EmberInitType:
         context_factories.PromptedContext(
             'DOCKER_REGISTRY_NAME', 'docker registry name', settings.DEFAULT_DOCKER_REGISTRY_NAME),
     ]
+
+
+all_templates = [
+    PythonPackageInitType,
+    EmberInitType,
+]

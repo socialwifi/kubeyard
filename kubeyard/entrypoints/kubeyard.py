@@ -17,8 +17,8 @@ from kubeyard.commands import SetupCommand
 from kubeyard.commands import ShellCommand
 from kubeyard.commands import TestCommand
 from kubeyard.commands import UpdateRequirementsCommand
-from kubeyard.commands.init import EmberInitType
 from kubeyard.commands.init import PythonPackageInitType
+from kubeyard.commands.init import all_templates
 from kubeyard.entrypoints.custom_command_loader import CustomCommandsLoader
 
 kubeyard_logging.init_logging()
@@ -221,14 +221,16 @@ def setup(**kwargs):
     help="Select project root directory.",
 )
 @click.option(
-    "--ember",  # TODO: better name...
-    "init_type",
-    flag_value=EmberInitType,
-    default=PythonPackageInitType,
+    "--template",
+    "template_name",
+    type=click.Choice([template.name for template in all_templates]),
+    default=PythonPackageInitType.name,
     help="Select ember template.",
 )
-def init(**kwargs):
-    InitCommand(**kwargs).run()
+def init(*, template_name, **kwargs):
+    for template in all_templates:
+        if template.name == template_name:
+            return InitCommand(init_type=template, **kwargs).run()
 
 
 @cli.command(help=ShellCommand.__doc__)
