@@ -87,7 +87,7 @@ def get_user_context_path():
     if not user_context_path.exists():
         legacy_context_path = pathlib.Path.home() / settings.DEFAULT_SWCLI_USER_CONTEXT_FILEPATH
         if legacy_context_path.exists():
-            logger.warning("Using legacy file: {}. Please rename it to: {}!".format(
+            logger.warning("Using legacy user config file: {}. Please rename it to: {}!".format(
                 settings.DEFAULT_SWCLI_USER_CONTEXT_FILEPATH,
                 settings.DEFAULT_KUBEYARD_USER_CONTEXT_FILEPATH,
             ))
@@ -122,12 +122,14 @@ class InitialisedRepoContextFactory(BaseRepoContextFactory):
         self.context_filepath = context_filepath
         self.filename = project_dir / context_filepath
         if not self.filename.exists() and context_filepath == settings.DEFAULT_KUBEYARD_CONTEXT_FILEPATH:
-            # TODO: remove legacy
-            logger.warning("Using legacy file: {} file. Please rename it to: {}!".format(
-                settings.DEFAULT_SWCLI_CONTEXT_FILEPATH,
-                settings.DEFAULT_KUBEYARD_CONTEXT_FILEPATH,
-            ))
-            self.filename = project_dir / settings.DEFAULT_SWCLI_CONTEXT_FILEPATH
+            legacy_filename = project_dir / settings.DEFAULT_SWCLI_CONTEXT_FILEPATH
+            if legacy_filename.exists():
+                # TODO: remove legacy
+                logger.warning("Using legacy project config file: {} file. Please rename it to: {}!".format(
+                    settings.DEFAULT_SWCLI_CONTEXT_FILEPATH,
+                    settings.DEFAULT_KUBEYARD_CONTEXT_FILEPATH,
+                ))
+                self.filename = legacy_filename
         if not self.filename.exists():
             raise FileNotFoundError("File does not exist: %s" % self.filename)
 
