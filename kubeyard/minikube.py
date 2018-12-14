@@ -80,7 +80,6 @@ class NativeLocalkubeCluster(Cluster):
         super()._after_start()
         self._apply_kube_dns_fix()
         self._apply_dashboard_fix_if_needed()
-        self._create_docker_registry_secret()
 
     def get_mounted_project_dir(self, project_dir):
         return project_dir
@@ -118,32 +117,6 @@ class NativeLocalkubeCluster(Cluster):
                 logger.info('Dashboard addon file replaced')
             else:
                 logger.info('No need to replace dashboard addon file')
-
-    def _create_docker_registry_secret(self):
-        """
-        This secret is needed for PubSub dependency, to allow it to pull the image
-        from SocialWiFi's private Docker registry.
-        You need to issue a "docker login docker.socialwifi.com" command locally.
-        This fix can be removed when PubSub emulator is moved to a public registry.
-        Docs: https://kubernetes.io/docs/concepts/containers/images/#creating-a-secret-with-a-docker-config
-        """
-        logger.info('Creating Docker registry secret...')
-        registry_name = 'docker.socialwifi.com'
-        config_path = pathlib.Path.home() / '.docker' / 'config.json'
-        try:
-            sh.kubectl(
-                'create', 'secret', 'generic',
-                registry_name,
-                '--from-file=.dockerconfigjson={}'.format(config_path),
-                '--type=kubernetes.io/dockerconfigjson',
-            )
-        except sh.ErrorReturnCode as e:
-            if b'already exists' not in e.stderr:
-                raise e
-            else:
-                logger.info('Docker registry secret already exists')
-        else:
-            logger.info('Docker registry secret created')
 
     @cached_property
     def _sudo_password(self):
