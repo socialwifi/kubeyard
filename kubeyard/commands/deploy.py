@@ -20,9 +20,7 @@ logger = logging.getLogger(__name__)
 
 class DeployCommand(BaseDevelCommand):
     """
-    Deploys application to kubernetes. If it got aws credentials and is not in development mode than it uploads static
-    files to socialwifi-static s3 bucket in STATICS_DIRECTORY configured through context(config/kubeyard.yml).
-    Image should implement collect_statics_tar command For this part to work.
+    Deploys application to kubernetes.
 
     Next step is creating secret. Secret is named KUBE_SERVICE_NAME configured through context. its content is gathered
     either form repository in development mode or from global directory in production mode (see kubeyard help setup).
@@ -44,12 +42,11 @@ class DeployCommand(BaseDevelCommand):
     Can be overridden in <project_dir>/sripts/deploy.
     """
     custom_script_name = 'deploy'
-    context_vars = ["build_url", "aws_credentials", "gcs_service_key_file", "gcs_bucket_name"]
+    context_vars = ["build_url", "gcs_service_key_file", "gcs_bucket_name"]
 
-    def __init__(self, *, build_url, aws_credentials, gcs_service_key_file, gcs_bucket_name, **kwargs):
+    def __init__(self, *, build_url, gcs_service_key_file, gcs_bucket_name, **kwargs):
         super().__init__(**kwargs)
         self.build_url = build_url
-        self.aws_credentials = aws_credentials
         self.gcs_service_key_file = gcs_service_key_file
         self.gcs_bucket_name = gcs_bucket_name
 
@@ -74,7 +71,6 @@ class DeployCommand(BaseDevelCommand):
             self.image,
             self.gcs_service_key_file,
             self.gcs_bucket_name,
-            self.aws_credentials,
         )
 
     def run_statics_deploy(self):
@@ -188,7 +184,7 @@ class DomainConfigurator:
         return False
 
 
-def static_files_storage_factory(context, image, gcs_service_key_file, gcs_bucket_name, aws_credentials):
+def static_files_storage_factory(context, image, gcs_service_key_file, gcs_bucket_name):
     statics_directory = context.get('STATICS_DIRECTORY')
     collect_statics_command = context.get('COLLECT_STATICS_COMMAND', 'collect_statics_tar')
     docker_runner = DockerRunner(context)
@@ -203,11 +199,6 @@ def static_files_storage_factory(context, image, gcs_service_key_file, gcs_bucke
             **arguments,
             service_key_file=gcs_service_key_file,
             bucket_name=gcs_bucket_name,
-        )
-    elif statics_directory and aws_credentials:
-        return S3FilesStorage(
-            **arguments,
-            credentials=aws_credentials,
         )
     else:
         return None
@@ -230,25 +221,6 @@ class FilesStorage:
 
     def upload_tarred_files(self, statics_tar_process):
         raise NotImplementedError
-
-
-class S3FilesStorage(FilesStorage):
-    def __init__(self, statics_directory, collect_statics_command, image, docker_runner, credentials):
-        super().__init__(statics_directory, collect_statics_command, image, docker_runner)
-        if ':' in credentials:
-            self.access_key, self.secret_key = credentials.split(':', 2)
-        else:
-            raise base_command.CommandException('Aws credentials should be in form access_key:secret_key.')
-
-    def upload_tarred_files(self, statics_tar_process):
-        logger.info('Uploading to AWS S3...')
-        upload_statics_run_command = [
-            'run', '-i', '--rm', '-e', 'AWS_ACCESS_KEY={}'.format(self.access_key),
-            '-e', 'AWS_SECRET_KEY={}'.format(self.secret_key), '-e', 'UPLOAD_BUCKET=socialwifi-static',
-            '-e', 'UPLOAD_PATH={}/'.format(self.statics_directory),
-            'docker.socialwifi.com/aws-utils', 'upload_tar'
-        ]
-        self.docker_runner.run_with_output(statics_tar_process, *upload_statics_run_command)
 
 
 class GCSFilesStorage(FilesStorage):

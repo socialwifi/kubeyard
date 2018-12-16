@@ -160,10 +160,6 @@ def push(**kwargs):
     help="URL to a CI/CD (eg. Jenkins) build. It will be used as a pod annotation.",
 )
 @click.option(
-    "--aws-credentials",
-    help="AWS key and secret. Required to deploy static files. Format: AWS_KEY:AWS_SECRET.",
-)
-@click.option(
     "--gcs-service-key-file",
     help="Service account key path for Google Cloud Storage. Required to deploy static files.",
 )
