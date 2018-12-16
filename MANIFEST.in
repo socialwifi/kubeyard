@@ -1,2 +1,7 @@
 recursive-include kubeyard/definitions *
 recursive-include kubeyard/templates *
+include base_requirements.txt
+include dev_requirements.txt
+include CHANGELOG.md
+include LICENSE
+include README.md

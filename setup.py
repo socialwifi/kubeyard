@@ -17,8 +17,12 @@ def parse_requirements(filename, *args, **kwargs):
 
 
 setup(
-    name='Kubeyard',
-    version='docker',
+    name='kubeyard',
+    version='0.2.0.dev0',
+    description='A utility to develop, test and deploy Kubernetes microservices.',
+    author='Social WiFi',
+    author_email='it@socialwifi.com',
+    url='https://github.com/socialwifi/kubeyard',
     packages=find_packages(exclude=['tests']),
     install_requires=[str(r) for r in parse_requirements('base_requirements.txt', session=False)],
     test_suite='tests',
@@ -31,4 +35,13 @@ setup(
     package_dir={'kubeyard': 'kubeyard'},
     package_data={'kubeyard': list(templates())},
     include_package_data=True,
+    license='BSD',
+    classifiers=[
+        'Environment :: Console',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: BSD License',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.6',
+    ]
 )
