@@ -1,6 +1,8 @@
 import abc
 import logging
 import pathlib
+import random
+import string
 
 import kubeyard.files_generator
 from kubeyard import base_command
@@ -47,6 +49,23 @@ class PythonPackageInitType(InitType):
     ]
 
 
+class PythonDjangoInitType(InitType):
+    name = 'django'
+    prompted_context = [
+        context_factories.PromptedContext(
+            'KUBE_SERVICE_NAME', 'service name', settings.DEFAULT_KUBE_SERVICE_NAME_PATTERN),
+        context_factories.PromptedContext(
+            'KUBE_SERVICE_PORT', 'service port', settings.DEFAULT_KUBE_SERVICE_PORT),
+        context_factories.PromptedContext(
+            'DOCKER_REGISTRY_NAME', 'docker registry name', settings.DEFAULT_DOCKER_REGISTRY_NAME),
+        context_factories.PromptedContext(
+            'SECRET_KEY',
+            'application secret key',
+            ''.join(random.choices(string.ascii_letters + string.digits, k=50)),
+        )
+    ]
+
+
 class EmberInitType(InitType):
     name = 'ember'
     prompted_context = PythonPackageInitType.prompted_context + [
@@ -59,5 +78,6 @@ class EmberInitType(InitType):
 
 all_templates = [
     PythonPackageInitType,
+    PythonDjangoInitType,
     EmberInitType,
 ]

@@ -1,0 +1,20 @@
+import os
+
+import django
+
+from django.core import management
+
+import {{ GIT_REPO_NAME }}.settings
+
+
+def run():
+    if {{ GIT_REPO_NAME }}.settings.DEBUG:
+        django.setup()
+        management.call_command('collectstatic', '--noinput')
+        return management.call_command('runserver', '0.0.0.0:{{ KUBE_SERVICE_PORT }}')
+    else:
+        os.execv('/usr/local/bin/uwsgi', ['uwsgi', '--ini', 'uwsgi.ini'])
+
+
+if __name__ == '__main__':
+    exit(run())

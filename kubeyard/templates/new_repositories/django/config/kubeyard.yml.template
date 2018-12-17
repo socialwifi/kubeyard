@@ -1,0 +1,12 @@
+docker_image_name: "{{ DOCKER_IMAGE_NAME }}"
+kube_service_name: "{{ KUBE_SERVICE_NAME }}"
+kube_service_port: "{{ KUBE_SERVICE_PORT }}"
+docker_registry_name: "{{ DOCKER_REGISTRY_NAME }}"
+dev_mounted_paths:
+  - name: dev-volume
+    host-path: docker/source
+    mount-in-tests:
+      path: /package
+      image-name: {{ DOCKER_IMAGE_NAME }}
+dev_domains:
+  - {{ GIT_REPO_NAME }}
