@@ -24,22 +24,19 @@ class InitCommand(base_command.BaseCommand):
 
     def run(self):
         logger.info("Initialising repo...")
-        init_type = self.init_type
         project_dst = pathlib.Path(self.directory)
-        context = context_factories.EmptyRepoContextFactory(self.directory, init_type.prompted_context).get()
-        kubeyard.files_generator.copy_template(init_type.template_directory, project_dst, context=context)
+        context = context_factories.EmptyRepoContextFactory(self.directory, self.init_type.prompted_context).get()
+        template_location = f'new_repositories/{self.init_type.name}'
+        kubeyard.files_generator.copy_template(template_location, project_dst, context=context)
 
 
 class InitType(metaclass=abc.ABCMeta):
     name: str = NotImplemented
-    template_directory: str = NotImplemented
     prompted_context: list = NotImplemented
 
 
 class PythonPackageInitType(InitType):
     name = 'python'
-
-    template_directory = 'new_repository'
     prompted_context = [
         context_factories.PromptedContext(
             'KUBE_SERVICE_NAME', 'service name', settings.DEFAULT_KUBE_SERVICE_NAME_PATTERN),
@@ -52,8 +49,6 @@ class PythonPackageInitType(InitType):
 
 class EmberInitType(InitType):
     name = 'ember'
-
-    template_directory = 'new_ember_repository'
     prompted_context = PythonPackageInitType.prompted_context + [
         context_factories.PromptedContext(
             'KUBE_LIVE_RELOAD_PORT', 'live reload development port', settings.DEFAULT_KUBE_LIVE_RELOAD_PORT),
