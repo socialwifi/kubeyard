@@ -1,7 +1,7 @@
 0.2.1 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Add template for a Django project.
 
 
 0.2.0 (2018-12-16)
