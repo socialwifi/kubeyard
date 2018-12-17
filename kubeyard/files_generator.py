@@ -53,9 +53,11 @@ class BaseTemplate:
         self.environment = environment
 
     @property
-    def destination(self):
+    def destination(self) -> pathlib.Path:
         relative_path = self.source.relative_to(self.environment.source_root)
-        return self.environment.destination_root / relative_path
+        destination_template = jinja_environment.from_string(str(self.environment.destination_root / relative_path))
+        destination = destination_template.render(self.environment.context)
+        return pathlib.Path(destination)
 
     def render(self):
         raise NotImplementedError
