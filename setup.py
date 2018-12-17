@@ -18,7 +18,7 @@ def parse_requirements(filename, *args, **kwargs):
 
 setup(
     name='kubeyard',
-    version='0.2.1',
+    version='0.2.2.dev0',
     description='A utility to develop, test and deploy Kubernetes microservices.',
     author='Social WiFi',
     author_email='it@socialwifi.com',
