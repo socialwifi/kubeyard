@@ -49,7 +49,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = '{{ GIT_REPO_NAME }}.urls'
+ROOT_URLCONF = '{{ GIT_REPO_NAME | replace("-", "_") }}.urls'
 
 TEMPLATES = [
     {
@@ -67,7 +67,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = '{{ GIT_REPO_NAME }}.wsgi.application'
+WSGI_APPLICATION = '{{ GIT_REPO_NAME | replace("-", "_") }}.wsgi.application'
 
 
 # Database
