@@ -8,7 +8,6 @@ import sh
 from cached_property import cached_property
 from kubepy import appliers_options
 
-from kubeyard import base_command
 from kubeyard import kubernetes
 from kubeyard import settings
 from kubeyard.commands.devel import MAX_JOB_RETRIES
