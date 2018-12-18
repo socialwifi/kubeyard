@@ -8,4 +8,4 @@ spec:
   ports:
   - port: {{ KUBE_SERVICE_PORT }}
     targetPort: {{ KUBE_SERVICE_PORT }}
-  type: ClusterIP
+  type: NodePort
