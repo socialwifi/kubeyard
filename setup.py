@@ -16,10 +16,16 @@ def parse_requirements(filename, *args, **kwargs):
     return [line for line in lineiter if line and not line.startswith("#")]
 
 
+def get_long_description():
+    with open('README.md') as readme_file:
+        return readme_file.read()
+
 setup(
     name='kubeyard',
     version='0.2.2.dev0',
     description='A utility to develop, test and deploy Kubernetes microservices.',
+    long_description=get_long_description(),
+    long_description_content_type='text/markdown',
     author='Social WiFi',
     author_email='it@socialwifi.com',
     url='https://github.com/socialwifi/kubeyard',
