@@ -11,7 +11,7 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', '{{ GIT_REPO_NAME | replace("-", "_") }}.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', '{{ UNDERSCORED_GIT_REPO_NAME }}.settings')
 
 application = get_wsgi_application()
 
