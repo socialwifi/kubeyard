@@ -72,9 +72,11 @@ class BaseRepoContextFactory:
     def git_info(self):
         repo = git.Repo(str(self.project_dir))
         origin_url = repo.remotes.origin.url
+        git_repo_name = origin_url.split('/')[-1]
         return Context({
             'GIT_REMOTE_URL': origin_url,
-            'GIT_REPO_NAME': origin_url.split('/')[-1]
+            'GIT_REPO_NAME': git_repo_name,
+            'UNDERSCORED_GIT_REPO_NAME': git_repo_name.replace("-", "_"),
         })
 
 
