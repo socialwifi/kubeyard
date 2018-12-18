@@ -1,7 +1,7 @@
 0.2.2 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Various fixes for Django template.
 
 
 0.2.1 (2018-12-17)
