@@ -17,7 +17,7 @@ def parse_requirements(filename, *args, **kwargs):
 
 
 def get_long_description():
-    with open('README.md') as readme_file:
+    with open('README.rst') as readme_file:
         return readme_file.read()
 
 setup(
@@ -25,7 +25,6 @@ setup(
     version='0.2.3.dev0',
     description='A utility to develop, test and deploy Kubernetes microservices.',
     long_description=get_long_description(),
-    long_description_content_type='text/markdown',
     author='Social WiFi',
     author_email='it@socialwifi.com',
     url='https://github.com/socialwifi/kubeyard',
