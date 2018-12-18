@@ -22,7 +22,7 @@ def get_long_description():
 
 setup(
     name='kubeyard',
-    version='0.2.3.dev0',
+    version='0.2.3',
     description='A utility to develop, test and deploy Kubernetes microservices.',
     long_description=get_long_description(),
     long_description_content_type='text/markdown',

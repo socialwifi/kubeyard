@@ -1,4 +1,4 @@
-0.2.3 (unreleased)
+0.2.3 (2018-12-18)
 ------------------
 
 - Fix README Markdown rendering on pypi.
