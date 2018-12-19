@@ -11,11 +11,17 @@ A utility to develop, test and deploy Kubernetes microservices.
 ## Requirements
 
 - bash
-- minikube == v0.25.2
-- kubectl == 1.9.4
+- minikube
+- kubectl
 - docker
 - git
     - initialized repository with configured remote origin
+
+**Important:** Kubeyard is tested on:
+
+- minikube == v0.34.1 (should work with v0.31.0 and above)
+- docker == 18.09.2 (should work with any version)
+- kubectl == v1.13.3 (should work with v1.13.0 and above)
 
 ## Installation
 

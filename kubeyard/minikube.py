@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class Cluster:
     docker_env_keys = ['DOCKER_TLS_VERIFY', 'DOCKER_HOST', 'DOCKER_CERT_PATH', 'DOCKER_API_VERSION']
-    minimum_minikube_version = (0, 25, 0)
+    minimum_minikube_version = (0, 34, 1)
 
     def ensure_started(self):
         if not self.is_running():
@@ -61,7 +61,7 @@ class Cluster:
 class NativeLocalkubeCluster(Cluster):
     def is_running(self):
         try:
-            status = sh.systemctl('is-active', 'localkube')
+            status = sh.systemctl('is-active', 'kubelet')
         except sh.ErrorReturnCode_3:
             return False
         else:
@@ -73,13 +73,13 @@ class NativeLocalkubeCluster(Cluster):
                 *self._start_env_as_arguments,
                 'minikube', 'start',
                 '--vm-driver', 'none',
-                '--extra-config', 'apiserver.ServiceNodePortRange=1-32767',
+                '--extra-config', 'apiserver.service-node-port-range=1-32767',
+                '--extra-config', 'kubelet.resolv-conf=/run/systemd/resolve/resolv.conf',
                 _in=self._sudo_password, _out=sys.stdout.buffer, _err=sys.stdout.buffer)
 
     def _after_start(self):
         super()._after_start()
-        self._apply_kube_dns_fix()
-        self._apply_dashboard_fix_if_needed()
+        self._apply_permissions_fix()
 
     def get_mounted_project_dir(self, project_dir):
         return project_dir
@@ -92,31 +92,12 @@ class NativeLocalkubeCluster(Cluster):
         }
         return ['{}={}'.format(key, value) for key, value in env.items()]
 
-    @staticmethod
-    def _apply_kube_dns_fix():
-        """
-        Fix needed on Ubuntu with systemd-resolved.
-        https://github.com/kubernetes/minikube/issues/2027
-        """
-        logger.info('Applying kube-dns fix...')
-        fix_path = pathlib.Path(__file__).parent / 'definitions' / 'kube-dns-fix'
-        sh.kubectl('apply', '--record', '-f', fix_path)
-        logger.info('kube-dns fix applied')
-
-    def _apply_dashboard_fix_if_needed(self):
-        """
-        Fix needed on minikube 0.25.
-        https://github.com/kubernetes/dashboard/issues/2767
-        """
-        logger.info('Applying dashboard fix...')
+    def _apply_permissions_fix(self):
+        logger.info('Applying permissions fix...')
+        minikube_dir = pathlib.Path.home() / '.minikube'
         with sh.contrib.sudo(password=self._sudo_password, _with=True):
-            dashboard_addon_path = '/etc/kubernetes/addons/dashboard-dp.yaml'
-            if os.path.isfile(dashboard_addon_path) and '1.8.1' in sh.cat(dashboard_addon_path):
-                logger.info('Replacing dashboard addon file...')
-                sh.sed('-i', 's/1.8.1/1.8.3/g', dashboard_addon_path)
-                logger.info('Dashboard addon file replaced')
-            else:
-                logger.info('No need to replace dashboard addon file')
+            sh.chown('-R', '{}:{}'.format(os.getuid(), os.getgid()), str(minikube_dir))
+        logger.info('Permissions fix applied')
 
     @cached_property
     def _sudo_password(self):
