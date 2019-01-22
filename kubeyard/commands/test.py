@@ -6,7 +6,6 @@ import typing
 
 import sh
 
-from kubeyard import base_command
 from kubeyard.commands.devel import BaseDevelCommand
 
 logger = logging.getLogger(__name__)
@@ -56,28 +55,10 @@ class TestCommand(BaseDevelCommand):
         self.test_options = test_options
         self.force_recreate_database = force_recreate_database
         self.force_migrate_database = force_migrate_database
-        self.context['HOST_VOLUMES'] = ' '.join(self.volumes)
 
     @property
     def args(self) -> list:
         return list(self.test_options)
-
-    @property
-    def volumes(self) -> typing.Iterable[str]:
-        if self.is_development:
-            mounted_project_dir = self.cluster.get_mounted_project_dir(self.project_dir)
-            for volume in self.context.get('DEV_MOUNTED_PATHS', []):
-                if 'mount-in-tests' in volume and volume['mount-in-tests']['image-name'] == self.image_name:
-                    host_path = str(mounted_project_dir / volume['host-path'])
-                    container_path = volume['mount-in-tests']['path']
-                    mount_mode = self.get_mount_mode(volume['mount-in-tests'])
-                    yield from ['-v', '{}:{}:{}'.format(host_path, container_path, mount_mode)]
-
-    def get_mount_mode(self, configuration):
-        mount_mode = configuration.get('mount-mode', 'ro')
-        if mount_mode not in {'ro', 'rw'}:
-            raise base_command.CommandException('Volume "mount-mode" should be one of: "ro", "rw".')
-        return mount_mode
 
     def run_default(self):
         if self.context.get('TESTS_WITH_DATABASE'):

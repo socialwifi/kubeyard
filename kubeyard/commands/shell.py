@@ -1,5 +1,3 @@
-import re
-
 import sh
 
 from cached_property import cached_property
@@ -64,18 +62,6 @@ class ShellCommand(BaseDevelCommand):
             return self.image_name
 
     @cached_property
-    def _id(self):
-        return str(sh.id())
-
-    @cached_property
-    def uid(self) -> str:
-        return re.findall(r"uid=(\d+)", self._id)[0]
-
-    @cached_property
-    def gid(self) -> str:
-        return re.findall(r"gid=(\d+)", self._id)[0]
-
-    @cached_property
     def username(self) -> str:
         return str(sh.whoami()).strip()
 
@@ -85,7 +71,7 @@ class ShellCommand(BaseDevelCommand):
             return self.shell
         return (
             'groupadd -f -g {gid} {username}; '
-            'adduser -q --gecos "" --disabled-password --no-create-home --uid {uid} --gid {gid} {username}; '
+            'adduser -q --gecos "" --disabled-password --uid {uid} --gid {gid} {username}; '
             'su {username}; '
         ).format(
             gid=self.gid,
@@ -98,4 +84,4 @@ class ShellCommand(BaseDevelCommand):
         if self.root:
             return ""
         else:
-            return "userdel {username}; ".format(username=self.username)
+            return "userdel --remove {username}; ".format(username=self.username)
