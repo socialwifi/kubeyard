@@ -1,6 +1,5 @@
 import io
 import logging
-import os
 import sys
 
 import sh
@@ -12,39 +11,35 @@ logger = logging.getLogger(__name__)
 
 class UpdateRequirementsCommand(BaseDevelCommand):
     """
-    Updates docker/requirements/python.txt file based on docker/source/base_requirements.txt.
-    In container it creates virtualenv and runs:
+    Command can update requirements using `freeze_requirements` command in container.
 
-        pip install -r docker/source/base_requirements.txt && pip freeze > docker/source/base_requirements.txt
+    Requirements: \n
+        - `freeze_requirements command` available in container \n
+        - volume with requirements files mounted \n
 
-    Can be overridden in <project_dir>/sripts/update_requirements.
+    You must use --generic to do that. In future release this flag will become default one.
 
-    If kubeyard is set up in development mode it uses minikube as docker host.
+    Can be overridden in <project_dir>/scripts/update_requirements.
     """
     custom_script_name = 'update_requirements'
-    context_vars = ['use_legacy_pip']
 
-    def __init__(self, use_legacy_pip=False, **kwargs):
+    def __init__(self, generic=False, **kwargs):
         super().__init__(**kwargs)
-        self.use_legacy_pip = use_legacy_pip
+        self.generic = generic
 
     def run_default(self):
         logger.info('Updating requirements for "{}"...'.format(self.image))
-        if self.use_legacy_pip is True:
-            os.system(self.legacy_pip_freeze_command)
+        if self.generic:
+            self.update_generic()
+            logger.info('Requirements updated!')
         else:
+            logger.warning(
+                'Deprecated method! '
+                'You should integrate "freeze_requirements" command in application image and use "--generic flag".',
+            )
             with open("docker/requirements/python.txt", "w") as output_file:
                 output_file.write(self.get_pip_freeze_output())
-        logger.info('Requirements updated and saved to "docker/requirements/python.txt"')
-
-    @property
-    def legacy_pip_freeze_command(self):
-        return ('(cat docker/source/base_requirements.txt | docker run --rm -i python:3.6.0'
-                ' bash -c "'
-                'pip install --upgrade setuptools==34.3.0 > /dev/stderr ; '
-                'pip install -r /dev/stdin > /dev/stderr ; '
-                'pip freeze")'
-                ' > docker/requirements.txt')
+            logger.info('Requirements updated and saved to "docker/requirements/python.txt"')
 
     def get_pip_freeze_output(self):
         output = io.StringIO()
@@ -54,3 +49,15 @@ class UpdateRequirementsCommand(BaseDevelCommand):
                     self.image, 'freeze_requirements',
                     _in=input, _out=output, _err=sys.stdout.buffer)
         return output.getvalue()
+
+    def update_generic(self):
+        sh.docker(
+            'run', '--rm', '-i',
+            '-u', '{}:{}'.format(self.uid, self.gid),
+            '-e', 'CUSTOM_COMPILE_COMMAND="kubeyard update_requirements"',
+            '-e', 'HOME=/tmp',
+            *self.volumes,
+            self.image,
+            'bash', '-c', 'freeze_requirements',
+            _err=sys.stdout.buffer,
+        )

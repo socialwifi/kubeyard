@@ -1,8 +1,10 @@
 import abc
 import logging
 import os
+import re
 import signal
 import sys
+import typing
 
 from contextlib import contextmanager
 
@@ -31,6 +33,7 @@ class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
         if self.is_development:
             self.cluster = self._prepare_cluster(self.context)
             self.context.update(self.cluster.docker_env())
+            self.context['HOST_VOLUMES'] = ' '.join(self.volumes)
         self.docker_runner = DockerRunner(self.context)
 
     @staticmethod
@@ -98,6 +101,35 @@ class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
     @abc.abstractmethod
     def custom_script_name(self):
         raise NotImplementedError
+
+    @property
+    def volumes(self) -> typing.Iterable[str]:
+        if self.is_development:
+            mounted_project_dir = self.cluster.get_mounted_project_dir(self.project_dir)
+            for volume in self.context.get('DEV_MOUNTED_PATHS', []):
+                if 'mount-in-tests' in volume and volume['mount-in-tests']['image-name'] == self.image_name:
+                    host_path = str(mounted_project_dir / volume['host-path'])
+                    container_path = volume['mount-in-tests']['path']
+                    mount_mode = self.get_mount_mode(volume['mount-in-tests'])
+                    yield from ['-v', '{}:{}:{}'.format(host_path, container_path, mount_mode)]
+
+    def get_mount_mode(self, configuration):
+        mount_mode = configuration.get('mount-mode', 'ro')
+        if mount_mode not in {'ro', 'rw'}:
+            raise base_command.CommandException('Volume "mount-mode" should be one of: "ro", "rw".')
+        return mount_mode
+
+    @cached_property
+    def _id(self):
+        return str(sh.id())
+
+    @cached_property
+    def uid(self) -> str:
+        return re.findall(r"uid=(\d+)", self._id)[0]
+
+    @cached_property
+    def gid(self) -> str:
+        return re.findall(r"gid=(\d+)", self._id)[0]
 
 
 class DockerRunner:
