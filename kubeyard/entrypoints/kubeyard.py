@@ -145,6 +145,11 @@ def build(**kwargs):
     is_flag=True,
     help="Add this flag to use update for an older python application.",
 )
+@click.option(
+    "--generic",
+    is_flag=True,
+    help="Use generic requirements update method from image instead of using pip.",
+)
 def update_requirements(**kwargs):
     UpdateRequirementsCommand(**kwargs).run()
 
