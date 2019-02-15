@@ -1,7 +1,7 @@
 0.2.4 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Fix support for CronJobs.
 
 
 0.2.3 (2018-12-18)
