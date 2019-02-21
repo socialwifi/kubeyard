@@ -128,6 +128,10 @@ def fix_code_style(**kwargs):
     "--image-context",
     help="Image context containing Dockerfile. Defaults to <project_dir>/docker",
 )
+@click.option(
+    "--docker-args",
+    help='Additional arguments passed to docker command. Use like that: --docker-args="-a x --arg2=y --arg3=z"',
+)
 def build(**kwargs):
     BuildCommand(**kwargs).run()
 
