@@ -177,6 +177,10 @@ def deploy(**kwargs):
 
 @cli.command(help=DebugCommand.__doc__)
 @apply_common_options(initialized_repository_options)
+@click.argument(
+    'name',
+    required=False,
+)
 def variables(**kwargs):
     DebugCommand(**kwargs).run()
 
