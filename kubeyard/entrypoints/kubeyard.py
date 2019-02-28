@@ -165,11 +165,18 @@ def push(**kwargs):
 )
 @click.option(
     "--gcs-service-key-file",
-    help="Service account key path for Google Cloud Storage. Required to deploy static files.",
+    help="Service account key path for Google Cloud Storage. Required to deploy static files on GCS.",
 )
 @click.option(
+    "--aws-credentials",
+    help="AWS credentials for S3 buckets. Required to deploy static files on S3.",
+)
+@click.option(
+    "--bucket-name",
     "--gcs-bucket-name",
-    help="Google Cloud Storage bucket name. Required to deploy static files.",
+    "--s3-bucket-name",
+    help="Google Cloud Storage or S3 bucket name. Required to deploy static files."
+         "May be configured using context variable: 'BUCKET_NAME'",
 )
 def deploy(**kwargs):
     DeployCommand(**kwargs).run()
