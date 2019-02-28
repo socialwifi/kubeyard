@@ -137,7 +137,7 @@ class DomainConfigurator:
             logger.info(
                 f'{len(self.custom_domains_to_be_configured)} domains need to be configured: '
                 f'{self.custom_domains_to_be_configured}. '
-                f'Updating {self.hosts_filename}...'
+                f'Updating {self.hosts_filename}...',
             )
             self.run_update_hosts()
         else:
@@ -242,7 +242,7 @@ class GCSFilesStorage(FilesStorage):
                 'gsutil',
                 '-m',
                 '-o', 'Credentials:gs_service_key_file=/service-account.json',
-                'cp', '-r', '/upload/*', 'gs://{}/{}/'.format(self.bucket_name, self.statics_directory)
+                'cp', '-r', '/upload/*', 'gs://{}/{}/'.format(self.bucket_name, self.statics_directory),
             )
 
     def _save_tar_to_volume(self, tar_process, volume_name):
@@ -251,5 +251,5 @@ class GCSFilesStorage(FilesStorage):
             'run', '-i', '--rm',
             '-v', '{}:/extracted/'.format(volume_name),
             'busybox:1.28.0',
-            'tar', 'xf', '-', '-C', '/extracted/'
+            'tar', 'xf', '-', '-C', '/extracted/',
         )

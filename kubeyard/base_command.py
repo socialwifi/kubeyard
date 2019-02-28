@@ -68,6 +68,6 @@ class InitialisedRepositoryCommand(BaseCommand, metaclass=ContextFromClassProper
         context = context_factories.Context()
         context.update(self.context)
         context.update(context_factories.Context(
-            {field.upper(): getattr(self, field) for field in self.context_vars}
+            {field.upper(): getattr(self, field) for field in self.context_vars},
         ))
         return context

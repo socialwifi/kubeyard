@@ -22,7 +22,7 @@ def init_logging():
                     'ERROR':    'red',
                     'CRITICAL': 'red,bold_red',
                 },
-            }
+            },
         },
         'handlers': {
             'console': {
@@ -38,7 +38,7 @@ def init_logging():
         },
         'root': {
             'level': logging.INFO,
-            'handlers': ['console']
+            'handlers': ['console'],
         },
         'loggers': {
             'kubeyard': {
@@ -48,6 +48,6 @@ def init_logging():
             },
             'sh.command': {
                 'level': logging.WARNING,
-            }
-        }
+            },
+        },
     })

@@ -61,7 +61,7 @@ class KubernetesDependency:
             container_ready = str(sh.kubectl(
                 'get', 'pods',
                 '--selector', self.selector,
-                '--output', 'jsonpath="{.items[*].status.containerStatuses[*].ready}"'
+                '--output', 'jsonpath="{.items[*].status.containerStatuses[*].ready}"',
             )).strip()
         except sh.ErrorReturnCode as e:
             logger.debug(e)
@@ -78,7 +78,7 @@ class KubernetesDependency:
             'get', 'pods',
             '--output', 'custom-columns=NAME:.metadata.name',
             '--no-headers',
-            '--selector', self.selector
+            '--selector', self.selector,
         )).strip()
 
     @property
