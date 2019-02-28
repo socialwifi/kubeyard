@@ -34,7 +34,7 @@ def install_global_secrets(context):
 def get_global_secrets_manipulator(context, secret_name):
     return KubernetesSecretsManipulator(
         secret_name,
-        pathlib.Path(context['KUBEYARD_GLOBAL_SECRETS']) / secret_name
+        pathlib.Path(context['KUBEYARD_GLOBAL_SECRETS']) / secret_name,
     )
 
 
@@ -149,7 +149,7 @@ class KubernetesSecretsManipulator:
         try:
             yml_output = str(sh.kubectl(
                 'get', 'secrets', self.secret_name,
-                '--output', 'yaml'
+                '--output', 'yaml',
             ))
         except sh.ErrorReturnCode:
             return False

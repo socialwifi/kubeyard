@@ -63,7 +63,7 @@ class PythonDjangoInitType(InitType):
             'SECRET_KEY',
             'application secret key',
             ''.join(random.choices(string.ascii_letters + string.digits, k=50)),
-        )
+        ),
     ]
 
 
