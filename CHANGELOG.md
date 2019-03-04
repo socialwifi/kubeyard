@@ -1,4 +1,4 @@
-0.3.0 (unreleased)
+0.3.0 (2019-03-04)
 ------------------
 
 - Fix support for CronJobs.
