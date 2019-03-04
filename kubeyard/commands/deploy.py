@@ -211,7 +211,7 @@ def static_files_storage_factory(context, image, gcs_service_key_file, aws_crede
             )
         else:
             raise base_command.CommandException(
-                'Static file storage credential/secrets required when using bucket name!'
+                'Static file storage credential/secrets required when using bucket name!',
             )
     else:
         return None
