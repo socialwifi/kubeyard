@@ -1,8 +1,11 @@
-0.2.4 (unreleased)
+0.3.0 (unreleased)
 ------------------
 
 - Fix support for CronJobs.
-
+- Use newest version of minikube.
+- Add support for uploading static files to S3.
+- Add docker_args option to build command.
+- Add optional NAME argument to variables command.
 
 0.2.3 (2018-12-18)
 ------------------
