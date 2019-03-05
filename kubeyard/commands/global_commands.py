@@ -22,7 +22,9 @@ class GlobalCommand(base_command.BaseCommand):
 
 class SetupCommand(GlobalCommand):
     """
-    Set up global context. It should be run after instalation of kubeyard. By default it uses production context.
+    Set up global context. It should be run after instalation of kubeyard.
+    If not provided, kubeyard will be guessing. If minikube is installed, development context will be used.
+    If minikube will be not detected, kubeyard setup production context.
     Production context requires configured docker and kubectl. Also needs your microservices secrets to be at
     ~/kubernetes_secrets/.
     """
