@@ -4,11 +4,11 @@ import django
 
 from django.core import management
 
-import {{ UNDERSCORED_GIT_REPO_NAME }}.settings
+import {{ UNDERSCORED_PROJECT_NAME }}.settings
 
 
 def run():
-    if {{ UNDERSCORED_GIT_REPO_NAME }}.settings.DEBUG:
+    if {{ UNDERSCORED_PROJECT_NAME }}.settings.DEBUG:
         django.setup()
         management.call_command('collectstatic', '--noinput')
         return management.call_command('runserver', '0.0.0.0:{{ KUBE_SERVICE_PORT }}')

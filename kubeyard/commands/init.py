@@ -35,45 +35,53 @@ class InitCommand(base_command.BaseCommand):
 
 class InitType(metaclass=abc.ABCMeta):
     name: str = NotImplemented
-    prompted_context: list = NotImplemented
+    prompted_context = [
+        context_factories.PromptedContext(
+            variable='PROJECT_NAME',
+            prompt='project name',
+            default=settings.DEFAULT_KUBE_SERVICE_NAME_PATTERN,
+        ),
+        context_factories.PromptedContext(
+            variable='KUBE_SERVICE_NAME',
+            prompt='service name',
+            default=settings.DEFAULT_KUBE_SERVICE_NAME_PATTERN,
+        ),
+        context_factories.PromptedContext(
+            variable='KUBE_SERVICE_PORT',
+            prompt='service port',
+            default=settings.DEFAULT_KUBE_SERVICE_PORT,
+        ),
+        context_factories.PromptedContext(
+            variable='DOCKER_REGISTRY_NAME',
+            prompt='docker registry name',
+            default=settings.DEFAULT_DOCKER_REGISTRY_NAME,
+        ),
+    ]
 
 
 class PythonPackageInitType(InitType):
     name = 'python'
-    prompted_context = [
-        context_factories.PromptedContext(
-            'KUBE_SERVICE_NAME', 'service name', settings.DEFAULT_KUBE_SERVICE_NAME_PATTERN),
-        context_factories.PromptedContext(
-            'KUBE_SERVICE_PORT', 'service port', settings.DEFAULT_KUBE_SERVICE_PORT),
-        context_factories.PromptedContext(
-            'DOCKER_REGISTRY_NAME', 'docker registry name', settings.DEFAULT_DOCKER_REGISTRY_NAME),
-    ]
 
 
 class PythonDjangoInitType(InitType):
     name = 'django'
-    prompted_context = [
+    prompted_context = InitType.prompted_context + [
         context_factories.PromptedContext(
-            'KUBE_SERVICE_NAME', 'service name', settings.DEFAULT_KUBE_SERVICE_NAME_PATTERN),
-        context_factories.PromptedContext(
-            'KUBE_SERVICE_PORT', 'service port', settings.DEFAULT_KUBE_SERVICE_PORT),
-        context_factories.PromptedContext(
-            'DOCKER_REGISTRY_NAME', 'docker registry name', settings.DEFAULT_DOCKER_REGISTRY_NAME),
-        context_factories.PromptedContext(
-            'SECRET_KEY',
-            'application secret key',
-            ''.join(random.choices(string.ascii_letters + string.digits, k=50)),
+            variable='SECRET_KEY',
+            prompt='application secret key',
+            default=''.join(random.choices(string.ascii_letters + string.digits, k=50)),
         ),
     ]
 
 
 class EmberInitType(InitType):
     name = 'ember'
-    prompted_context = PythonPackageInitType.prompted_context + [
+    prompted_context = InitType.prompted_context + [
         context_factories.PromptedContext(
-            'KUBE_LIVE_RELOAD_PORT', 'live reload development port', settings.DEFAULT_KUBE_LIVE_RELOAD_PORT),
-        context_factories.PromptedContext(
-            'DOCKER_REGISTRY_NAME', 'docker registry name', settings.DEFAULT_DOCKER_REGISTRY_NAME),
+            variable='KUBE_LIVE_RELOAD_PORT',
+            prompt='live reload development port',
+            default=settings.DEFAULT_KUBE_LIVE_RELOAD_PORT,
+        ),
     ]
 
 

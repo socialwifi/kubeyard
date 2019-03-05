@@ -14,8 +14,6 @@ A utility to develop, test and deploy Kubernetes microservices.
 - minikube
 - kubectl
 - docker
-- git
-    - initialized repository with configured remote origin
 
 **Important:** Kubeyard is tested on:
 

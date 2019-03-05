@@ -6,13 +6,13 @@ from setuptools import find_packages
 from setuptools import setup
 
 setup(
-    name='{{ UNDERSCORED_GIT_REPO_NAME }}',
+    name='{{ UNDERSCORED_PROJECT_NAME }}',
     packages=find_packages(exclude=['tests']),
     install_requires=[str(ir.req) for ir in parse_requirements('base_requirements.txt', session=False)],
     test_suite='tests',
     entry_points={
         'console_scripts': [
-            'start_service = {{ UNDERSCORED_GIT_REPO_NAME }}.commands.start_service:run',
+            'start_service = {{ UNDERSCORED_PROJECT_NAME }}.commands.start_service:run',
         ],
     },
 )
