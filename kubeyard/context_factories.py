@@ -1,8 +1,8 @@
 import collections
 import logging
 import pathlib
+import re
 
-import git
 import yaml
 
 from cached_property import cached_property
@@ -53,15 +53,17 @@ class GlobalContextFactory:
 
 
 class BaseRepoContextFactory:
-    def __init__(self, project_dir):
+    def __init__(self, project_dir: str):
         self.project_dir = project_dir
         self.user_context_path = get_user_context_path()
 
     def get(self):
-        context = Context()
-        context.update(self.git_info)
+        context = Context({
+            'PROJECT_NAME': self.default_project_name,
+        })
         context.update(self.project_context)
         context.update(GlobalContextFactory().get())
+        context['UNDERSCORED_PROJECT_NAME'] = self.underscore_name(context['PROJECT_NAME'])
         return upper_keys(context)
 
     @property
@@ -69,15 +71,12 @@ class BaseRepoContextFactory:
         raise NotImplementedError
 
     @cached_property
-    def git_info(self):
-        repo = git.Repo(str(self.project_dir))
-        origin_url = repo.remotes.origin.url
-        git_repo_name = origin_url.split('/')[-1]
-        return Context({
-            'GIT_REMOTE_URL': origin_url,
-            'GIT_REPO_NAME': git_repo_name,
-            'UNDERSCORED_GIT_REPO_NAME': git_repo_name.replace("-", "_"),
-        })
+    def default_project_name(self) -> str:
+        return pathlib.Path(self.project_dir).resolve().name
+
+    @staticmethod
+    def underscore_name(name: str) -> str:
+        return re.sub(r'[\s-]', '_', name)
 
 
 def get_user_context_path():
@@ -107,13 +106,14 @@ class EmptyRepoContextFactory(BaseRepoContextFactory):
 
     @cached_property
     def project_context(self):
-        docker_image = self.git_info['GIT_REPO_NAME']
-        context = {'DOCKER_IMAGE_NAME': docker_image}
+        context = {}
         for prompt_config in self.prompted_context:
             context[prompt_config.variable] = io_utils.default_input(
                 prompt_config.prompt,
-                prompt_config.default.format(docker_image),
+                prompt_config.default.format(
+                    self.underscore_name(context.get('PROJECT_NAME', self.default_project_name))),
             )
+        context['DOCKER_IMAGE_NAME'] = self.underscore_name(context.get('PROJECT_NAME', self.default_project_name))
         context['DOCKER_REGISTRY_DOMAIN'] = context['DOCKER_REGISTRY_NAME'].split('/', 1)[0]
         return context
 

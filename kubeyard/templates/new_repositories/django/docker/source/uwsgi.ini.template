@@ -1,6 +1,6 @@
 [uwsgi]
 http-socket = :{{ KUBE_SERVICE_PORT }}
-module = {{ UNDERSCORED_GIT_REPO_NAME }}.wsgi:application
+module = {{ UNDERSCORED_PROJECT_NAME }}.wsgi:application
 processes = 1
 master = true
 hook-master-start = unix_signal:15 gracefully_kill_them_all

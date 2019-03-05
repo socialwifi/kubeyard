@@ -1,4 +1,4 @@
 def test_if_it_works():
-    print("Hello {{ GIT_REPO_NAME }}!")
+    print("Hello {{ PROJECT_NAME }}!")
     assert True
 
