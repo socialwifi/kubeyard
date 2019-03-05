@@ -39,7 +39,7 @@ class InitType(metaclass=abc.ABCMeta):
         context_factories.PromptedContext(
             variable='PROJECT_NAME',
             prompt='project name',
-            default=settings.DEFAULT_KUBE_SERVICE_NAME_PATTERN,
+            default=settings.DEFAULT_PROJECT_NAME_PATTERN,
         ),
         context_factories.PromptedContext(
             variable='KUBE_SERVICE_NAME',

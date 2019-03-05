@@ -9,4 +9,4 @@ dev_mounted_paths:
       path: /package
       image-name: {{ DOCKER_IMAGE_NAME }}
 dev_domains:
-  - {{ UNDERSCORED_PROJECT_NAME }}
+  - {{ DASHED_PROJECT_NAME }}
