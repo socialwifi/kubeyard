@@ -63,7 +63,8 @@ class BaseRepoContextFactory:
         })
         context.update(self.project_context)
         context.update(GlobalContextFactory().get())
-        context['UNDERSCORED_PROJECT_NAME'] = self.underscore_name(context['PROJECT_NAME'])
+        context['UNDERSCORED_PROJECT_NAME'] = self.normalize_name(context['PROJECT_NAME'])
+        context['DASHED_PROJECT_NAME'] = self.normalize_name(context['PROJECT_NAME'], '-')
         return upper_keys(context)
 
     @property
@@ -75,8 +76,8 @@ class BaseRepoContextFactory:
         return pathlib.Path(self.project_dir).resolve().name
 
     @staticmethod
-    def underscore_name(name: str) -> str:
-        return re.sub(r'[\s-]', '_', name)
+    def normalize_name(name: str, char='_') -> str:
+        return re.sub(r'[-_\s]', char, name)
 
 
 def get_user_context_path():
@@ -111,9 +112,16 @@ class EmptyRepoContextFactory(BaseRepoContextFactory):
             context[prompt_config.variable] = io_utils.default_input(
                 prompt_config.prompt,
                 prompt_config.default.format(
-                    self.underscore_name(context.get('PROJECT_NAME', self.default_project_name))),
+                    project_name=context.get('PROJECT_NAME', self.default_project_name),
+                    underscored_project_name=self.normalize_name(
+                        context.get('PROJECT_NAME', self.default_project_name), '_',
+                    ),
+                    dashed_project_name=self.normalize_name(
+                        context.get('PROJECT_NAME', self.default_project_name), '-',
+                    ),
+                ),
             )
-        context['DOCKER_IMAGE_NAME'] = self.underscore_name(context.get('PROJECT_NAME', self.default_project_name))
+        context['DOCKER_IMAGE_NAME'] = self.normalize_name(context.get('PROJECT_NAME', self.default_project_name))
         context['DOCKER_REGISTRY_DOMAIN'] = context['DOCKER_REGISTRY_NAME'].split('/', 1)[0]
         return context
 

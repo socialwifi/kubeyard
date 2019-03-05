@@ -7,5 +7,6 @@ spec:
     app: {{ KUBE_SERVICE_NAME }}
   ports:
   - port: {{ KUBE_SERVICE_PORT }}
+    nodePort: {{ KUBE_SERVICE_PORT }}
     targetPort: {{ KUBE_SERVICE_PORT }}
   type: NodePort
