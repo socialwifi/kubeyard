@@ -140,12 +140,6 @@ def build(**kwargs):
 @apply_common_options(initialized_repository_options)
 @apply_common_options(devel_options)
 @click.option(
-    "--before3.6.0-5",
-    "use_legacy_pip",
-    is_flag=True,
-    help="Add this flag to use update for an older python application.",
-)
-@click.option(
     "--generic",
     is_flag=True,
     help="Use generic requirements update method from image instead of using pip.",
