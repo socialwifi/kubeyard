@@ -1,4 +1,4 @@
-0.3.1 (unreleased)
+0.4.0 (2019-03-06)
 ------------------
 
 - Add generic method for `update-requirements` command.
