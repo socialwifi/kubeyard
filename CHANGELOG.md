@@ -1,7 +1,10 @@
 0.3.1 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Add generic method for `update-requirements` command.
+- Improve django template.
+- Remove git dependency.
+- Drop support for legacy pip (`--before3.6.0-5` in update requirements command).
 
 
 0.3.0 (2019-03-04)
