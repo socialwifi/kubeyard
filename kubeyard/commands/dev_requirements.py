@@ -222,6 +222,20 @@ class CassandraDependency(dependencies.KubernetesDependency):
         return cleaned
 
 
+class RabbitMQ(Requirement):
+    valid_arguments = ()
+
+    def run(self, arguments: dict):
+        dependency = RabbitMQDependency()
+        dependency.ensure_running()
+
+
+class RabbitMQDependency(dependencies.KubernetesDependency):
+    name = 'dev-rabbitmq'
+    definition = definitions_directory / 'rabbitmq.yaml'
+    started_log = 'Starting RabbitMQ'
+
+
 class RequirementsDispatcher:
     commands = {
         'postgres': Postgres,
@@ -230,6 +244,7 @@ class RequirementsDispatcher:
         'elastic': Elasticsearch,
         'pubsub': PubSubEmulator,
         'cassandra': Cassandra,
+        'rabbitmq': RabbitMQ,
     }
 
     def __init__(self, context: dict):
