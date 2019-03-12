@@ -1,7 +1,7 @@
 0.4.1 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Add rabbitmq as a requirement.
 
 
 0.4.0 (2019-03-06)
