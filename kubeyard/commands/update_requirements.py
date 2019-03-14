@@ -1,4 +1,3 @@
-import io
 import logging
 import sys
 
@@ -17,40 +16,17 @@ class UpdateRequirementsCommand(BaseDevelCommand):
         - `freeze_requirements command` available in container \n
         - volume with requirements files mounted \n
 
-    You must use --generic to do that. In future release this flag will become default one.
-
     Can be overridden in <project_dir>/scripts/update_requirements.
     """
     custom_script_name = 'update_requirements'
 
-    def __init__(self, generic=False, **kwargs):
+    def __init__(self, generic=None, **kwargs):
+        if generic:
+            logger.warning('Deprecated `generic` flag - now generic is default method.')
         super().__init__(**kwargs)
-        self.generic = generic
 
     def run_default(self):
         logger.info('Updating requirements for "{}"...'.format(self.image))
-        if self.generic:
-            self.update_generic()
-            logger.info('Requirements updated!')
-        else:
-            logger.warning(
-                'Deprecated method! '
-                'You should integrate "freeze_requirements" command in application image and use "--generic flag".',
-            )
-            with open("docker/requirements/python.txt", "w") as output_file:
-                output_file.write(self.get_pip_freeze_output())
-            logger.info('Requirements updated and saved to "docker/requirements/python.txt"')
-
-    def get_pip_freeze_output(self):
-        output = io.StringIO()
-        input = sh.cat("docker/source/base_requirements.txt")
-        self.docker('run', '--rm', '-i',
-                    '-e', 'CUSTOM_COMPILE_COMMAND="kubeyard update_requirements"',
-                    self.image, 'freeze_requirements',
-                    _in=input, _out=output, _err=sys.stdout.buffer)
-        return output.getvalue()
-
-    def update_generic(self):
         sh.docker(
             'run', '--rm', '-i',
             '-u', '{}:{}'.format(self.uid, self.gid),
@@ -61,3 +37,4 @@ class UpdateRequirementsCommand(BaseDevelCommand):
             'bash', '-c', 'freeze_requirements',
             _err=sys.stdout.buffer,
         )
+        logger.info('Requirements updated!')
