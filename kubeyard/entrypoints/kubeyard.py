@@ -142,7 +142,7 @@ def build(**kwargs):
 @click.option(
     "--generic",
     is_flag=True,
-    help="Use generic requirements update method from image instead of using pip.",
+    help="Deprecated flag (generic method is default).",
 )
 def update_requirements(**kwargs):
     UpdateRequirementsCommand(**kwargs).run()
