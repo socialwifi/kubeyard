@@ -15,7 +15,9 @@ class TestCommand(BaseDevelCommand):
     """
     Runs tests in docker image built by build command. Can be overridden in <project_dir>/sripts/test.
 
-    **IMPORTANT** for now only Postgres database is supported.
+    Supported databases:
+        - Postgres
+        - CockroachDB
     You can override migration command and test command passed to docker container with code.
 
     \b
