@@ -1,4 +1,4 @@
-0.4.1 (unreleased)
+0.5.0 (2019-03-15)
 ------------------
 
 - Add rabbitmq as a requirement.
