@@ -167,7 +167,7 @@ class InitialisedRepoContextFactory(BaseRepoContextFactory):
 
 def load_context(path):
     with path.open() as fp:
-        return de_legacy(upper_keys(yaml.load(fp)))
+        return de_legacy(upper_keys(yaml.safe_load(fp)))
 
 
 def upper_keys(d):
