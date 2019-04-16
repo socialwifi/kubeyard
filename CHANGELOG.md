@@ -1,4 +1,4 @@
-0.5.1 (unreleased)
+0.5.1 (2019-04-16)
 ------------------
 
 - Fix YAMLLoadWarning: https://msg.pyyaml.org/load
