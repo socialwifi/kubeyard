@@ -136,7 +136,7 @@ class KubernetesSecretsManipulator:
     def get_literal_secrets_mapping(self):
         if self.yml_source_path.exists():
             with self.yml_source_path.open() as yml_source:
-                secrets = yaml.load(yml_source)
+                secrets = yaml.safe_load(yml_source)
             return secrets or {}
         else:
             return {}
@@ -154,7 +154,7 @@ class KubernetesSecretsManipulator:
         except sh.ErrorReturnCode:
             return False
         else:
-            secret = yaml.load(yml_output)
+            secret = yaml.safe_load(yml_output)
             return key in secret['data']
 
 
