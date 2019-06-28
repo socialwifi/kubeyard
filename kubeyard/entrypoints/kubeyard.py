@@ -6,6 +6,7 @@ import click
 from kubeyard import logging as kubeyard_logging
 from kubeyard import settings
 from kubeyard.commands import BuildCommand
+from kubeyard.commands import ConfigurePycharmTest
 from kubeyard.commands import DebugCommand
 from kubeyard.commands import DeployCommand
 from kubeyard.commands import FixCodeStyleCommand
@@ -276,3 +277,9 @@ cli_with_custom_commands = click.CommandCollection(sources=[
     cli,
     custom_commands,
 ])
+
+
+@cli.command(help=ConfigurePycharmTest.__doc__)
+@apply_common_options(initialized_repository_options)
+def configure_pycharm_tests(**kwargs):
+    ConfigurePycharmTest(**kwargs).run()

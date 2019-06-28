@@ -2,6 +2,7 @@ from kubeyard.commands.bash_completion import InstallCompletion
 from kubeyard.commands.build import BuildCommand
 from kubeyard.commands.custom_script import CustomScriptCommand
 from kubeyard.commands.debug import DebugCommand
+from kubeyard.commands.configure_pycharm_test import ConfigurePycharmTest
 from kubeyard.commands.deploy import DeployCommand
 from kubeyard.commands.fix_code_style import FixCodeStyleCommand
 from kubeyard.commands.global_commands import InstallGlobalSecretsCommand
@@ -26,4 +27,5 @@ __all__ = [
     InitCommand,
     TestCommand,
     ShellCommand,
+    ConfigurePycharmTest,
 ]
