@@ -1,7 +1,7 @@
-0.5.2 (unreleased)
+0.5.2 (2019-06-28)
 ------------------
 
-- Nothing changed yet.
+- Display logs when a job fails.
 
 
 0.5.1 (2019-04-16)
