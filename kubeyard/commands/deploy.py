@@ -42,14 +42,18 @@ class DeployCommand(BaseDevelCommand):
     Can be overridden in <project_dir>/sripts/deploy.
     """
     custom_script_name = 'deploy'
-    context_vars = ["build_url", "aws_credentials", "gcs_service_key_file", "bucket_name"]
+    context_vars = ["build_url", "aws_credentials", "gcs_service_key_file", "azure_connection_string", "bucket_name",
+                    "upload_local_binary_path"]
 
-    def __init__(self, *, build_url, gcs_service_key_file, aws_credentials, bucket_name, **kwargs):
+    def __init__(self, *, build_url, gcs_service_key_file, aws_credentials, azure_connection_string, bucket_name,
+                 upload_local_binary_path, **kwargs):
         super().__init__(**kwargs)
         self.build_url = build_url
         self.gcs_service_key_file = gcs_service_key_file
         self.aws_credentials = aws_credentials
+        self.azure_connection_string = azure_connection_string
         self.bucket_name = bucket_name
+        self.upload_local_binary_path = upload_local_binary_path
 
     def run_default(self):
         if self.should_deploy_statics:
@@ -72,7 +76,9 @@ class DeployCommand(BaseDevelCommand):
             self.image,
             self.gcs_service_key_file,
             self.aws_credentials,
+            self.azure_connection_string,
             self.bucket_name,
+            self.upload_local_binary_path,
         )
 
     def run_statics_deploy(self):
@@ -186,7 +192,8 @@ class DomainConfigurator:
         return False
 
 
-def static_files_storage_factory(context, image, gcs_service_key_file, aws_credentials, bucket_name):
+def static_files_storage_factory(context, image, gcs_service_key_file, aws_credentials, azure_connection_string,
+                                 bucket_name, local_binary_path):
     statics_directory = context.get('STATICS_DIRECTORY')
     collect_statics_command = context.get('COLLECT_STATICS_COMMAND', 'collect_statics_tar')
     docker_runner = DockerRunner(context)
@@ -197,6 +204,7 @@ def static_files_storage_factory(context, image, gcs_service_key_file, aws_crede
         'image': image,
         'docker_runner': docker_runner,
         'bucket_name': bucket_name,
+        'local_binary_path': local_binary_path,
     }
     if statics_directory and bucket_name:
         if gcs_service_key_file:
@@ -209,6 +217,11 @@ def static_files_storage_factory(context, image, gcs_service_key_file, aws_crede
                 **arguments,
                 credentials=aws_credentials,
             )
+        elif azure_connection_string:
+            return AzureFilesStorage(
+                **arguments,
+                connection_string=azure_connection_string,
+            )
         else:
             raise base_command.CommandException(
                 'Static file storage credential/secrets required when using bucket name!',
@@ -218,15 +231,20 @@ def static_files_storage_factory(context, image, gcs_service_key_file, aws_crede
 
 
 class FilesStorage:
-    def __init__(self, statics_directory, collect_statics_command, image, docker_runner):
+    def __init__(self, statics_directory, collect_statics_command, image, docker_runner, local_binary_path):
         self.statics_directory = statics_directory
         self.collect_statics_command = collect_statics_command
         self.image = image
         self.docker_runner = docker_runner
+        self.local_binary_path = local_binary_path
 
     def collect_and_upload(self):
         statics_tar_process = self.get_statics_tar_process()
-        self.upload_tarred_files(statics_tar_process)
+        logger.info(f'Uploading to {self.__class__.__name__}...')
+        if self.local_binary_path:
+            self.upload_tarred_files_with_local(statics_tar_process)
+        else:
+            self.upload_tarred_files(statics_tar_process)
 
     def get_statics_tar_process(self):
         return self.docker_runner.run(
@@ -235,17 +253,32 @@ class FilesStorage:
     def upload_tarred_files(self, statics_tar_process):
         raise NotImplementedError
 
+    def upload_tarred_files_with_local(self, statics_tar_process):
+        raise NotImplementedError(
+            'This storage currently does not support uploading tarred files with local binary.',
+        )
+
+    def _save_tar_to_volume(self, tar_process, volume_name):
+        self.docker_runner.run_with_output(
+            tar_process,
+            'run', '-i', '--rm',
+            '-v', '{}:/extracted/'.format(volume_name),
+            'busybox:1.28.0',
+            'tar', 'xf', '-', '-C', '/extracted/',
+        )
+
 
 class GCSFilesStorage(FilesStorage):
     cloud_sdk_image = 'google/cloud-sdk:183.0.0'
 
-    def __init__(self, statics_directory, collect_statics_command, image, docker_runner, service_key_file, bucket_name):
-        super().__init__(statics_directory, collect_statics_command, image, docker_runner)
+    def __init__(self, statics_directory, collect_statics_command, image, docker_runner, local_binary_path,
+                 service_key_file, bucket_name):
+        super().__init__(statics_directory, collect_statics_command, image, docker_runner, local_binary_path)
         self.service_key_file = service_key_file
         self.bucket_name = bucket_name
 
     def upload_tarred_files(self, statics_tar_process):
-        logger.info('Uploading to GCS...')
+
         with self.docker_runner.temporary_volume() as volume_name:
             self._save_tar_to_volume(statics_tar_process, volume_name)
             self.docker_runner.run_with_output(
@@ -259,19 +292,11 @@ class GCSFilesStorage(FilesStorage):
                 'cp', '-r', '/upload/*', 'gs://{}/{}/'.format(self.bucket_name, self.statics_directory),
             )
 
-    def _save_tar_to_volume(self, tar_process, volume_name):
-        self.docker_runner.run_with_output(
-            tar_process,
-            'run', '-i', '--rm',
-            '-v', '{}:/extracted/'.format(volume_name),
-            'busybox:1.28.0',
-            'tar', 'xf', '-', '-C', '/extracted/',
-        )
-
 
 class S3FilesStorage(FilesStorage):
-    def __init__(self, statics_directory, collect_statics_command, image, docker_runner, credentials, bucket_name):
-        super().__init__(statics_directory, collect_statics_command, image, docker_runner)
+    def __init__(self, statics_directory, collect_statics_command, image, docker_runner, local_binary_path,
+                 credentials, bucket_name):
+        super().__init__(statics_directory, collect_statics_command, image, docker_runner, local_binary_path)
         self.bucket_name = bucket_name
         if ':' in credentials:
             self.access_key, self.secret_key = credentials.split(':', 2)
@@ -279,7 +304,6 @@ class S3FilesStorage(FilesStorage):
             raise base_command.CommandException('AWS credentials should be in form access_key:secret_key.')
 
     def upload_tarred_files(self, statics_tar_process):
-        logger.info('Uploading to AWS S3...')
         upload_statics_run_command = [
             'run', '-i', '--rm',
             '-e', 'AWS_ACCESS_KEY={}'.format(self.access_key),
@@ -289,3 +313,48 @@ class S3FilesStorage(FilesStorage):
             'socialwifi/aws-utils:1.0.0', 'upload_tar',
         ]
         self.docker_runner.run_with_output(statics_tar_process, *upload_statics_run_command)
+
+
+class AzureFilesStorage(FilesStorage):
+    azure_cli_image = 'microsoft/azure-cli:2.0.61'
+
+    def __init__(self, statics_directory, collect_statics_command, image, docker_runner, local_binary_path,
+                 connection_string, bucket_name):
+        super().__init__(statics_directory, collect_statics_command, image, docker_runner, local_binary_path)
+        self.connection_string = connection_string
+        self.bucket_name = bucket_name
+
+    def upload_tarred_files(self, statics_tar_process):
+        with self.docker_runner.temporary_volume() as volume_name:
+            self._save_tar_to_volume(statics_tar_process, volume_name)
+            self.docker_runner.run_with_output(
+                'run', '-i', '--rm',
+                '-v', '{}:/upload/:ro'.format(volume_name),
+                self.azure_cli_image,
+                'az',
+                'storage',
+                'blob',
+                'upload-batch',
+                '--connection-string', self.connection_string,
+                '--destination', self.bucket_name,
+                '--source', '/upload',
+                '--destination-path', self.statics_directory,
+            )
+
+    def upload_tarred_files_with_local(self, statics_tar_process):
+        statics_absolute_path = '{}/upload'.format(sh.pwd().strip())
+        self._save_tar_to_volume(statics_tar_process, statics_absolute_path)
+        sh.bash(
+            '-c',
+            " ".join([
+                self.local_binary_path,
+                'storage',
+                'blob',
+                'upload-batch',
+                '--connection-string', '"{}"'.format(self.connection_string),
+                '--destination', self.bucket_name,
+                '--source', statics_absolute_path,
+                '--destination-path', self.statics_directory,
+            ]),
+            _out=sys.stdout.buffer, _err=sys.stdout.buffer,
+        )
