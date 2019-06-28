@@ -1,7 +1,7 @@
-0.5.2 (unreleased)
+0.5.2 (2019-06-28)
 ------------------
 
-- Nothing changed yet.
+- Add failed jobs logs.
 
 
 0.5.1 (2019-04-16)
