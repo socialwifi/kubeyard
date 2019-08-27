@@ -1,7 +1,7 @@
 0.6.1 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Drop legacy update requirements method.
 
 
 0.6.0 (2019-07-04)
