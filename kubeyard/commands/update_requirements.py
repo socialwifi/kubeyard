@@ -20,11 +20,6 @@ class UpdateRequirementsCommand(BaseDevelCommand):
     """
     custom_script_name = 'update_requirements'
 
-    def __init__(self, generic=None, **kwargs):
-        if generic:
-            logger.warning('Deprecated `generic` flag - now generic is default method.')
-        super().__init__(**kwargs)
-
     def run_default(self):
         logger.info('Updating requirements for "{}"...'.format(self.image))
         sh.docker(

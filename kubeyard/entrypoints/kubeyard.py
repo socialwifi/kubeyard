@@ -139,11 +139,6 @@ def build(**kwargs):
 @cli.command(help=UpdateRequirementsCommand.__doc__)
 @apply_common_options(initialized_repository_options)
 @apply_common_options(devel_options)
-@click.option(
-    "--generic",
-    is_flag=True,
-    help="Deprecated flag (generic method is default).",
-)
 def update_requirements(**kwargs):
     UpdateRequirementsCommand(**kwargs).run()
 
