@@ -1,7 +1,7 @@
 0.7.1 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Drop deprecated `--generic` flag for `update-requirements` command. 
 
 
 0.7.0 (2019-08-27)
