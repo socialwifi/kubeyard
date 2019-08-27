@@ -1,4 +1,4 @@
-0.6.1 (unreleased)
+0.7.0 (2019-08-27)
 ------------------
 
 - Drop legacy update requirements method.
