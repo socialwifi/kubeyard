@@ -1,7 +1,7 @@
 0.7.2 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Extend meaning of pod argument in `shell` command
 
 
 0.7.1 (2020-01-02)
