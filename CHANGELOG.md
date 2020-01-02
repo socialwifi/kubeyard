@@ -1,4 +1,4 @@
-0.7.1 (unreleased)
+0.7.1 (2020-01-02)
 ------------------
 
 - Drop deprecated `--generic` flag for `update-requirements` command. 
