@@ -4,6 +4,6 @@
 #
 #    pip-compile --output-file ./docker/requirements/python.txt ./docker/source/base_requirements.txt
 #
-django==2.1.4
+django==2.1.15
 pytz==2018.7              # via django
 uwsgi==2.0.17.1
