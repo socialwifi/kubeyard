@@ -1,9 +1,13 @@
+import logging
+
 import sh
 
 from cached_property import cached_property
 
 from kubeyard.base_command import CommandException
 from kubeyard.commands.devel import BaseDevelCommand
+
+logger = logging.getLogger(__name__)
 
 
 class ShellCommand(BaseDevelCommand):
@@ -47,7 +51,18 @@ class ShellCommand(BaseDevelCommand):
     @cached_property
     def pod_name(self) -> str:
         if self.pod:
-            return self.pod
+            all_pods = sh.kubectl.get.pods('-o', 'jsonpath={.items[*].metadata.name}').split()
+            # Exact match
+            if self.pod in all_pods:
+                return self.pod
+            # Starting-with match
+            pods = [pod for pod in all_pods if pod.startswith(self.pod)]
+            pods.sort(key=len)
+            if len(pods) == 0:
+                raise CommandException(f"Not found pod equal or starting with '{self.pod}'")
+            if len(pods) > 1:
+                logger.warning(f"Found more than one pod. Using '{pods[0]}'")
+            return pods[0]
         else:
             for pod in sh.kubectl.get.pods(_iter='out'):
                 if self.image_name in pod:
