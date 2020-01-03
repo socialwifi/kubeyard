@@ -1,4 +1,4 @@
-0.8.0 (unreleased)
+0.8.0 (2020-01-03)
 ------------------
 
 - Add support for Azure storage to deploy command.
