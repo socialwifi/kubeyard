@@ -166,11 +166,24 @@ def push(**kwargs):
     help="AWS credentials for S3 buckets. Required to deploy static files on S3.",
 )
 @click.option(
+    "--azure-connection-string",
+    help="Azure connection string for Azure Storage Blob Container. Required to deploy static files on Azure Storage",
+)
+@click.option(
     "--bucket-name",
     "--gcs-bucket-name",
     "--s3-bucket-name",
-    help="Google Cloud Storage or S3 bucket name. Required to deploy static files."
+    "--azure-container-name",
+    help="Google Cloud Storage or S3 bucket name, or Azure container name. Required to deploy static files."
          "May be configured using context variable: 'BUCKET_NAME'",
+)
+@click.option(
+    "--upload-local-binary-path",
+    type=click.Path(
+        dir_okay=False,
+        exists=True,
+    ),
+    help="Use specified local binary, instead of docker image, for static files uploading.",
 )
 def deploy(**kwargs):
     DeployCommand(**kwargs).run()
