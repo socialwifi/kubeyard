@@ -1,14 +1,14 @@
-0.7.2 (unreleased)
+0.8.0 (unreleased)
 ------------------
 
-- Extend meaning of pod argument in `shell` command
+- Add support for Azure storage to deploy command.
 
 
 0.7.1 (2020-01-02)
 ------------------
 
 - Drop deprecated `--generic` flag for `update-requirements` command. 
-
+- Extend meaning of pod argument in `shell` command.
 
 0.7.0 (2019-08-27)
 ------------------
