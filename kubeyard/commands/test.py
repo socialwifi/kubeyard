@@ -60,7 +60,10 @@ class TestCommand(BaseDevelCommand):
 
     @property
     def args(self) -> list:
-        return list(self.test_options)
+        args = list(self.test_options)
+        if self._tag:
+            args += ['--tag', self._tag]
+        return args
 
     def run_default(self):
         if self.context.get('TESTS_WITH_DATABASE'):
