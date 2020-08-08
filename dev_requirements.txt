@@ -1,3 +1,3 @@
 flake8
 flake8-commas
-isort
+isort>=5

@@ -16,4 +16,4 @@ jobs:
           name: run static analysis
           command: |
             flake8
-            isort -c
+            isort -c .
