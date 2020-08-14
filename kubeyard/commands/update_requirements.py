@@ -30,6 +30,7 @@ class UpdateRequirementsCommand(BaseDevelCommand):
             *self.volumes,
             self.image,
             'bash', '-c', 'freeze_requirements',
+            _out=sys.stdout.buffer,
             _err=sys.stdout.buffer,
         )
         logger.info('Requirements updated!')
