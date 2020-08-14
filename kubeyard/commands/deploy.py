@@ -289,7 +289,8 @@ class GCSFilesStorage(FilesStorage):
                 'gsutil',
                 '-m',
                 '-o', 'Credentials:gs_service_key_file=/service-account.json',
-                'cp', '-r', '/upload/*', 'gs://{}/{}/'.format(self.bucket_name, self.statics_directory),
+                'rsync', '-c', '-r',
+                '/upload/', 'gs://{}/{}'.format(self.bucket_name, self.statics_directory),
             )
 
 
