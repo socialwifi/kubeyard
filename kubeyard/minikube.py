@@ -74,12 +74,14 @@ class NativeLocalkubeCluster(Cluster):
                 'minikube', 'start',
                 '--vm-driver', 'none',
                 '--extra-config', 'apiserver.service-node-port-range=1-32767',
-                '--extra-config', 'kubelet.resolv-conf=/run/systemd/resolve/resolv.conf',
+                # TODO: add below line only when "systemd-resolved" service is being used
+                # '--extra-config', 'kubelet.resolv-conf=/run/systemd/resolve/resolv.conf',
                 _in=self._sudo_password, _out=sys.stdout.buffer, _err=sys.stdout.buffer)
 
     def _after_start(self):
         super()._after_start()
         self._apply_permissions_fix()
+        #TODO: sudo cp /root/.kube/config ~/.kube/.
 
     def get_mounted_project_dir(self, project_dir):
         return project_dir
@@ -89,6 +91,7 @@ class NativeLocalkubeCluster(Cluster):
         env = {
             'MINIKUBE_HOME': os.environ['HOME'],
             'CHANGE_MINIKUBE_NONE_USER': 'true',
+            'KUBECONFIG': pathlib.Path.home() / '.kube' / 'config',
         }
         return ['{}={}'.format(key, value) for key, value in env.items()]
 

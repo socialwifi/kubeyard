@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 def is_command_available(name):
     try:
-        sh.bash('which', name)
+        sh.bash('-c', f'which {name}')
     except sh.ErrorReturnCode:
         return False
     else:
