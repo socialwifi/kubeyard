@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
       - name: cockroachdb
-        image: cockroachdb/cockroach:v2.0.3
-        command: ["/cockroach/cockroach", "start", "--insecure", "--host=0.0.0.0"]
+        image: cockroachdb/cockroach:v21.2.7
+        command: ["/cockroach/cockroach", "start-single-node", "--insecure"]
         ports:
         - containerPort: 26257
           name: grpc
