@@ -1,4 +1,4 @@
-0.8.1 (unreleased)
+0.9.0 (2022-04-12)
 ------------------
 
 - Support newer CockroachDB.
