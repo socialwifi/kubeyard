@@ -232,7 +232,7 @@ class CockroachDatabase(Database):
             detach=True,
         )(
             self.context['TEST_DATABASE_IMAGE'],
-            'start',
+            'start-single-node',
             '--insecure',
             '--host=localhost',
             '--logtostderr',

@@ -1,7 +1,7 @@
 0.8.1 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Support newer CockroachDB.
 
 
 0.8.0 (2020-01-03)
