@@ -1,5 +1,5 @@
-0.9.1 (unreleased)
-------------------
+0.10.0 (2023-02-07)
+-------------------
 
 - Support newest minikube.
 - Support applying some CRDs (via kubepy).
