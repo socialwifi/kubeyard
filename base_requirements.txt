@@ -1,7 +1,7 @@
 click
 colorlog
 jinja2
-kubepy>=1.14.0
+kubepy>=1.17.0
 pyYAML
 cached-property
 sh

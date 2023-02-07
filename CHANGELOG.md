@@ -2,6 +2,7 @@
 ------------------
 
 - Support newest minikube.
+- Support applying some CRDs (via kubepy).
 
 
 0.9.0 (2022-04-12)
