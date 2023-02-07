@@ -14,12 +14,13 @@ A utility to develop, test and deploy Kubernetes microservices.
 - minikube
 - kubectl
 - docker
+- conntrack
 
 **Important:** Kubeyard is tested on:
 
-- minikube == v0.34.1 (should work with v0.31.0 and above)
-- docker == 18.09.2 (should work with any version)
-- kubectl == v1.13.3 (should work with v1.13.0 and above)
+- minikube == v1.29.0 (should work with v1.29.0 and above)
+- docker == 20.10.23 (should work with any version)
+- kubectl == v1.21.14 (should work with v1.21.14 and above)
 
 ## Installation
 

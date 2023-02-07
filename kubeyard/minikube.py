@@ -1,9 +1,10 @@
+import datetime
 import getpass
 import logging
-import os
 import pathlib
 import re
 import sys
+import time
 
 import sh
 
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 class Cluster:
     docker_env_keys = ['DOCKER_TLS_VERIFY', 'DOCKER_HOST', 'DOCKER_CERT_PATH', 'DOCKER_API_VERSION']
-    minimum_minikube_version = (0, 34, 1)
+    minimum_minikube_version = (1, 29, 0)
 
     def ensure_started(self):
         if not self.is_running():
@@ -59,6 +60,11 @@ class Cluster:
 
 
 class NativeLocalkubeCluster(Cluster):
+    _docker_config_path = '/etc/docker/daemon.json'
+
+    def __init__(self):
+        self._docker_config_backup_path = f'{self._docker_config_path}_backup_{datetime.datetime.now().isoformat()}'
+
     def is_running(self):
         try:
             status = sh.systemctl('is-active', 'kubelet')
@@ -67,19 +73,65 @@ class NativeLocalkubeCluster(Cluster):
         else:
             return status.strip().lower() == 'active'
 
+    def _before_start(self):
+        super()._before_start()
+        self._backup_docker_config()
+
+    # minikube overrides contents of /etc/docker/daemon.json with settings that
+    # shouldn't make any difference for us, but it breaks all custom modifications like "data-root"
+    def _backup_docker_config(self):
+        logger.info('Creating docker config file backup...')
+        with sh.contrib.sudo(password=self._sudo_password, _with=True):
+            sh.cp('-a', self._docker_config_path, self._docker_config_backup_path)
+        logger.info('Docker config file backup created.')
+
     def _start(self):
         logger.info('Starting minikube without a VM...')
-        sh.sudo('-S',
+        sh.sudo('-E', '-S',
                 *self._start_env_as_arguments,
                 'minikube', 'start',
-                '--vm-driver', 'none',
+                '--driver', 'none',
+                '--container-runtime', 'docker',
+                '--kubernetes-version', 'v1.21.14',
                 '--extra-config', 'apiserver.service-node-port-range=1-32767',
-                '--extra-config', 'kubelet.resolv-conf=/run/systemd/resolve/resolv.conf',
                 _in=self._sudo_password, _out=sys.stdout.buffer, _err=sys.stdout.buffer)
 
     def _after_start(self):
         super()._after_start()
-        self._apply_permissions_fix()
+        self._restore_docker_config()
+        self._handle_persistent_storage()
+
+    def _restore_docker_config(self):
+        logger.info('Restoring docker config file...')
+        with sh.contrib.sudo(password=self._sudo_password, _with=True):
+            sh.mv(self._docker_config_backup_path, self._docker_config_path)
+            sh.systemctl('restart', 'docker.service')
+        logger.info('(sleep 20s.) Docker config file restored, waiting for minikube to reconcile '
+                    'after Docker restart...')
+        time.sleep(20)
+        logger.info('Waiting done.')
+
+    # https://github.com/kubernetes/minikube/issues/14034#issuecomment-1107845713
+    def _handle_persistent_storage(self):
+        self._bind_mount('/tmp/hostpath-provisioner', '/var/lib/minikube_persistence/hostpath-provisioner')
+        self._bind_mount('/tmp/hostpath_pv', '/var/lib/minikube_persistence/hostpath_pv')
+
+    def _bind_mount(self, source_dir, destination_dir):
+        if self._bind_mount_exists(destination_dir):
+            return
+        with sh.contrib.sudo(password=self._sudo_password, _with=True):
+            sh.mkdir('-p', destination_dir)
+            sh.rm('-rf', source_dir)
+            sh.mkdir(source_dir)
+            sh.mount('--bind', source_dir, destination_dir)
+
+    def _bind_mount_exists(self, path):
+        try:
+            sh.mountpoint('-q', path)
+        except (sh.ErrorReturnCode_1, sh.ErrorReturnCode_32):
+            return False
+        else:
+            return True
 
     def get_mounted_project_dir(self, project_dir):
         return project_dir
@@ -87,17 +139,9 @@ class NativeLocalkubeCluster(Cluster):
     @property
     def _start_env_as_arguments(self):
         env = {
-            'MINIKUBE_HOME': os.environ['HOME'],
             'CHANGE_MINIKUBE_NONE_USER': 'true',
         }
         return ['{}={}'.format(key, value) for key, value in env.items()]
-
-    def _apply_permissions_fix(self):
-        logger.info('Applying permissions fix...')
-        minikube_dir = pathlib.Path.home() / '.minikube'
-        with sh.contrib.sudo(password=self._sudo_password, _with=True):
-            sh.chown('-R', '{}:{}'.format(os.getuid(), os.getgid()), str(minikube_dir))
-        logger.info('Permissions fix applied')
 
     @cached_property
     def _sudo_password(self):

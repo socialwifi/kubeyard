@@ -1,7 +1,7 @@
 0.9.1 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Support newest minikube.
 
 
 0.9.0 (2022-04-12)
