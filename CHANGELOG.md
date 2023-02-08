@@ -1,7 +1,10 @@
 0.10.1 (unreleased)
 -------------------
 
-- Nothing changed yet.
+- Fix getting minikube node IP without requiring sudo.
+- Remove bind mounting minikube directories.
+- Update kubepy to make it work on newest Python.
+- Support stopping command like build on Docker 23.0.
 
 
 0.10.0 (2023-02-07)
