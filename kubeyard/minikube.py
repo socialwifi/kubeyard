@@ -99,7 +99,6 @@ class NativeLocalkubeCluster(Cluster):
     def _after_start(self):
         super()._after_start()
         self._restore_docker_config()
-        self._handle_persistent_storage()
 
     def _restore_docker_config(self):
         logger.info('Restoring docker config file...')
@@ -110,28 +109,6 @@ class NativeLocalkubeCluster(Cluster):
                     'after Docker restart...')
         time.sleep(20)
         logger.info('Waiting done.')
-
-    # https://github.com/kubernetes/minikube/issues/14034#issuecomment-1107845713
-    def _handle_persistent_storage(self):
-        self._bind_mount('/tmp/hostpath-provisioner', '/var/lib/minikube_persistence/hostpath-provisioner')
-        self._bind_mount('/tmp/hostpath_pv', '/var/lib/minikube_persistence/hostpath_pv')
-
-    def _bind_mount(self, source_dir, destination_dir):
-        if self._bind_mount_exists(destination_dir):
-            return
-        with sh.contrib.sudo(password=self._sudo_password, _with=True):
-            sh.mkdir('-p', destination_dir)
-            sh.rm('-rf', source_dir)
-            sh.mkdir(source_dir)
-            sh.mount('--bind', source_dir, destination_dir)
-
-    def _bind_mount_exists(self, path):
-        try:
-            sh.mountpoint('-q', path)
-        except (sh.ErrorReturnCode_1, sh.ErrorReturnCode_32):
-            return False
-        else:
-            return True
 
     def get_mounted_project_dir(self, project_dir):
         return project_dir
