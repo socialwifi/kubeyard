@@ -163,7 +163,9 @@ class DomainConfigurator:
 
     @cached_property
     def minikube_ip(self) -> str:
-        return sh.minikube('ip').strip()
+        return sh.kubectl.get.nodes(
+            '-l', 'minikube.k8s.io/name=minikube',
+            '-o', 'jsonpath={.items[*].status.addresses[?(@.type=="InternalIP")].address}').strip()
 
     @cached_property
     def _sudo_password(self):
