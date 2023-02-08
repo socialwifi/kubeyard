@@ -1,4 +1,4 @@
-0.10.1 (unreleased)
+0.11.0 (2023-02-08)
 -------------------
 
 - Fix getting minikube node IP without requiring sudo.
