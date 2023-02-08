@@ -144,6 +144,13 @@ class DockerRunner:
             except KeyboardInterrupt as e:
                 logger.info("Stopping running command...")
                 process.signal(signal.SIGINT)
+                try:
+                    children_pids = sh.ps('-o', 'pid', '--ppid', process.pid, '--no-headers').strip().split(' ')
+                except sh.ErrorReturnCode_1:
+                    pass
+                else:
+                    for pid in children_pids:
+                        os.kill(int(pid), signal.SIGINT)
                 raise e
         else:
             process: sh.RunningCommand = sh.docker(*args, _env=self.sh_env, **kwargs)
