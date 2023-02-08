@@ -1,19 +1,48 @@
-version: 2
+version: 2.1
+
+workflows:
+  test:
+    jobs:
+      - test_3-7
+      - test_3-8
+      - test_3-9
+      - test_3-10
+      - test_3-11
+
+template: &template
+  working_directory: ~/repo
+  steps:
+    - checkout
+    - run:
+        name: install dependencies
+        command: |
+          pip install -r base_requirements.txt
+          pip install -r dev_requirements.txt
+          pip install -e .
+    - run:
+        name: run static analysis
+        command: |
+          flake8
+          isort -c .
+
 jobs:
-  build:
+  test_3-7:
     docker:
-      - image: python:3.7
-    working_directory: ~/repo
-    steps:
-      - checkout
-      - run:
-          name: install dependencies
-          command: |
-            pip install -r base_requirements.txt
-            pip install -r dev_requirements.txt
-            pip install -e .
-      - run:
-          name: run static analysis
-          command: |
-            flake8
-            isort -c .
+      - image: cimg/python:3.7
+    <<: *template
+  test_3-8:
+    docker:
+      - image: cimg/python:3.8
+    <<: *template
+  test_3-9:
+    docker:
+      - image: cimg/python:3.9
+    <<: *template
+  test_3-10:
+    docker:
+      - image: cimg/python:3.10
+    <<: *template
+  test_3-11:
+    docker:
+      - image: cimg/python:3.11
+    <<: *template
