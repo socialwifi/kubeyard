@@ -4,6 +4,6 @@ jinja2
 kubepy>=1.18.0
 pyYAML
 cached-property
-sh
+sh<2
 pyfiglet
 termcolor

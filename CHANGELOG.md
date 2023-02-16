@@ -1,7 +1,7 @@
 0.11.1 (unreleased)
 -------------------
 
-- Nothing changed yet.
+- Freeze `sh` dependency due to breaking changes in new version.
 
 
 0.11.0 (2023-02-08)
