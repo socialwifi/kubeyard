@@ -1,4 +1,4 @@
-0.11.1 (unreleased)
+## 0.11.1 (2023-02-16)
 -------------------
 
 - Freeze `sh` dependency due to breaking changes in new version.
