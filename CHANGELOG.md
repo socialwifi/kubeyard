@@ -1,7 +1,7 @@
 ## 0.11.2 (unreleased)
 ----------------------
 
-- Nothing changed yet.
+- Support applying more resources (via kubepy).
 
 
 ## 0.11.1 (2023-02-16)
