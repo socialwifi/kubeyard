@@ -196,7 +196,7 @@ class DomainConfigurator:
 
 def static_files_storage_factory(context, image, gcs_service_key_file, aws_credentials, azure_connection_string,
                                  bucket_name, local_binary_path):
-    statics_directory = context.get('STATICS_DIRECTORY')
+    statics_directory = context.get('STATICS_DIRECTORY', '')
     collect_statics_command = context.get('COLLECT_STATICS_COMMAND', 'collect_statics_tar')
     docker_runner = DockerRunner(context)
     bucket_name = bucket_name or context.get('BUCKET_NAME')
@@ -208,7 +208,7 @@ def static_files_storage_factory(context, image, gcs_service_key_file, aws_crede
         'bucket_name': bucket_name,
         'local_binary_path': local_binary_path,
     }
-    if statics_directory and bucket_name:
+    if bucket_name:
         if gcs_service_key_file:
             return GCSFilesStorage(
                 **arguments,

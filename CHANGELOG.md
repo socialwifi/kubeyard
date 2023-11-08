@@ -1,7 +1,7 @@
 ## 0.12.1 (unreleased)
 ----------------------
 
-- Nothing changed yet.
+- Allow using root of bucket, without forcing subdirectories.
 
 
 ## 0.12.0 (2023-09-06)
