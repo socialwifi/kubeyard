@@ -1,4 +1,4 @@
-## 0.12.1 (unreleased)
+## 0.13.0 (2023-11-08)
 ----------------------
 
 - Allow using root of bucket, without forcing subdirectories.
