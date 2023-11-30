@@ -31,14 +31,14 @@ class FixCodeStyleCommand(BaseDevelCommand):
 
     def run_default(self):
         try:
-            sh.docker.run.bake(
-                rm=True,
-                _out=sys.stdout.buffer,
-                _err=sys.stdout.buffer,
-            )(
+            self.docker_runner.run(
+                'run',
+                '--rm',
                 *self.volumes,
                 self.image,
                 'fix_code_style',
+                _out=sys.stdout.buffer,
+                _err=sys.stdout.buffer,
             )
         except sh.ErrorReturnCode_127:
             instruction = 'You should implement `fix_code_style` command in the docker image!'

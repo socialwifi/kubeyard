@@ -138,19 +138,19 @@ class DockerRunner:
 
     def run(self, *args, **kwargs):
         if self.run_can_be_waited(*args, **kwargs):
-            process: sh.RunningCommand = sh.docker(*args, _env=self.sh_env, _bg=True, **kwargs)
+            process: sh.RunningCommand = sh.docker(*args, _env=self.sh_env, _bg_exc=False, **kwargs)
             try:
                 process.wait()
             except KeyboardInterrupt as e:
                 logger.info("Stopping running command...")
-                process.signal(signal.SIGINT)
+                process.signal(signal.SIGTERM)
                 try:
                     children_pids = sh.ps('-o', 'pid', '--ppid', process.pid, '--no-headers').strip().split(' ')
                 except sh.ErrorReturnCode_1:
                     pass
                 else:
                     for pid in children_pids:
-                        os.kill(int(pid), signal.SIGINT)
+                        os.kill(int(pid), signal.SIGTERM)
                 raise e
         else:
             process: sh.RunningCommand = sh.docker(*args, _env=self.sh_env, **kwargs)

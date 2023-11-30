@@ -1,8 +1,6 @@
 import logging
 import sys
 
-import sh
-
 from kubeyard.commands.devel import BaseDevelCommand
 
 logger = logging.getLogger(__name__)
@@ -22,7 +20,7 @@ class UpdateRequirementsCommand(BaseDevelCommand):
 
     def run_default(self):
         logger.info('Updating requirements for "{}"...'.format(self.image))
-        sh.docker(
+        self.docker_runner.run(
             'run', '--rm', '-i',
             '-u', '{}:{}'.format(self.uid, self.gid),
             '-e', 'CUSTOM_COMPILE_COMMAND="kubeyard update_requirements"',
