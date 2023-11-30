@@ -7,6 +7,7 @@ import typing
 import sh
 
 from kubeyard.commands.devel import BaseDevelCommand
+from kubeyard.commands.devel import DockerRunner
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,9 @@ class TestCommand(BaseDevelCommand):
             with database_class(
                     is_development=self.is_development,
                     volumes=self.volumes,
-                    context=self.context, tag=self.tag,
+                    context=self.context,
+                    tag=self.tag,
+                    docker_runner=self.docker_runner,
                     tested_image_name=self.image,
                     force_recreate=self.force_recreate_database,
                     force_migrate=self.force_migrate_database,
@@ -80,12 +83,11 @@ class TestCommand(BaseDevelCommand):
     def run_tests(self, database: 'Database' = None):
         logger.info('Running tests...')
         try:
-            sh.docker.run.bake(
-                rm=True,
-                _out=sys.stdout.buffer,
-                _err=sys.stdout.buffer,
-                net=database.network if database else 'none',
-            )(
+            self.docker_runner.run_with_output(
+                'run',
+                '--rm',
+                '--init',
+                '--net={}'.format(database.network if database else 'none'),
                 *self.volumes,
                 self.image,
                 self.context['TEST_COMMAND'],
@@ -101,7 +103,9 @@ class Database(metaclass=abc.ABCMeta):
             self,
             is_development: bool,
             volumes: typing.Iterable[str],
-            context: dict, tag: str,
+            context: dict,
+            tag: str,
+            docker_runner: DockerRunner,
             tested_image_name: str,
             force_recreate: bool = False,
             force_migrate: bool = False,
@@ -110,6 +114,7 @@ class Database(metaclass=abc.ABCMeta):
         self.volumes = volumes
         self.context = context
         self.tag = tag
+        self.docker_runner = docker_runner
         self.tested_image_name = tested_image_name
         self.force_migrate = force_migrate
         self.force_recreate = force_recreate
@@ -120,7 +125,7 @@ class Database(metaclass=abc.ABCMeta):
             self.remove_database()
         if self.container_stopped:
             logger.info("Found stopped DB, restarting it!")
-            sh.docker.start(self.container_name)
+            self.docker_runner.run('start', self.container_name)
         if not self.already_up:
             self.create()
             self.wait_until_ready()
@@ -136,7 +141,7 @@ class Database(metaclass=abc.ABCMeta):
     @property
     def container_stopped(self) -> bool:
         try:
-            container_info = json.loads(str(sh.docker.inspect(self.container_name)))
+            container_info = json.loads(str(self.docker_runner.run('inspect', self.container_name)))
         except sh.ErrorReturnCode_1:
             return False
         else:
@@ -145,7 +150,7 @@ class Database(metaclass=abc.ABCMeta):
     @property
     def already_up(self) -> bool:
         try:
-            sh.docker.inspect(self.container_name)
+            self.docker_runner.run('inspect', self.container_name)
             return True
         except sh.ErrorReturnCode_1:
             return False
@@ -158,12 +163,7 @@ class Database(metaclass=abc.ABCMeta):
     def remove_database(self):
         logger.info('Removing database...')
         try:
-            sh.docker.rm.bake(
-                force=True,
-                volumes=True,
-            )(
-                self.container_name,
-            )
+            self.docker_runner.run('rm', '--force', '--volumes', self.container_name)
         except sh.ErrorReturnCode_1 as e:
             logger.info('Database does not exist yet.')
             logger.debug(e)
@@ -174,7 +174,7 @@ class Database(metaclass=abc.ABCMeta):
 
     def wait_until_ready(self):
         logger.info('Waiting for database...')
-        for log in sh.docker.logs.bake(follow=True, _err_to_out=True, _iter='out')(self.container_name):
+        for log in self.docker_runner.run('logs', '--follow', self.container_name, _err_to_out=True, _iter='out'):
             if self.started_log in log:
                 logger.info('Database ready!')
                 break
@@ -187,14 +187,14 @@ class Database(metaclass=abc.ABCMeta):
     def migrate(self):
         if not self._migrated:
             logger.info('Running migrations...')
-            sh.docker.run.bake(
-                net=self.network,
-                rm=True,
-                _err_to_out=True,
-            )(
+            self.docker_runner.run(
+                'run',
+                '--net', self.network,
+                '--rm',
                 *self.volumes,
                 self.tested_image_name,
                 self.context['TEST_MIGRATION_COMMAND'],
+                _err_to_out=True,
             )
             logger.info('Migrations done!')
         self._migrated = True
@@ -209,13 +209,13 @@ class PostgresDatabase(Database):
 
     def create(self):
         logger.info('Setting up database...')
-        sh.docker.run.bake(
-            restart='always',
-            net='none',
-            name=self.container_name,
-            detach=True,
-            e='POSTGRES_DB={}'.format(self.context['TEST_DATABASE_NAME']),
-        )(
+        self.docker_runner.run(
+            'run',
+            '--restart', 'always',
+            '--net', 'none',
+            '--name', self.container_name,
+            '--detach',
+            '-e', 'POSTGRES_DB={}'.format(self.context['TEST_DATABASE_NAME']),
             self.context['TEST_DATABASE_IMAGE'],
         )
 
@@ -225,12 +225,12 @@ class CockroachDatabase(Database):
 
     def create(self):
         logger.info('Releasing cockroaches...')
-        sh.docker.run.bake(
-            restart='always',
-            net='none',
-            name=self.container_name,
-            detach=True,
-        )(
+        self.docker_runner.run(
+            'run',
+            '--restart', 'always',
+            '--net', 'none',
+            '--name', self.container_name,
+            '--detach',
             self.context['TEST_DATABASE_IMAGE'],
             'start-single-node',
             '--insecure',
@@ -241,15 +241,15 @@ class CockroachDatabase(Database):
 
     def _create_database(self):
         self.wait_until_ready()
-        sh.docker.run.bake(
-            net=self.network,
-            rm=True,
-        )(
-            self.context["TEST_DATABASE_IMAGE"],
-            "sql",
-            "--insecure",
-            "-e",
-            "CREATE DATABASE {}".format(self.context['TEST_DATABASE_NAME']),
+        self.docker_runner.run(
+            'run',
+            '--net', self.network,
+            '--rm',
+            self.context['TEST_DATABASE_IMAGE'],
+            'sql',
+            '--insecure',
+            '-e',
+            'CREATE DATABASE {}'.format(self.context['TEST_DATABASE_NAME']),
         )
 
 
