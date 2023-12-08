@@ -1,4 +1,4 @@
-## 0.13.1 (unreleased)
+## 1.0.0 (2023-12-08)
 ----------------------
 
 - Add support for "docker" driver in minikube.
