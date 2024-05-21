@@ -1,4 +1,4 @@
-## 1.1.0 (unreleased)
+## 1.1.0 (2024-05-21)
 ---------------------
 
 - Support applying HorizontalPodAutoscaler (via kubepy).
