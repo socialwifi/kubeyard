@@ -1,7 +1,9 @@
-## 1.0.1 (unreleased)
+## 1.1.0 (unreleased)
 ---------------------
 
-- Nothing changed yet.
+- Support applying HorizontalPodAutoscaler (via kubepy).
+- Run linting with tox and GitHub Actions.
+- Drop support for Python 3.7 and 3.8, add support for Python 3.12.
 
 
 ## 1.0.0 (2023-12-08)
