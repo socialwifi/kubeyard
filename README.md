@@ -31,3 +31,7 @@ virtualenv -p python3 $HOME/kubeyard-venv
 pip install kubeyard
 echo '. $HOME/kubeyard-venv/bin/activate' >> $HOME/.bashrc
 ```
+
+## Quickstart
+
+See [./docs/quickstart.md](https://github.com/socialwifi/kubeyard/blob/master/docs/quickstart.md)
