@@ -1,4 +1,4 @@
-## 1.1.1 (unreleased)
+## 1.2.0 (2025-11-19)
 ---------------------
 
 - Support newest minikube.
