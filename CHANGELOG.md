@@ -1,7 +1,7 @@
 ## 1.1.1 (unreleased)
 ---------------------
 
-- Nothing changed yet.
+- Support newest minikube.
 
 
 ## 1.1.0 (2024-05-21)

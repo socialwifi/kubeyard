@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 class Cluster:
     docker_env_keys = ['DOCKER_TLS_VERIFY', 'DOCKER_HOST', 'DOCKER_CERT_PATH', 'MINIKUBE_ACTIVE_DOCKERD']
-    minimum_minikube_version = (1, 32, 0)
+    minimum_minikube_version = (1, 37, 0)
 
     def ensure_started(self):
         if not self.is_running():
@@ -61,7 +61,7 @@ class Cluster:
 
 
 class DockerCluster(Cluster):
-    kubernetes_version = 'v1.28'
+    kubernetes_version = 'v1.33.1'
     static_ip = '192.168.200.200'
     cpu_limit = 'no-limit'
     memory_limit = 'no-limit'
