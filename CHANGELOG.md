@@ -1,7 +1,7 @@
 ## 1.2.1 (unreleased)
 ---------------------
 
-- Nothing changed yet.
+- Fix command availability check for better cross-distro compatibility.
 
 
 ## 1.2.0 (2025-11-19)

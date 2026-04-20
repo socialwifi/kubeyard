@@ -1,4 +1,5 @@
 import logging
+import shutil
 import time
 
 import sh
@@ -7,12 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 def is_command_available(name):
-    try:
-        sh.bash('which', name)
-    except sh.ErrorReturnCode:
-        return False
-    else:
-        return True
+    return shutil.which(name) is not None
 
 
 class KubernetesDependency:
