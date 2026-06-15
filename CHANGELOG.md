@@ -1,4 +1,4 @@
-## 1.2.2 (unreleased)
+## 1.2.2 (2026-06-15)
 ---------------------
 
 - Make newer versions of CockroachDB work as test database.
