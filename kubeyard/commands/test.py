@@ -234,8 +234,6 @@ class CockroachDatabase(Database):
             self.context['TEST_DATABASE_IMAGE'],
             'start-single-node',
             '--insecure',
-            '--host=localhost',
-            '--logtostderr',
         )
         self._create_database()
 

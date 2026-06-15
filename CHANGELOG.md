@@ -1,7 +1,7 @@
 ## 1.2.2 (unreleased)
 ---------------------
 
-- Nothing changed yet.
+- Make newer versions of CockroachDB work as test database.
 
 
 ## 1.2.1 (2026-04-20)

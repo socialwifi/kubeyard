@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: cockroachdb
-        image: cockroachdb/cockroach:v21.2.7
+        image: cockroachdb/cockroach:v22.2.19
         command: ["/cockroach/cockroach", "start-single-node", "--insecure"]
         ports:
         - containerPort: 26257
