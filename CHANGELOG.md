@@ -1,4 +1,4 @@
-## 1.2.3 (unreleased)
+## 1.2.3 (2026-06-16)
 ---------------------
 
 - Update CockroachDB image tag.
