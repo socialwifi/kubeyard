@@ -432,6 +432,13 @@ class TestCreateWorkspaceCommandRun:
 
 
 class TestShowWorkspaceCommand:
+    @pytest.fixture
+    def kubectl_context_ok(self):
+        """Bypasses the kubectl-context check pinned by the two tests below it."""
+        with mock.patch.object(
+                workspace_commands.preconditions, 'current_kubectl_context', return_value='minikube'):
+            yield
+
     def test_prints_shared_environment_message_when_inactive(self, capsys):
         command = FakeShowWorkspaceCommand(context())
         with mock.patch.object(workspace_commands.aliases, 'list_real_services') as list_real:
@@ -440,7 +447,29 @@ class TestShowWorkspaceCommand:
         list_real.assert_not_called()
         assert 'shared environment' in capsys.readouterr().out
 
-    def test_prints_workspace_summary_when_active(self, capsys):
+    def test_refuses_before_querying_the_cluster_on_an_unexpected_context(self):
+        # Same check ListWorkspacesCommand makes: a workspace summary listing
+        # some other cluster's Services, under a local workspace name, is
+        # worse than a refusal.
+        command = FakeShowWorkspaceCommand(context('example'))
+
+        with mock.patch.object(
+                workspace_commands.preconditions, 'current_kubectl_context', return_value='gke-production'):
+            with mock.patch.object(workspace_commands.aliases, 'list_real_services') as list_real:
+                with pytest.raises(preconditions.PreconditionFailed):
+                    command.run()
+
+        list_real.assert_not_called()
+
+    def test_no_cluster_check_is_needed_to_say_no_workspace_is_active(self):
+        command = FakeShowWorkspaceCommand(context())
+
+        with mock.patch.object(workspace_commands.preconditions, 'current_kubectl_context') as current_ctx:
+            command.run()
+
+        current_ctx.assert_not_called()
+
+    def test_prints_workspace_summary_when_active(self, capsys, kubectl_context_ok):
         command = FakeShowWorkspaceCommand(context('example'))
         with mock.patch.object(workspace_commands.aliases, 'list_real_services', return_value={'web'}) as list_real:
             with mock.patch.object(
@@ -460,7 +489,7 @@ class TestShowWorkspaceCommand:
         assert 'Aliased to default (1): accounts' in output
         assert 'Missing aliases (1): billing' in output
 
-    def test_no_missing_aliases_line_when_nothing_is_stale(self, capsys):
+    def test_no_missing_aliases_line_when_nothing_is_stale(self, capsys, kubectl_context_ok):
         command = FakeShowWorkspaceCommand(context('example'))
         with mock.patch.object(workspace_commands.aliases, 'list_real_services', return_value=set()):
             with mock.patch.object(workspace_commands.aliases, 'list_aliases', return_value={'accounts'}):

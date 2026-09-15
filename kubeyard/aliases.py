@@ -108,7 +108,11 @@ def list_real_services(namespace):
 def apply(namespace, names):
     for name in names:
         definition = alias_definition(name, namespace)
-        sh.kubectl(sh.echo(json.dumps(definition)), 'apply', '-f', '-')
+        # The namespace is in the definition already; passing it as an argument
+        # too is what makes a disagreement between the two an error kubectl
+        # reports rather than one it silently resolves in favour of the body.
+        sh.kubectl(sh.echo(json.dumps(definition)), 'apply',
+                   *kubectl_helper.namespace_args(namespace), '-f', '-')
         logger.debug('Alias created for "{}" in "{}"'.format(name, namespace))
 
 

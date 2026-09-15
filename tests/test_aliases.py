@@ -261,13 +261,32 @@ class TestApply:
 
         assert kubectl.call_count == 2
         for call in kubectl.call_args_list:
-            assert call[0][1:] == ('apply', '-f', '-')
+            assert call[0][1:] == ('apply', '--namespace', 'ws-example', '-f', '-')
 
         payloads = [json.loads(call[0][0]) for call in echo.call_args_list]
         assert {payload['metadata']['name']: payload['metadata']['namespace'] for payload in payloads} == {
             'accounts': 'ws-example',
             'billing': 'ws-example',
         }
+
+    def test_passes_the_namespace_as_an_argument_as_well_as_in_the_body(self):
+        # kubectl accepts the redundancy while the two agree and errors loudly
+        # when they do not, instead of quietly applying into the body's
+        # namespace. Every other kubectl call in the package routes its
+        # namespace through kubectl.namespace_args; this one used to be the
+        # exception.
+        with mock.patch.object(aliases.sh, 'kubectl') as kubectl:
+            with mock.patch.object(aliases.sh, 'echo'):
+                aliases.apply('ws-example', ['accounts'])
+
+        assert kubectl.call_args[0][1:] == ('apply', '--namespace', 'ws-example', '-f', '-')
+
+    def test_emits_no_namespace_argument_when_no_workspace_is_active(self):
+        with mock.patch.object(aliases.sh, 'kubectl') as kubectl:
+            with mock.patch.object(aliases.sh, 'echo'):
+                aliases.apply('', ['accounts'])
+
+        assert '--namespace' not in kubectl.call_args[0]
 
     def test_applies_nothing_for_an_empty_list(self):
         with mock.patch.object(aliases.sh, 'kubectl') as kubectl:

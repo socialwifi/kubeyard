@@ -173,6 +173,11 @@ class ShowWorkspaceCommand(BaseWorkspaceCommand):
         if not name:
             print('No workspace active in {}. Using the shared environment.'.format(self.project_dir))
             return
+        # Read-only, but from here on it queries the cluster, so it gets the
+        # same check ListWorkspacesCommand makes: listing the Services of
+        # whatever cluster kubectl happens to point at, under the heading of a
+        # local workspace name, is worse than refusing.
+        preconditions.check_kubectl_context(preconditions.current_kubectl_context())
         namespace = workspace_module.namespace_for(name)
         real = sorted(aliases.list_real_services(namespace))
         aliased = sorted(aliases.list_aliases(namespace))
