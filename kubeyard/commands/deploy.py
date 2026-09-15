@@ -156,14 +156,7 @@ class DeployCommand(BaseDevelCommand):
 
     @property
     def definition_directories(self):
-        kubernetes_dir = self.project_dir / settings.DEFAULT_KUBERNETES_DEPLOY_DIR
-        overrides_dir = self.project_dir / settings.DEFAULT_KUBERNETES_DEV_DEPLOY_OVERRIDES_DIR
-        definition_directories = []
-        if kubernetes_dir.exists():
-            definition_directories.append(kubernetes_dir)
-        if self.is_development and overrides_dir.exists():
-            definition_directories.append(overrides_dir)
-        return definition_directories
+        return definition_directories(self.project_dir, include_dev_overrides=self.is_development)
 
     @property
     def host_volumes(self):
@@ -187,6 +180,26 @@ class DeployCommand(BaseDevelCommand):
     @property
     def dev_requirements(self):
         return self.context.get('DEV_REQUIREMENTS')
+
+
+def definition_directories(project_dir, *, include_dev_overrides):
+    """
+    List the definition directories a project owns: the committed deploy
+    directory, plus the development-overrides directory when it applies.
+
+    Shared by DeployCommand and UndeployCommand so the two never drift on
+    which directories are in scope - deploy only merges dev overrides when
+    actually running in development mode, and undeploy (which refuses to run
+    outside development mode at all) always includes them.
+    """
+    kubernetes_dir = project_dir / settings.DEFAULT_KUBERNETES_DEPLOY_DIR
+    overrides_dir = project_dir / settings.DEFAULT_KUBERNETES_DEV_DEPLOY_OVERRIDES_DIR
+    directories = []
+    if kubernetes_dir.exists():
+        directories.append(kubernetes_dir)
+    if include_dev_overrides and overrides_dir.exists():
+        directories.append(overrides_dir)
+    return directories
 
 
 def _merged_definitions(directories):

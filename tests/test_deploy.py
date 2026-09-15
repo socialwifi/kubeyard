@@ -131,6 +131,39 @@ class TestOwnedNames:
         assert deploy.owned_service_names([base, overrides]) == ['frontend-development']
 
 
+class TestDefinitionDirectoriesHelper:
+    """
+    The module-level helper shared by DeployCommand.definition_directories and
+    UndeployCommand.definition_directories - see also
+    tests/test_undeploy.py::TestDefinitionDirectories, which pins the
+    undeploy side (include_dev_overrides=True unconditionally).
+    """
+
+    def test_both_included_when_present_and_requested(self, tmp_path):
+        kubernetes_dir = tmp_path / 'config' / 'kubernetes' / 'deploy'
+        overrides_dir = tmp_path / 'config' / 'kubernetes' / 'development_overrides'
+        kubernetes_dir.mkdir(parents=True)
+        overrides_dir.mkdir(parents=True)
+
+        result = deploy.definition_directories(tmp_path, include_dev_overrides=True)
+
+        assert result == [kubernetes_dir, overrides_dir]
+
+    def test_overrides_excluded_when_not_requested_even_if_present(self, tmp_path):
+        kubernetes_dir = tmp_path / 'config' / 'kubernetes' / 'deploy'
+        overrides_dir = tmp_path / 'config' / 'kubernetes' / 'development_overrides'
+        kubernetes_dir.mkdir(parents=True)
+        overrides_dir.mkdir(parents=True)
+
+        result = deploy.definition_directories(tmp_path, include_dev_overrides=False)
+
+        assert result == [kubernetes_dir]
+
+    def test_missing_directories_are_never_included_regardless_of_the_flag(self, tmp_path):
+        assert deploy.definition_directories(tmp_path, include_dev_overrides=True) == []
+        assert deploy.definition_directories(tmp_path, include_dev_overrides=False) == []
+
+
 class TestNamespace:
     def test_defaults_to_empty_string(self):
         assert FakeDeployCommand({}).namespace == ''

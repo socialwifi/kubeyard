@@ -1,0 +1,173 @@
+import logging
+import sys
+
+import sh
+
+from cached_property import cached_property
+
+from kubeyard import aliases
+from kubeyard import base_command
+from kubeyard import kubectl as kubectl_helper
+from kubeyard import preconditions
+from kubeyard.commands import deploy
+
+logger = logging.getLogger(__name__)
+
+
+class UndeployRefused(Exception):
+    pass
+
+
+def check_allowed(context):
+    if context.get('KUBEYARD_MODE') != 'development':
+        raise UndeployRefused(
+            'Refusing to undeploy: KUBEYARD_MODE is not "development". '
+            'Use kubectl directly if you really mean to remove production objects.')
+
+
+def confirmation_required(context) -> bool:
+    return not context.get('KUBEYARD_NAMESPACE')
+
+
+def is_uninstalled_resource_type(stderr: bytes) -> bool:
+    """
+    A kind the API server does not know cannot have any objects, so there is nothing
+    to delete rather than a delete that failed. kubepy skips the same custom resources
+    when applying them, so a cluster without them deploys and undeploys alike.
+    """
+    return b"server doesn't have a resource type" in stderr
+
+
+class UndeployCommand(base_command.InitialisedRepositoryCommand):
+    """
+    Removes this project's Kubernetes objects, the inverse of deploy.
+
+    Inside a workspace it also restores the ExternalName aliases, so calls fall back to the
+    shared instance. In the shared environment it asks for confirmation first, and it refuses
+    outright in production mode. It never removes development requirements and never drops
+    databases - use "kubeyard workspace destroy" for that.
+    """
+
+    def __init__(self, *, yes, **kwargs):
+        super().__init__(**kwargs)
+        self.yes = yes
+
+    @property
+    def namespace(self):
+        return self.context.get('KUBEYARD_NAMESPACE', '')
+
+    @property
+    def namespace_args(self):
+        return kubectl_helper.namespace_args(self.namespace)
+
+    @cached_property
+    def current_kubectl_context(self):
+        return preconditions.current_kubectl_context()
+
+    @property
+    def definition_directories(self):
+        # Always includes the development-overrides directory: check_allowed
+        # already refuses to run outside development mode at all, so there is
+        # no "is this a dev run" distinction left to make here, unlike
+        # deploy.DeployCommand (which can run in production too).
+        return deploy.definition_directories(self.project_dir, include_dev_overrides=True)
+
+    @property
+    def targets(self):
+        service_name = self.context.get('KUBE_SERVICE_NAME')
+        if not service_name:
+            raise base_command.CommandException(
+                'KUBE_SERVICE_NAME is not set; cannot determine which Secret to remove.')
+        objects = deploy.owned_objects(self.definition_directories)
+        objects.append(('Secret', service_name))
+        return objects
+
+    def run(self):
+        super().run()
+        check_allowed(self.context)
+        # Checked unconditionally, before anything else - including the
+        # workspace-active branch, which would otherwise issue a namespaced
+        # delete against whatever cluster kubectl happens to be pointed at.
+        # KUBEYARD_MODE is a machine-level setting with no relationship to
+        # the active kubectl context, so it cannot stand in for this check.
+        preconditions.check_kubectl_context(self.current_kubectl_context)
+        targets = self.targets
+        if not targets:
+            logger.info('Nothing to undeploy.')
+            return
+        self.confirm(targets)
+        failures, skipped = self.delete_targets(targets)
+        if self.namespace:
+            self.restore_aliases()
+        self.report_result(targets, failures, skipped)
+
+    def confirm(self, targets):
+        if not confirmation_required(self.context):
+            return
+        print('About to delete from kubectl context {!r}, the namespace of your current '
+              'context:'.format(self.current_kubectl_context))
+        for kind, name in targets:
+            print('  {}/{}'.format(kind, name))
+        if self.yes:
+            return
+        if not sys.stdin.isatty():
+            raise UndeployRefused(
+                'Refusing to undeploy from the shared environment without confirmation. '
+                'Re-run with --yes if you really mean it.')
+        answer = input('Delete these objects from kubectl context {!r}? [y/N] '.format(self.current_kubectl_context))
+        if answer.strip().lower() not in ('y', 'yes'):
+            raise UndeployRefused('Aborted.')
+
+    def delete_targets(self, targets):
+        """
+        Delete every target, collecting failures instead of aborting on the
+        first one. A delete that fails partway through must not leave the
+        workspace with neither a real Service nor a restored alias, so the
+        alias restoration in run() always happens after this returns,
+        whether or not every delete succeeded.
+        """
+        failures = []
+        skipped = []
+        for kind, name in targets:
+            try:
+                self.delete_one(kind, name)
+            except sh.ErrorReturnCode as e:
+                if is_uninstalled_resource_type(e.stderr):
+                    logger.warning(
+                        'Resource type {} is not installed in this cluster, so {}/{} cannot exist; '
+                        'skipping it.'.format(kind, kind, name))
+                    skipped.append((kind, name))
+                else:
+                    logger.warning('Failed to delete {}/{}; left in place. ({})'.format(
+                        kind, name, e.stderr.decode(errors='replace').strip()))
+                    failures.append((kind, name))
+        return failures, skipped
+
+    def delete_one(self, kind, name):
+        sh.kubectl('delete', kind.lower(), name, *self.namespace_args, '--ignore-not-found',
+                   _out=sys.stdout.buffer)
+
+    def report_result(self, targets, failures, skipped):
+        succeeded = len(targets) - len(failures) - len(skipped)
+        if skipped:
+            skipped_names = ', '.join('{}/{}'.format(kind, name) for kind, name in skipped)
+            logger.warning(
+                'Skipped {} of {} objects whose resource type is not installed in this cluster: {}.'.format(
+                    len(skipped), len(targets), skipped_names))
+        if failures:
+            failed_names = ', '.join('{}/{}'.format(kind, name) for kind, name in failures)
+            logger.warning(
+                'Undeployed {} of {} objects; {} failed and were left in place: {}. Check "kubectl describe" '
+                'for each, then re-run "kubeyard undeploy" once resolved.'.format(
+                    succeeded, len(targets), len(failures), failed_names))
+        else:
+            logger.info('Undeployed {} objects.'.format(succeeded))
+
+    def restore_aliases(self):
+        names = [
+            name for name in deploy.owned_service_names(self.definition_directories)
+            if name in aliases.list_shared_services()
+        ]
+        if names:
+            aliases.apply(self.namespace, names)
+            logger.info('Restored aliases: {}'.format(', '.join(names)))

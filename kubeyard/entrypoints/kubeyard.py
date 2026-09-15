@@ -22,6 +22,7 @@ from kubeyard.commands import ShellCommand
 from kubeyard.commands import ShowWorkspaceCommand
 from kubeyard.commands import SyncWorkspaceCommand
 from kubeyard.commands import TestCommand
+from kubeyard.commands import UndeployCommand
 from kubeyard.commands import UpdateRequirementsCommand
 from kubeyard.commands.init import PythonPackageInitType
 from kubeyard.commands.init import all_templates
@@ -288,6 +289,18 @@ def init(*, template_name, **kwargs):
 )
 def shell(**kwargs):
     ShellCommand(**kwargs).run()
+
+
+@cli.command(help=UndeployCommand.__doc__)
+@apply_common_options(initialized_repository_options)
+@click.option(
+    "--yes",
+    "-y",
+    is_flag=True,
+    help="Skip the confirmation prompt when undeploying from the shared environment.",
+)
+def undeploy(**kwargs):
+    UndeployCommand(**kwargs).run()
 
 
 @cli.group()
