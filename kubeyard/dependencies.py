@@ -4,6 +4,8 @@ import time
 
 import sh
 
+from kubeyard import kubectl as kubectl_helper
+
 logger = logging.getLogger(__name__)
 
 
@@ -12,6 +14,13 @@ def is_command_available(name):
 
 
 class KubernetesDependency:
+    def __init__(self, namespace=''):
+        self.namespace = namespace
+
+    @property
+    def namespace_args(self):
+        return kubectl_helper.namespace_args(self.namespace)
+
     def ensure_running(self):
         logger.debug('Checking if container "{}" is running...'.format(self.name))
         if self.is_container_running():
@@ -27,9 +36,9 @@ class KubernetesDependency:
         self._wait_for_started_log()
 
     def _apply_definition(self):
-        sh.kubectl('apply', '--record', '-f', self.definition)
+        sh.kubectl('apply', *self.namespace_args, '--record', '-f', self.definition)
         try:
-            sh.kubectl('expose', '-f', self.definition)
+            sh.kubectl('expose', *self.namespace_args, '-f', self.definition)
         except sh.ErrorReturnCode_1 as e:
             if b'already exists' not in e.stderr:
                 raise e
@@ -47,7 +56,7 @@ class KubernetesDependency:
 
     def _wait_for_started_log(self):
         logger.debug('Waiting for started log for "{}"...'.format(self.name))
-        for log in sh.kubectl('logs', '-f', self.pod_name, _iter='out'):
+        for log in sh.kubectl('logs', '-f', self.pod_name, *self.namespace_args, _iter='out'):
             if self.started_log in log:
                 break
         logger.debug('Started log for "{}" found'.format(self.name))
@@ -56,6 +65,7 @@ class KubernetesDependency:
         try:
             container_ready = str(sh.kubectl(
                 'get', 'pods',
+                *self.namespace_args,
                 '--selector', self.selector,
                 '--output', 'jsonpath="{.items[*].status.containerStatuses[*].ready}"',
             )).strip()
@@ -66,12 +76,13 @@ class KubernetesDependency:
             return container_ready == '"true"'
 
     def run_command(self, *args):
-        return sh.kubectl('exec', self.pod_name, '--', *args)
+        return sh.kubectl('exec', self.pod_name, *self.namespace_args, '--', *args)
 
     @property
     def pod_name(self):
         return str(sh.kubectl(
             'get', 'pods',
+            *self.namespace_args,
             '--output', 'custom-columns=NAME:.metadata.name',
             '--no-headers',
             '--selector', self.selector,

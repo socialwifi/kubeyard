@@ -7,6 +7,7 @@ import socket
 import sh
 import yaml
 
+from kubeyard import kubectl as kubectl_helper
 from kubeyard import minikube
 from kubeyard import settings
 
@@ -35,13 +36,14 @@ def get_global_secrets_manipulator(context, secret_name):
     return KubernetesSecretsManipulator(
         secret_name,
         pathlib.Path(context['KUBEYARD_GLOBAL_SECRETS']) / secret_name,
+        context.get('KUBEYARD_NAMESPACE', ''),
     )
 
 
 def _get_kubernetes_commands(context):
     if context['KUBEYARD_MODE'] == 'development':
         return KubernetesCommands(
-            context_setup=DevelopmentKubernetesContext(context).setup,
+            context_setup=DevelopmentKubernetesContext(context, context.get('KUBEYARD_NAMESPACE', '')).setup,
             install_secrets=DevelopmentKubernetesSecretsInstaller(context).install,
         )
     else:
@@ -55,10 +57,14 @@ KubernetesCommands = collections.namedtuple('KubernetesCommand', ['context_setup
 
 
 class BaseKubernetesContext:
+    def __init__(self, namespace=''):
+        self.namespace = namespace
+
     def setup(self):
+        namespace_args = kubectl_helper.namespace_args(self.namespace)
         with contextlib.suppress(sh.ErrorReturnCode):
-            sh.kubectl('delete', 'configmap', 'global')
-        sh.kubectl('create', 'configmap', 'global',
+            sh.kubectl('delete', 'configmap', 'global', *namespace_args)
+        sh.kubectl('create', 'configmap', 'global', *namespace_args,
                    '--from-literal', 'monolith-host={}'.format(self.monolith_host),
                    '--from-literal', 'base-domain={}'.format(self.base_domain),
                    '--from-literal', 'alternative-domain={}'.format(self.alternative_domain),
@@ -87,7 +93,8 @@ class DevelopmentKubernetesContext(BaseKubernetesContext):
     alternative_domain = 'pl-testing'
     debug = 'True'
 
-    def __init__(self, context):
+    def __init__(self, context, namespace=''):
+        super().__init__(namespace)
         self.cluster = minikube.ClusterFactory().get(context)
 
     def setup(self):
@@ -109,9 +116,10 @@ class ProductionKubernetesContext(BaseKubernetesContext):
 
 
 class KubernetesSecretsManipulator:
-    def __init__(self, secret_name, secrets_path):
+    def __init__(self, secret_name, secrets_path, namespace=''):
         self.secret_name = secret_name
         self.secrets_path = secrets_path
+        self.namespace = namespace
 
     @property
     def yml_source_path(self):
@@ -149,6 +157,7 @@ class KubernetesSecretsManipulator:
         try:
             yml_output = str(sh.kubectl(
                 'get', 'secrets', self.secret_name,
+                *kubectl_helper.namespace_args(self.namespace),
                 '--output', 'yaml',
             ))
         except sh.ErrorReturnCode:
@@ -161,9 +170,14 @@ class KubernetesSecretsManipulator:
 class BaseKubernetesSecretsInstaller:
     def __init__(self, context):
         self.context = context
+        self.namespace = context.get('KUBEYARD_NAMESPACE', '')
 
     def install(self):
-        command = ['create', 'secret', 'generic', self.secret_name, '--dry-run', '-o', 'yaml']
+        namespace_args = kubectl_helper.namespace_args(self.namespace)
+        command = [
+            'create', 'secret', 'generic', self.secret_name,
+            *namespace_args, '--dry-run', '-o', 'yaml',
+        ]
         literal_secrets = list(self.manipulator.get_literal_secrets())
         file_secrets = list(self.manipulator.get_file_secrets())
         if literal_secrets or file_secrets:
@@ -171,11 +185,11 @@ class BaseKubernetesSecretsInstaller:
                 command.append('--from-literal={}={}'.format(key, value))
             for subpath in file_secrets:
                 command.append('--from-file={}'.format(subpath))
-            sh.kubectl(sh.kubectl(*command), 'apply', '--record', '-f', '-')
+            sh.kubectl(sh.kubectl(*command), 'apply', *namespace_args, '--record', '-f', '-')
 
     @property
     def manipulator(self):
-        return KubernetesSecretsManipulator(self.secret_name, self.secrets_path)
+        return KubernetesSecretsManipulator(self.secret_name, self.secrets_path, self.namespace)
 
     @property
     def secret_name(self):
