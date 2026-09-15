@@ -340,3 +340,87 @@ class TestRunDevRequirementsDeploy:
             result = command.run_dev_requirements_deploy()
 
         assert result is False
+
+
+class TestRunDefaultSeeding:
+    def make_command(self, tmp_path, **context_kwargs):
+        deploy_dir = tmp_path / 'deploy'
+        deploy_dir.mkdir()
+        (deploy_dir / '01_deployment.yml').write_text('kind: Deployment\nmetadata:\n  name: web\n')
+        return FakeDeployCommand(context(**context_kwargs), definition_directories=[deploy_dir])
+
+    def test_seeds_when_the_database_is_freshly_created(self, tmp_path):
+        command = self.make_command(
+            tmp_path, seed_command='python -m tests.demo', dev_requirements=[{'kind': 'postgres'}])
+
+        with mock.patch.object(deploy.DeployCommand, 'run_dev_requirements_deploy', return_value=True), \
+                mock.patch.object(deploy.DeployCommand, 'run_kubernetes_deploy'), \
+                mock.patch.object(deploy.DomainConfigurator, 'configure'), \
+                mock.patch('kubeyard.commands.seed.SeedRunner') as seed_runner_cls:
+            command.run_default()
+
+        seed_runner_cls.assert_called_once_with(command.context)
+        seed_runner_cls.return_value.wait_and_seed.assert_called_once_with(['web'])
+
+    def test_does_not_seed_when_database_already_existed(self, tmp_path):
+        command = self.make_command(
+            tmp_path, seed_command='python -m tests.demo', dev_requirements=[{'kind': 'postgres'}])
+
+        with mock.patch.object(deploy.DeployCommand, 'run_dev_requirements_deploy', return_value=False), \
+                mock.patch.object(deploy.DeployCommand, 'run_kubernetes_deploy'), \
+                mock.patch.object(deploy.DomainConfigurator, 'configure'), \
+                mock.patch('kubeyard.commands.seed.SeedRunner') as seed_runner_cls:
+            command.run_default()
+
+        seed_runner_cls.assert_not_called()
+
+    def test_does_not_seed_when_no_seed_command_configured(self, tmp_path):
+        command = self.make_command(tmp_path, dev_requirements=[{'kind': 'postgres'}])
+
+        with mock.patch.object(deploy.DeployCommand, 'run_dev_requirements_deploy', return_value=True), \
+                mock.patch.object(deploy.DeployCommand, 'run_kubernetes_deploy'), \
+                mock.patch.object(deploy.DomainConfigurator, 'configure'), \
+                mock.patch('kubeyard.commands.seed.SeedRunner') as seed_runner_cls:
+            command.run_default()
+
+        seed_runner_cls.assert_not_called()
+
+    def test_seeds_outside_a_workspace_too_when_the_database_is_new(self, tmp_path):
+        """
+        database_created means createdb just succeeded, so the database is empty
+        wherever it is. Seeding an empty shared database only fills it in; a
+        redeploy finds the database present and does not seed again.
+        """
+        command = self.make_command(
+            tmp_path, namespace='', seed_command='python -m tests.demo',
+            dev_requirements=[{'kind': 'postgres'}])
+
+        with mock.patch.object(deploy.DeployCommand, 'run_dev_requirements_deploy', return_value=True), \
+                mock.patch.object(deploy.DeployCommand, 'run_kubernetes_deploy'), \
+                mock.patch.object(deploy.DomainConfigurator, 'configure'), \
+                mock.patch('kubeyard.commands.seed.SeedRunner') as seed_runner_cls:
+            command.run_default()
+
+        seed_runner_cls.assert_called_once_with(command.context)
+
+    def test_should_seed_requires_a_fresh_database_and_a_command(self):
+        def command(**kwargs):
+            return FakeDeployCommand(context(**kwargs))
+
+        seed = 'python -m tests.demo'
+        for namespace in ('ws-example', ''):
+            assert command(namespace=namespace, seed_command=seed).should_seed(database_created=True)
+            assert not command(namespace=namespace, seed_command=seed).should_seed(database_created=False)
+            assert not command(namespace=namespace).should_seed(database_created=True)
+
+    def test_does_not_run_dev_requirements_deploy_without_dev_requirements(self, tmp_path):
+        command = self.make_command(tmp_path, seed_command='python -m tests.demo')
+
+        with mock.patch.object(deploy.DeployCommand, 'run_dev_requirements_deploy') as run_dev_requirements, \
+                mock.patch.object(deploy.DeployCommand, 'run_kubernetes_deploy'), \
+                mock.patch.object(deploy.DomainConfigurator, 'configure'), \
+                mock.patch('kubeyard.commands.seed.SeedRunner') as seed_runner_cls:
+            command.run_default()
+
+        run_dev_requirements.assert_not_called()
+        seed_runner_cls.assert_not_called()

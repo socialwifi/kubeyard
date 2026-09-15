@@ -16,6 +16,7 @@ from kubeyard.commands import InstallCompletion
 from kubeyard.commands import InstallGlobalSecretsCommand
 from kubeyard.commands import ListWorkspacesCommand
 from kubeyard.commands import PushCommand
+from kubeyard.commands import SeedCommand
 from kubeyard.commands import SetupCommand
 from kubeyard.commands import ShellCommand
 from kubeyard.commands import ShowWorkspaceCommand
@@ -192,6 +193,12 @@ def push(**kwargs):
 )
 def deploy(**kwargs):
     DeployCommand(**kwargs).run()
+
+
+@cli.command(help=SeedCommand.__doc__)
+@apply_common_options(initialized_repository_options)
+def seed(**kwargs):
+    SeedCommand(**kwargs).run()
 
 
 @cli.command(help=DebugCommand.__doc__)

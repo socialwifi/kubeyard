@@ -8,6 +8,7 @@ from kubeyard.commands.global_commands import InstallGlobalSecretsCommand
 from kubeyard.commands.global_commands import SetupCommand
 from kubeyard.commands.init import InitCommand
 from kubeyard.commands.push import PushCommand
+from kubeyard.commands.seed import SeedCommand
 from kubeyard.commands.shell import ShellCommand
 from kubeyard.commands.test import TestCommand
 from kubeyard.commands.update_requirements import UpdateRequirementsCommand
@@ -24,6 +25,7 @@ __all__ = [
     BuildCommand,
     DeployCommand,
     PushCommand,
+    SeedCommand,
     UpdateRequirementsCommand,
     FixCodeStyleCommand,
     InstallGlobalSecretsCommand,

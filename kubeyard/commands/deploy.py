@@ -61,12 +61,27 @@ class DeployCommand(BaseDevelCommand):
     def run_default(self):
         if self.should_deploy_statics:
             self.run_statics_deploy()
+        database_created = False
         if self.definition_directories:
             if self.dev_requirements and self.is_development:
-                self.run_dev_requirements_deploy()
+                database_created = self.run_dev_requirements_deploy()
             self.run_kubernetes_deploy()
         if self.is_development:
             DomainConfigurator(self.context).configure()
+        if self.should_seed(database_created):
+            from kubeyard.commands.seed import SeedRunner
+            SeedRunner(self.context).wait_and_seed(self.deployment_names)
+
+    def should_seed(self, database_created) -> bool:
+        """
+        Seed only a database this deploy has just created, which is therefore empty.
+
+        database_created comes from createdb succeeding, so it is never true for a
+        database that already holds data - a redeploy finds the database present and
+        leaves it alone. Production never reaches here: dev requirements, and so the
+        databases they create, exist only in development mode.
+        """
+        return bool(database_created and self.context.get('DEV_SEED_COMMAND'))
 
     @property
     def namespace(self):
