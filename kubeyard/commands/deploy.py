@@ -137,6 +137,7 @@ class DomainConfigurator:
     hosts_watermark = '# The following line is added by kubeyard\n'
     host_format = '{minikube_ip}\t{domain}\n'
     hosts_filename = '/etc/hosts'
+    WORKSPACE_DOMAIN_SEGMENT = 'ws'
 
     def __init__(self, context: dict):
         self.context = context
@@ -172,15 +173,53 @@ class DomainConfigurator:
         prompt = f"[sudo] password for {getpass.getuser()}: "
         return getpass.getpass(prompt=prompt) + "\n"
 
+    def domains_for(self, workspace_name) -> list:
+        top_level_domain = self.context['DEV_TLD']
+        if workspace_name:
+            suffix = '{}.{}.{}'.format(workspace_name, self.WORKSPACE_DOMAIN_SEGMENT, top_level_domain)
+        else:
+            suffix = top_level_domain
+        return ['{}.{}'.format(domain, suffix) for domain in self.context['DEV_DOMAINS']]
+
+    @property
+    def all_domains(self) -> list:
+        return self.domains_for(self.context.get('KUBEYARD_WORKSPACE', ''))
+
     @cached_property
     def custom_domains_to_be_configured(self) -> [str]:
-        result = []
-        top_level_domain = self.context['DEV_TLD']
-        for domain in self.context['DEV_DOMAINS']:
-            domain = f'{domain}.{top_level_domain}'
-            if not self.domain_exists_in_hosts(domain):
-                result.append(domain)
-        return result
+        return [domain for domain in self.all_domains if not self.domain_exists_in_hosts(domain)]
+
+    def remove(self, workspace_name):
+        if not workspace_name:
+            raise ValueError(
+                'workspace_name must not be empty: an empty name would resolve to the plain, '
+                'non-workspace domains and strip the shared /etc/hosts entries.')
+        domains = set(self.domains_for(workspace_name))
+        if not domains:
+            return
+        with open(self.hosts_filename) as hosts_file:
+            lines = hosts_file.readlines()
+        kept = []
+        removed_entries = 0
+        index = 0
+        while index < len(lines):
+            line = lines[index]
+            is_watermark = line == self.hosts_watermark
+            next_line = lines[index + 1] if index + 1 < len(lines) else ''
+            if is_watermark and any(domain in next_line.split() for domain in domains):
+                index += 2
+                removed_entries += 1
+                continue
+            if any(domain in line.split() for domain in domains):
+                index += 1
+                removed_entries += 1
+                continue
+            kept.append(line)
+            index += 1
+        if removed_entries:
+            logger.info('Removing {} host entries for workspace "{}"...'.format(
+                removed_entries, workspace_name))
+            sh.sudo('-S', 'tee', self.hosts_filename, _in=self._sudo_password + ''.join(kept), _out=None)
 
     def domain_exists_in_hosts(self, domain: str) -> bool:
         previous_line = ''

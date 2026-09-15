@@ -11,6 +11,11 @@ from kubeyard.commands.push import PushCommand
 from kubeyard.commands.shell import ShellCommand
 from kubeyard.commands.test import TestCommand
 from kubeyard.commands.update_requirements import UpdateRequirementsCommand
+from kubeyard.commands.workspace import CreateWorkspaceCommand
+from kubeyard.commands.workspace import DestroyWorkspaceCommand
+from kubeyard.commands.workspace import ListWorkspacesCommand
+from kubeyard.commands.workspace import ShowWorkspaceCommand
+from kubeyard.commands.workspace import SyncWorkspaceCommand
 
 __all__ = [
     InstallCompletion,
@@ -26,4 +31,9 @@ __all__ = [
     InitCommand,
     TestCommand,
     ShellCommand,
+    CreateWorkspaceCommand,
+    DestroyWorkspaceCommand,
+    ListWorkspacesCommand,
+    ShowWorkspaceCommand,
+    SyncWorkspaceCommand,
 ]
