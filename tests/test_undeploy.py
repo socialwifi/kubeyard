@@ -668,7 +668,7 @@ class TestDeleteTargetsPartialFailure:
 
         apply.assert_called_once_with('ws-example', ['api'])
 
-    def test_all_deletes_failing_still_restores_aliases_and_does_not_raise(self, tmp_path, kubectl_context_ok):
+    def test_all_deletes_failing_still_restores_aliases(self, tmp_path, kubectl_context_ok):
         deploy_dir = tmp_path / 'config' / 'kubernetes' / 'deploy'
         deploy_dir.mkdir(parents=True)
         (deploy_dir / '01_service.yml').write_text('kind: Service\nmetadata:\n  name: api\n')
@@ -678,9 +678,26 @@ class TestDeleteTargetsPartialFailure:
         with mock.patch.object(undeploy.sh, 'kubectl', side_effect=error):
             with mock.patch.object(undeploy.aliases, 'list_shared_services', return_value={'api'}):
                 with mock.patch.object(undeploy.aliases, 'apply') as apply:
-                    command.run()  # must not raise
+                    with pytest.raises(undeploy.base_command.CommandException):
+                        command.run()
 
         apply.assert_called_once_with('ws-example', ['api'])
+
+    def test_a_partial_failure_is_still_not_fatal(self, tmp_path, kubectl_context_ok):
+        # Deliberate asymmetry with the total-failure case below: the objects
+        # that did go away really are gone, and the summary says which ones
+        # are left, so the command has done something useful.
+        deploy_dir = tmp_path / 'config' / 'kubernetes' / 'deploy'
+        deploy_dir.mkdir(parents=True)
+        (deploy_dir / '01_service.yml').write_text('kind: Service\nmetadata:\n  name: api\n')
+        command = FakeUndeployCommand(context(namespace='ws-example', service_name='web'), project_dir=tmp_path)
+        error = sh.ErrorReturnCode('kubectl', b'', b'Forbidden')
+
+        with mock.patch.object(
+                undeploy.sh, 'kubectl',
+                side_effect=self._kubectl_side_effect(('delete', 'service', 'api'), error)):
+            with mock.patch.object(undeploy.aliases, 'list_shared_services', return_value=set()):
+                command.run()  # must not raise
 
     def test_failure_is_reported_by_kind_and_name_with_actionable_guidance(self, tmp_path, kubectl_context_ok, caplog):
         deploy_dir = tmp_path / 'config' / 'kubernetes' / 'deploy'
@@ -709,6 +726,47 @@ class TestDeleteTargetsPartialFailure:
                     command.run()
 
         assert caplog.records == []
+
+
+class TestDeleteNothingIsNotSuccess:
+    """
+    Important: these commands exist so agents can script them, and an exit
+    status of 0 after deleting nothing is the one outcome automation cannot
+    recover from. Compare
+    tests/test_workspace_commands.py::TestDestroyWorkspaceCommandRun, which
+    pins the same decision for "workspace destroy".
+    """
+
+    def test_every_delete_failing_fails_the_command(self, tmp_path, kubectl_context_ok):
+        command = FakeUndeployCommand(context(namespace='ws-example', service_name='web'), project_dir=tmp_path)
+        error = sh.ErrorReturnCode('kubectl', b'', b'Forbidden')
+
+        with mock.patch.object(undeploy.sh, 'kubectl', side_effect=error):
+            with mock.patch.object(undeploy.aliases, 'list_shared_services', return_value=set()):
+                with pytest.raises(undeploy.base_command.CommandException) as excinfo:
+                    command.run()
+
+        assert 'Secret/web' in str(excinfo.value)
+
+    def test_the_failure_never_reports_a_successful_undeploy(self, tmp_path, kubectl_context_ok, caplog):
+        command = FakeUndeployCommand(context(namespace='ws-example', service_name='web'), project_dir=tmp_path)
+        error = sh.ErrorReturnCode('kubectl', b'', b'Forbidden')
+
+        with mock.patch.object(undeploy.sh, 'kubectl', side_effect=error):
+            with mock.patch.object(undeploy.aliases, 'list_shared_services', return_value=set()):
+                with caplog.at_level('INFO'):
+                    with pytest.raises(undeploy.base_command.CommandException):
+                        command.run()
+
+        assert not any('Undeployed 0 of' in record.message for record in caplog.records)
+        assert not any(record.levelname == 'INFO' and 'Undeployed' in record.message for record in caplog.records)
+
+    def test_report_result_is_silent_and_fatal_when_nothing_was_deleted(self):
+        command = FakeUndeployCommand(context())
+        targets = [('Service', 'api'), ('Secret', 'web')]
+
+        with pytest.raises(undeploy.base_command.CommandException):
+            command.report_result(targets, targets, [])
 
 
 class TestUninstalledResourceTypeIsNotAFailure:
@@ -765,6 +823,22 @@ class TestUninstalledResourceTypeIsNotAFailure:
 
         # Service/api and Secret/web really went away; PodMonitor/api never existed.
         assert any(record.message == 'Undeployed 2 objects.' for record in caplog.records)
+
+    def test_a_real_failure_alongside_a_missing_type_is_still_a_failure(self, tmp_path, kubectl_context_ok):
+        command = self._repo_with_a_custom_resource(tmp_path)
+
+        def side_effect(*args, **kwargs):
+            if args[1] == 'podmonitor':
+                raise sh.ErrorReturnCode('kubectl', b'', self.MISSING_TYPE)
+            raise sh.ErrorReturnCode('kubectl', b'', b'Forbidden')
+
+        with mock.patch.object(undeploy.sh, 'kubectl', side_effect=side_effect):
+            with mock.patch.object(undeploy.aliases, 'list_shared_services', return_value=set()):
+                with pytest.raises(undeploy.base_command.CommandException) as excinfo:
+                    command.run()
+
+        assert 'Service/api' in str(excinfo.value)
+        assert 'PodMonitor/api' not in str(excinfo.value)
 
 
 class TestCliWiring:

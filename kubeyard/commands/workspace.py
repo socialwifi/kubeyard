@@ -124,30 +124,44 @@ class DestroyWorkspaceCommand(BaseWorkspaceCommand):
         name = resolve_target_name(self.name, self.active_workspace)
         namespace = workspace_module.namespace_for(name)
         logger.info('Deleting namespace {}...'.format(namespace))
-        self.delete_namespace(namespace)
         # The namespace delete may not have finished (it can be blocked on
         # finalizers), but the user asked for the workspace to be gone: stale
         # /etc/hosts entries and a marker pointing at a dying namespace are
-        # never useful, so local cleanup always runs. destroy is idempotent,
-        # so re-running once the namespace actually disappears is safe.
+        # never useful, so local cleanup always runs - hence the finally.
+        # destroy is idempotent, so re-running once the namespace actually
+        # disappears is safe.
+        try:
+            self.delete_namespace(namespace)
+        finally:
+            self.detach_locally(name)
+        logger.info('Workspace "{}" destroyed'.format(name))
+
+    def detach_locally(self, name):
         from kubeyard.commands.deploy import DomainConfigurator
         DomainConfigurator(self.context).remove(name)
         if name == self.active_workspace:
             workspace_module.remove_marker(self.project_dir)
-        logger.info('Workspace "{}" destroyed'.format(name))
 
     def delete_namespace(self, namespace):
+        """
+        Delete the namespace, failing the command if it did not go away.
+
+        A wedged namespace is not a destroyed workspace: reporting success
+        would tell a script the cluster is clean when its Deployments, Services
+        and database are all still running.
+        """
         try:
             sh.kubectl(
                 'delete', 'namespace', namespace, '--ignore-not-found', '--wait=true',
                 _out=sys.stdout, _err=sys.stderr,
             )
-        except sh.ErrorReturnCode:
-            logger.warning(
-                'Namespace {} did not finish deleting, most likely blocked on finalizers; '
-                'check with "kubectl get namespace {} -o yaml". Removing the local /etc/hosts '
-                'entries and workspace marker anyway; re-run "kubeyard workspace destroy" once '
-                'the namespace is actually gone.'.format(namespace, namespace))
+        except sh.ErrorReturnCode as e:
+            raise base_command.CommandException(
+                'Workspace detached locally, but namespace {namespace} did not finish deleting - most likely '
+                'blocked on finalizers; check with "kubectl get namespace {namespace} -o yaml". The local '
+                '/etc/hosts entries and workspace marker are removed anyway; re-run '
+                '"kubeyard workspace destroy" once the namespace is actually gone.'.format(
+                    namespace=namespace)) from e
 
 
 class ShowWorkspaceCommand(BaseWorkspaceCommand):

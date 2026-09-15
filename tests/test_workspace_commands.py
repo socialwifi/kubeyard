@@ -8,6 +8,7 @@ import sh
 
 from click.testing import CliRunner
 
+from kubeyard import base_command
 from kubeyard import preconditions
 from kubeyard import workspace as workspace_module
 from kubeyard.commands import workspace as workspace_commands
@@ -215,49 +216,12 @@ class TestDestroyWorkspaceCommandRun:
 
         assert not any('finaliz' in record.message for record in caplog.records)
 
-    def test_delete_failure_does_not_propagate_a_raw_traceback(self):
+    def _run_with_failing_delete(self, command):
         # kubectl delete --wait=true either succeeds (namespace is gone) or
         # blocks on finalizers and exits non-zero: there is no third state
         # where it returns successfully with the namespace still around, so
         # the failure path is only reachable by making the delete itself
         # raise.
-        command = FakeDestroyWorkspaceCommand(context('example'), name=None)
-        delete_error = sh.ErrorReturnCode('kubectl', b'', b'timed out waiting for the condition')
-
-        def kubectl_side_effect(*args, **kwargs):
-            if args[0] == 'delete':
-                raise delete_error
-            return ''
-
-        with mock.patch.object(workspace_commands.preconditions, 'check_all'):
-            with mock.patch.object(workspace_commands.sh, 'kubectl', side_effect=kubectl_side_effect):
-                with mock.patch('kubeyard.commands.deploy.DomainConfigurator'):
-                    with mock.patch.object(workspace_module, 'remove_marker'):
-                        command.run()  # must not raise
-
-    def test_delete_failure_warns_and_names_the_stuck_namespace(self, caplog):
-        command = FakeDestroyWorkspaceCommand(context('example'), name=None)
-        delete_error = sh.ErrorReturnCode('kubectl', b'', b'timed out waiting for the condition')
-
-        def kubectl_side_effect(*args, **kwargs):
-            if args[0] == 'delete':
-                raise delete_error
-            return ''
-
-        with mock.patch.object(workspace_commands.preconditions, 'check_all'):
-            with mock.patch.object(workspace_commands.sh, 'kubectl', side_effect=kubectl_side_effect):
-                with mock.patch('kubeyard.commands.deploy.DomainConfigurator'):
-                    with mock.patch.object(workspace_module, 'remove_marker'):
-                        with caplog.at_level('WARNING'):
-                            command.run()
-
-        assert any('ws-example' in record.message for record in caplog.records)
-
-    def test_delete_failure_still_cleans_up_hosts_entries_and_marker(self):
-        # The whole point of the fix: a wedged namespace must not leave
-        # stale /etc/hosts entries or a marker attaching the worktree to a
-        # dead workspace.
-        command = FakeDestroyWorkspaceCommand(context('example'), name=None)
         delete_error = sh.ErrorReturnCode('kubectl', b'', b'timed out waiting for the condition')
 
         def kubectl_side_effect(*args, **kwargs):
@@ -269,7 +233,52 @@ class TestDestroyWorkspaceCommandRun:
             with mock.patch.object(workspace_commands.sh, 'kubectl', side_effect=kubectl_side_effect):
                 with mock.patch('kubeyard.commands.deploy.DomainConfigurator') as domain_cls:
                     with mock.patch.object(workspace_module, 'remove_marker') as remove_marker:
-                        command.run()
+                        with pytest.raises(base_command.CommandException) as excinfo:
+                            command.run()
+        return excinfo.value, domain_cls, remove_marker
+
+    def test_delete_failure_fails_the_command_instead_of_exiting_zero(self):
+        # A wedged namespace is not a destroyed workspace: every Deployment,
+        # Service and database in it is still running, so a script that only
+        # looks at the exit status must not be told this succeeded.
+        command = FakeDestroyWorkspaceCommand(context('example'), name=None)
+
+        error, _, _ = self._run_with_failing_delete(command)
+
+        assert isinstance(error, base_command.CommandException)  # not a raw sh traceback
+
+    def test_delete_failure_names_the_stuck_namespace_and_says_what_was_only_local(self):
+        command = FakeDestroyWorkspaceCommand(context('example'), name=None)
+
+        error, _, _ = self._run_with_failing_delete(command)
+
+        message = str(error)
+        assert 'ws-example' in message
+        assert 'detached locally' in message.lower()
+
+    def test_success_reports_destroyed_rather_than_merely_detached(self, caplog):
+        with caplog.at_level('INFO'):
+            self._run(context('example'), name=None)
+
+        messages = [record.message for record in caplog.records]
+        assert any('destroyed' in message for message in messages)
+        assert not any('detached locally' in message.lower() for message in messages)
+
+    def test_delete_failure_never_claims_the_workspace_was_destroyed(self, caplog):
+        command = FakeDestroyWorkspaceCommand(context('example'), name=None)
+
+        with caplog.at_level('INFO'):
+            self._run_with_failing_delete(command)
+
+        assert not any('destroyed' in record.message for record in caplog.records)
+
+    def test_delete_failure_still_cleans_up_hosts_entries_and_marker(self):
+        # The whole point of the fix: a wedged namespace must not leave
+        # stale /etc/hosts entries or a marker attaching the worktree to a
+        # dead workspace.
+        command = FakeDestroyWorkspaceCommand(context('example'), name=None)
+
+        _, domain_cls, remove_marker = self._run_with_failing_delete(command)
 
         domain_cls.return_value.remove.assert_called_once_with('example')
         remove_marker.assert_called_once_with(PROJECT_DIR)

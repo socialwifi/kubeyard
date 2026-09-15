@@ -148,20 +148,36 @@ class UndeployCommand(base_command.InitialisedRepositoryCommand):
                    _out=sys.stdout.buffer)
 
     def report_result(self, targets, failures, skipped):
+        """
+        Summarise the run, and fail the command when nothing at all was deleted.
+
+        A partial failure is deliberately not fatal: the objects that did go
+        away really are gone, and the summary says which ones are left. Deleting
+        nothing is different - exiting 0 would tell a script that the undeploy
+        succeeded. Objects whose resource type is missing never counted towards
+        either total: there was nothing there to remove.
+        """
         succeeded = len(targets) - len(failures) - len(skipped)
         if skipped:
-            skipped_names = ', '.join('{}/{}'.format(kind, name) for kind, name in skipped)
             logger.warning(
                 'Skipped {} of {} objects whose resource type is not installed in this cluster: {}.'.format(
-                    len(skipped), len(targets), skipped_names))
+                    len(skipped), len(targets), self._describe(skipped)))
+        if failures and not succeeded:
+            raise base_command.CommandException(
+                'Undeployed nothing: all {} objects that could be deleted failed ({}). Check "kubectl describe" '
+                'for each, then re-run "kubeyard undeploy" once resolved.'.format(
+                    len(failures), self._describe(failures)))
         if failures:
-            failed_names = ', '.join('{}/{}'.format(kind, name) for kind, name in failures)
             logger.warning(
                 'Undeployed {} of {} objects; {} failed and were left in place: {}. Check "kubectl describe" '
                 'for each, then re-run "kubeyard undeploy" once resolved.'.format(
-                    succeeded, len(targets), len(failures), failed_names))
+                    succeeded, len(targets), len(failures), self._describe(failures)))
         else:
             logger.info('Undeployed {} objects.'.format(succeeded))
+
+    @staticmethod
+    def _describe(objects):
+        return ', '.join('{}/{}'.format(kind, name) for kind, name in objects)
 
     def restore_aliases(self):
         names = [
