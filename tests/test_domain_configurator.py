@@ -1,4 +1,5 @@
 import contextlib
+import getpass
 import os
 import pathlib
 
@@ -20,10 +21,11 @@ class StagedWrite:
 @contextlib.contextmanager
 def capturing_sudo():
     """
-    Stand in for sudo, capturing the file the configurator staged.
+    Stand in for sudo, capturing the file the configurator asked it to copy.
 
-    The real command never sees a password: it copies a temporary file into a
-    staging path beside the hosts file and renames it over the target.
+    The real command never sees a password: it copies a temporary file
+    straight onto the hosts file, truncating it in place, with the real
+    terminal attached so sudo can prompt normally if it needs to.
     """
     staged = StagedWrite()
 
@@ -203,10 +205,11 @@ class TestRemove:
         assert 'localhost' in written
 
     def test_never_passes_a_password_to_sudo(self, tmp_path):
-        # The write truncates the hosts file, so anything piped into it that
-        # sudo does not consume - and sudo consumes nothing once its
+        # cp truncates the hosts file in place, so anything piped into it
+        # that sudo does not consume - and sudo consumes nothing once its
         # credentials are cached, or with NOPASSWD - lands in /etc/hosts as
-        # its first line, world-readable.
+        # its first line, world-readable. Pinned directly: no `_in=` kwarg,
+        # ever, on any sudo call.
         configurator = self._configurator_with_a_removable_entry(tmp_path)
 
         with capturing_sudo() as staged:
@@ -217,46 +220,50 @@ class TestRemove:
             assert '-S' not in call.args
             assert '_in' not in call.kwargs
 
+    def test_sudo_runs_in_the_foreground_so_it_can_prompt_on_the_real_terminal(self, tmp_path):
+        # sh gives sudo no TTY of its own; without _fg=True a real deploy
+        # dies with "sudo: a terminal is required to read the password"
+        # whenever sudo's credentials are not already cached.
+        configurator = self._configurator_with_a_removable_entry(tmp_path)
+
+        with capturing_sudo() as staged:
+            configurator.remove('example')
+
+        assert staged.calls
+        for call in staged.calls:
+            assert call.kwargs.get('_fg') is True
+
     def test_never_asks_for_a_password_at_all(self, tmp_path):
         configurator = self._configurator_with_a_removable_entry(tmp_path)
 
-        with mock.patch.object(deploy.getpass, 'getpass') as getpass_mock:
+        with mock.patch.object(getpass, 'getpass') as getpass_mock:
             with capturing_sudo():
                 configurator.remove('example')
 
         getpass_mock.assert_not_called()
 
-    def test_swaps_the_new_content_in_with_a_rename_beside_the_target(self, tmp_path):
-        # A truncating write leaves the machine without a usable hosts file if
-        # it is interrupted; a rename within the same directory cannot.
+    def test_writes_directly_onto_the_hosts_file_with_a_single_sudo_call(self, tmp_path):
+        # cp onto an existing file truncates it in place instead of
+        # replacing the inode, which is what keeps /etc/hosts's permissions
+        # and SELinux context intact without a staging path, an mv, a
+        # chmod, or a restorecon step - so there must be exactly one sudo
+        # call per write, and it must be the cp itself.
         hosts_path = tmp_path / 'hosts'
         configurator = self._configurator_with_a_removable_entry(tmp_path)
 
         with capturing_sudo() as staged:
             configurator.remove('example')
 
-        staging_path = str(hosts_path) + deploy.DomainConfigurator.staging_suffix
-        assert [call.args for call in staged.calls] == [
-            ('cp', staged.source_path, staging_path),
-            ('mv', staging_path, str(hosts_path)),
-        ]
-        assert os.path.dirname(staging_path) == os.path.dirname(str(hosts_path))
+        assert len(staged.calls) == 1
+        assert staged.calls[0].args == ('cp', staged.source_path, str(hosts_path))
 
-    def test_the_temporary_file_is_world_readable_and_then_cleaned_up(self, tmp_path):
+    def test_the_temporary_file_is_cleaned_up(self, tmp_path):
         configurator = self._configurator_with_a_removable_entry(tmp_path)
-        modes = {}
 
-        def record_mode(*args, **kwargs):
-            if args[0] == 'cp':
-                modes['mode'] = os.stat(args[1]).st_mode & 0o777
-            return ''
-
-        with mock.patch.object(deploy.sh, 'sudo', side_effect=record_mode) as sudo:
+        with capturing_sudo() as staged:
             configurator.remove('example')
 
-        source_path = sudo.call_args_list[0].args[1]
-        assert modes['mode'] == 0o644  # /etc/hosts must stay readable by everyone
-        assert not os.path.exists(source_path)
+        assert not os.path.exists(staged.source_path)
 
     def _configurator_with_a_removable_entry(self, tmp_path):
         hosts_path = tmp_path / 'hosts'
@@ -283,3 +290,77 @@ class TestRemove:
             configurator.remove('example')
 
         sudo.assert_not_called()
+
+
+class TestRunUpdateHosts:
+    """
+    The append path (configure -> run_update_hosts) used to pipe the sudo
+    password on stdin to `tee --append`. Whenever sudo's credentials are
+    already cached - very common - or the user has NOPASSWD, sudo never
+    reads stdin, so the password landed in /etc/hosts itself, in plaintext,
+    in a world-readable file. It must now go through the same atomic,
+    password-free write as remove().
+    """
+
+    def _configurator(self, tmp_path, existing_content='127.0.0.1\tlocalhost\n'):
+        hosts_path = tmp_path / 'hosts'
+        hosts_path.write_text(existing_content)
+        configurator = deploy.DomainConfigurator(context())
+        configurator.hosts_filename = str(hosts_path)
+        configurator.minikube_ip = '10.0.0.1'
+        return configurator
+
+    def test_appends_new_entries_to_the_existing_content(self, tmp_path):
+        configurator = self._configurator(tmp_path)
+
+        with capturing_sudo() as staged:
+            configurator.run_update_hosts()
+
+        assert staged.content == (
+            '127.0.0.1\tlocalhost\n'
+            '# The following line is added by kubeyard\n'
+            '10.0.0.1\tfrontend.example.test\n'
+            '# The following line is added by kubeyard\n'
+            '10.0.0.1\tapi.example.test\n'
+        )
+
+    def test_never_passes_a_password_to_sudo(self, tmp_path):
+        configurator = self._configurator(tmp_path)
+
+        with capturing_sudo() as staged:
+            configurator.run_update_hosts()
+
+        assert staged.calls
+        for call in staged.calls:
+            assert '-S' not in call.args
+            assert '_in' not in call.kwargs
+            assert 'tee' not in call.args
+
+    def test_sudo_runs_in_the_foreground_so_it_can_prompt_on_the_real_terminal(self, tmp_path):
+        configurator = self._configurator(tmp_path)
+
+        with capturing_sudo() as staged:
+            configurator.run_update_hosts()
+
+        assert staged.calls
+        for call in staged.calls:
+            assert call.kwargs.get('_fg') is True
+
+    def test_never_asks_for_a_password_at_all(self, tmp_path):
+        configurator = self._configurator(tmp_path)
+
+        with mock.patch.object(getpass, 'getpass') as getpass_mock:
+            with capturing_sudo():
+                configurator.run_update_hosts()
+
+        getpass_mock.assert_not_called()
+
+    def test_writes_through_the_same_single_sudo_call_as_remove(self, tmp_path):
+        hosts_path = tmp_path / 'hosts'
+        configurator = self._configurator(tmp_path)
+
+        with capturing_sudo() as staged:
+            configurator.run_update_hosts()
+
+        assert len(staged.calls) == 1
+        assert staged.calls[0].args == ('cp', staged.source_path, str(hosts_path))

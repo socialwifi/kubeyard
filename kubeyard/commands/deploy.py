@@ -1,4 +1,3 @@
-import getpass
 import logging
 import os
 import sys
@@ -242,7 +241,6 @@ class DomainConfigurator:
     hosts_watermark = '# The following line is added by kubeyard\n'
     host_format = '{minikube_ip}\t{domain}\n'
     hosts_filename = '/etc/hosts'
-    staging_suffix = '.kubeyard-new'
     WORKSPACE_DOMAIN_SEGMENT = 'ws'
 
     def __init__(self, context: dict):
@@ -260,24 +258,18 @@ class DomainConfigurator:
             logger.info('All domains already configured, no action required.')
 
     def run_update_hosts(self):
+        with open(self.hosts_filename) as hosts_file:
+            content = hosts_file.read()
         for domain in self.custom_domains_to_be_configured:
             hosts_entry = self.host_format.format(minikube_ip=self.minikube_ip, domain=domain)
-            sh.sudo(
-                '-S',
-                'tee', '--append', self.hosts_filename,
-                _in=self._sudo_password + self.hosts_watermark + hosts_entry,
-            )
+            content += self.hosts_watermark + hosts_entry
+        self.replace_hosts_file(content)
 
     @cached_property
     def minikube_ip(self) -> str:
         return sh.kubectl.get.nodes(
             '-l', 'minikube.k8s.io/name=minikube',
             '-o', 'jsonpath={.items[*].status.addresses[?(@.type=="InternalIP")].address}').strip()
-
-    @cached_property
-    def _sudo_password(self):
-        prompt = f"[sudo] password for {getpass.getuser()}: "
-        return getpass.getpass(prompt=prompt) + "\n"
 
     def domains_for(self, workspace_name) -> list:
         top_level_domain = self.context['DEV_TLD']
@@ -328,23 +320,10 @@ class DomainConfigurator:
             self.replace_hosts_file(''.join(kept))
 
     def replace_hosts_file(self, content):
-        """
-        Replace the hosts file with new content, atomically and without a password on stdin.
-
-        The content is staged beside the target - the same filesystem, so the
-        final move is a rename - and only then swapped in, so an interrupted
-        write can never leave the machine with a truncated hosts file. sudo is
-        left to prompt on the terminal: piping a password into a *truncating*
-        write writes it into the file itself whenever sudo's credentials are
-        already cached, or the user has NOPASSWD, and stdin is never read.
-        """
-        staging_path = self.hosts_filename + self.staging_suffix
         with tempfile.NamedTemporaryFile('w', prefix='kubeyard-hosts-', delete=False) as new_hosts:
             new_hosts.write(content)
         try:
-            os.chmod(new_hosts.name, 0o644)
-            sh.sudo('cp', new_hosts.name, staging_path)
-            sh.sudo('mv', staging_path, self.hosts_filename)
+            sh.sudo('cp', new_hosts.name, self.hosts_filename, _fg=True)
         finally:
             os.unlink(new_hosts.name)
 
