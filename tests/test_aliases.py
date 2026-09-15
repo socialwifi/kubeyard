@@ -1,3 +1,5 @@
+import json
+
 from unittest import mock
 
 from kubeyard import aliases
@@ -204,10 +206,15 @@ class TestApply:
             with mock.patch.object(aliases.sh, 'echo') as echo:
                 aliases.apply('ws-example', ['accounts', 'billing'])
 
-        assert echo.call_count == 2
         assert kubectl.call_count == 2
         for call in kubectl.call_args_list:
             assert call[0][1:] == ('apply', '-f', '-')
+
+        payloads = [json.loads(call[0][0]) for call in echo.call_args_list]
+        assert {payload['metadata']['name']: payload['metadata']['namespace'] for payload in payloads} == {
+            'accounts': 'ws-example',
+            'billing': 'ws-example',
+        }
 
     def test_applies_nothing_for_an_empty_list(self):
         with mock.patch.object(aliases.sh, 'kubectl') as kubectl:
