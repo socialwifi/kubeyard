@@ -7,9 +7,12 @@ import sh
 
 from cached_property import cached_property
 from kubepy import appliers_options
+from kubepy import definition_manager
 
+from kubeyard import aliases
 from kubeyard import base_command
 from kubeyard import kubernetes
+from kubeyard import node_ports
 from kubeyard import settings
 from kubeyard.commands.devel import MAX_JOB_RETRIES
 from kubeyard.commands.devel import BaseDevelCommand
@@ -66,6 +69,14 @@ class DeployCommand(BaseDevelCommand):
             DomainConfigurator(self.context).configure()
 
     @property
+    def namespace(self):
+        return self.context.get('KUBEYARD_NAMESPACE', '')
+
+    @property
+    def deployment_names(self):
+        return [name for kind, name in owned_objects(self.definition_directories) if kind == 'Deployment']
+
+    @property
     def should_deploy_statics(self):
         return not self.is_development and self.static_files_storage
 
@@ -93,11 +104,40 @@ class DeployCommand(BaseDevelCommand):
         options = appliers_options.Options(
             build_tag=self.tag, replace=self.is_development, host_volumes=self.host_volumes,
             max_job_retries=MAX_JOB_RETRIES, pod_annotations=pod_annotations,
+            namespace=self.namespace,
         )
         kubernetes.install_secrets(self.context)
+        if self.namespace:
+            self.remove_shadowed_aliases()
         logger.info('Applying Kubernetes definitions from YAML files...')
-        kubepy.appliers.DirectoriesApplier(self.definition_directories, options).apply_all()
+        applier = kubepy.appliers.DirectoriesApplier(self.definition_directories, options)
+        self.report_skipped(applier)
+        applier.apply_all(skip=self.skip_predicate)
         logger.info('Kubernetes definitions applied')
+
+    def report_skipped(self, applier):
+        """Warn, with the reason, about each definition that will be skipped."""
+        if not self.skip_predicate:
+            return
+        allocated = self._allocated_node_ports
+        for definition in applier.definitions_to_skip(self.skip_predicate):
+            logger.warning(node_ports.skip_reason(definition, allocated, self.namespace))
+
+    def remove_shadowed_aliases(self):
+        """Remove only the aliases this deploy replaces: a Service it skips shadows nothing."""
+        names = owned_service_names(self.definition_directories, skip=self.skip_predicate)
+        if names:
+            aliases.delete(self.namespace, names)
+
+    @cached_property
+    def _allocated_node_ports(self):
+        return node_ports.allocated_node_ports()
+
+    @cached_property
+    def skip_predicate(self):
+        if not self.namespace:
+            return None
+        return node_ports.skip_predicate(self._allocated_node_ports, self.namespace)
 
     @property
     def definition_directories(self):
@@ -125,12 +165,47 @@ class DeployCommand(BaseDevelCommand):
         logger.info('Checking development requirements...')
         from kubeyard.commands.dev_requirements import RequirementsDispatcher
         dispatcher = RequirementsDispatcher(self.context)
-        dispatcher.dispatch_all(self.dev_requirements)
+        database_created = dispatcher.dispatch_all(self.dev_requirements)
         logger.info('Development requirements are satisfied')
+        return database_created
 
     @property
     def dev_requirements(self):
         return self.context.get('DEV_REQUIREMENTS')
+
+
+def _merged_definitions(directories):
+    """
+    Map definition name (filename without suffix) to its definition, merged the way
+    kubepy merges it at apply time.
+
+    kubepy's own manager does the merging because undeploy must remove exactly what
+    deploy created, and a development override is normally a fragment carrying only
+    the keys it changes - kind and metadata.name stay in the base file.
+    """
+    manager = definition_manager.OverridenDefinitionManager(
+        *(definition_manager.DefinitionManager(directory) for directory in directories),
+    )
+    return dict(manager)
+
+
+def owned_objects(directories, skip=None):
+    """List (kind, name) pairs this project owns, in definition-name order, minus any the predicate skips."""
+    definitions = _merged_definitions(directories)
+    owned = []
+    for name in sorted(definitions):
+        definition = definitions[name] or {}
+        if skip is not None and skip(definition):
+            continue
+        kind = definition.get('kind')
+        object_name = definition.get('metadata', {}).get('name')
+        if kind and object_name:
+            owned.append((kind, object_name))
+    return owned
+
+
+def owned_service_names(directories, skip=None):
+    return [name for kind, name in owned_objects(directories, skip) if kind == 'Service']
 
 
 class DomainConfigurator:
