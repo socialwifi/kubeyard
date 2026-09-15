@@ -1,5 +1,6 @@
 import collections
 import logging
+import os
 import pathlib
 import re
 
@@ -9,6 +10,7 @@ from cached_property import cached_property
 
 from kubeyard import io_utils
 from kubeyard import settings
+from kubeyard import workspace as workspace_module
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +67,9 @@ class BaseRepoContextFactory:
         context.update(GlobalContextFactory().get())
         context['UNDERSCORED_PROJECT_NAME'] = self.normalize_name(context['PROJECT_NAME'])
         context['DASHED_PROJECT_NAME'] = self.normalize_name(context['PROJECT_NAME'], '-')
+        resolved = workspace_module.resolve(self.project_dir, os.environ)
+        context['KUBEYARD_WORKSPACE'] = resolved.name
+        context['KUBEYARD_NAMESPACE'] = resolved.namespace
         return upper_keys(context)
 
     @property
