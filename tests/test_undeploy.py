@@ -392,6 +392,28 @@ class TestRestoreAliases:
 
         apply.assert_not_called()
 
+    def test_a_failed_shared_listing_restores_nothing_but_says_so(self, tmp_path, caplog):
+        # The mirror of the sync bug: a failed listing used to look exactly
+        # like "nothing is shared", so nothing was restored and nothing was
+        # said about it - leaving the workspace with neither a real Service
+        # nor an alias for what was just deleted.
+        deploy_dir = tmp_path / 'config' / 'kubernetes' / 'deploy'
+        deploy_dir.mkdir(parents=True)
+        (deploy_dir / '01_service.yml').write_text('kind: Service\nmetadata:\n  name: api\n')
+        command = FakeUndeployCommand(context(namespace='ws-example'), project_dir=tmp_path)
+
+        with mock.patch.object(
+                undeploy.aliases, 'list_shared_services',
+                side_effect=undeploy.aliases.ServiceListingFailed('kubectl is unhappy')):
+            with mock.patch.object(undeploy.aliases, 'apply') as apply:
+                with caplog.at_level('WARNING'):
+                    command.restore_aliases()
+
+        apply.assert_not_called()
+        messages = ' '.join(record.message for record in caplog.records)
+        assert 'ws-example' in messages
+        assert 'workspace sync' in messages
+
     def test_does_not_apply_when_repo_owns_no_services(self, tmp_path):
         command = FakeUndeployCommand(context(namespace='ws-example'), project_dir=tmp_path)
 

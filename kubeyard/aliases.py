@@ -15,6 +15,17 @@ KUBERNETES_API_SERVICE = 'kubernetes'
 Reconciliation = collections.namedtuple('Reconciliation', ['to_create', 'to_delete'])
 
 
+class ServiceListingFailed(Exception):
+    """
+    kubectl could not list Services, so their absence cannot be inferred.
+
+    Reconciliation reads "not in the shared namespace" as "retired, delete the
+    alias", so a listing that silently came back empty because the call failed
+    would delete a workspace's entire DNS overlay and report it as the
+    intended reconciliation.
+    """
+
+
 def reconcile(shared_services, real_services, existing_aliases) -> Reconciliation:
     """
     Decide which aliases to create and which to remove.
@@ -51,8 +62,10 @@ def _service_names(namespace, selector=None):
         command += ['--selector', selector]
     try:
         output = str(sh.kubectl(*command)).strip()
-    except sh.ErrorReturnCode:
-        return set()
+    except sh.ErrorReturnCode as e:
+        raise ServiceListingFailed(
+            'Could not list Services in namespace "{}". Refusing to treat a failed listing as an empty '
+            'one; re-run once kubectl works again.'.format(namespace or workspace.DEFAULT_NAMESPACE)) from e
     return set(output.split()) if output else set()
 
 
@@ -117,10 +130,20 @@ def delete(namespace, names):
 
 
 def sync(namespace):
+    """
+    Reconcile the alias overlay, or do nothing at all.
+
+    Every listing is taken before the first write, so a ServiceListingFailed
+    from any of them aborts the whole reconciliation rather than deleting
+    aliases that only look retired because kubectl could not answer.
+    """
+    shared_services = list_shared_services()
+    real_services = list_real_services(namespace)
+    existing_aliases = list_aliases(namespace)
     result = reconcile(
-        shared_services=list_shared_services(),
-        real_services=list_real_services(namespace),
-        existing_aliases=list_aliases(namespace),
+        shared_services=shared_services,
+        real_services=real_services,
+        existing_aliases=existing_aliases,
     )
     apply(namespace, result.to_create)
     delete(namespace, result.to_delete)

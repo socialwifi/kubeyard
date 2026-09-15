@@ -571,6 +571,19 @@ class TestSyncWorkspaceCommand:
         assert '+ billing' in output
         assert '- stale' in output
 
+    def test_a_failed_service_listing_reports_nothing_and_fails(self, capsys):
+        # "Removed N" after a failed listing would read as the reconciliation
+        # the user asked for, when in fact it wiped the whole overlay.
+        command = FakeSyncWorkspaceCommand(context('example'))
+        with mock.patch.object(workspace_commands.preconditions, 'check_all'):
+            with mock.patch.object(
+                    workspace_commands.aliases, 'sync',
+                    side_effect=workspace_commands.aliases.ServiceListingFailed('kubectl is unhappy')):
+                with pytest.raises(workspace_commands.aliases.ServiceListingFailed):
+                    command.run()
+
+        assert capsys.readouterr().out == ''
+
 
 class TestCliWiring:
     def test_workspace_group_lists_all_subcommands(self):

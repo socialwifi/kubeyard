@@ -2,6 +2,8 @@ import json
 
 from unittest import mock
 
+import pytest
+
 from kubeyard import aliases
 from kubeyard import dependencies
 
@@ -155,11 +157,22 @@ class TestListServicesNamespaceThreading:
 
         assert result == set()
 
-    def test_kubectl_error_is_treated_as_no_services(self):
+    def test_kubectl_error_is_never_reported_as_no_services(self):
+        # "the call failed" and "there is nothing there" must stay
+        # distinguishable: reconciliation reads an empty shared listing as
+        # "every alias is retired" and deletes the lot.
         with mock.patch.object(aliases.sh, 'kubectl', side_effect=aliases.sh.ErrorReturnCode('kubectl', b'', b'')):
-            result = aliases.list_services('ws-example')
+            with pytest.raises(aliases.ServiceListingFailed) as excinfo:
+                aliases.list_services('ws-example')
 
-        assert result == set()
+        assert 'ws-example' in str(excinfo.value)
+
+    def test_the_shared_listing_names_the_default_namespace_when_it_fails(self):
+        with mock.patch.object(aliases.sh, 'kubectl', side_effect=aliases.sh.ErrorReturnCode('kubectl', b'', b'')):
+            with pytest.raises(aliases.ServiceListingFailed) as excinfo:
+                aliases.list_shared_services()
+
+        assert 'default' in str(excinfo.value)
 
 
 class TestListAliasesNamespaceThreading:
@@ -275,3 +288,46 @@ class TestSync:
         apply.assert_called_once_with('ws-example', ['billing'])
         delete.assert_called_once_with('ws-example', ['accounts'])
         assert result == aliases.Reconciliation(['billing'], ['accounts'])
+
+
+class TestSyncRefusesToReconcileFromAFailedListing:
+    """
+    A transient kubectl failure used to make sync delete the workspace's whole
+    DNS overlay: an empty "shared services" set makes every existing alias look
+    retired, and the command then printed "removed N" as though that were the
+    reconciliation the user asked for.
+    """
+
+    listing_failed = aliases.ServiceListingFailed('kubectl is unhappy')
+
+    def test_a_failing_shared_listing_deletes_nothing(self):
+        with mock.patch.object(aliases, 'list_shared_services', side_effect=self.listing_failed):
+            with mock.patch.object(aliases, 'list_real_services', return_value=set()):
+                with mock.patch.object(aliases, 'list_aliases', return_value={'accounts', 'billing'}):
+                    with mock.patch.object(aliases, 'apply') as apply:
+                        with mock.patch.object(aliases, 'delete') as delete:
+                            with pytest.raises(aliases.ServiceListingFailed):
+                                aliases.sync('ws-example')
+
+        delete.assert_not_called()
+        apply.assert_not_called()
+
+    def test_a_failing_workspace_listing_deletes_nothing_either(self):
+        with mock.patch.object(aliases, 'list_shared_services', return_value={'accounts'}):
+            with mock.patch.object(aliases, 'list_real_services', side_effect=self.listing_failed):
+                with mock.patch.object(aliases, 'apply') as apply:
+                    with mock.patch.object(aliases, 'delete') as delete:
+                        with pytest.raises(aliases.ServiceListingFailed):
+                            aliases.sync('ws-example')
+
+        delete.assert_not_called()
+        apply.assert_not_called()
+
+    def test_the_failure_reaches_the_caller_rather_than_an_empty_reconciliation(self):
+        # sync must not return a Reconciliation the caller would go on to
+        # print as "created 0, removed N".
+        with mock.patch.object(aliases, 'list_shared_services', side_effect=self.listing_failed):
+            with mock.patch.object(aliases, 'list_aliases', return_value={'accounts'}):
+                with mock.patch.object(aliases, 'delete'):
+                    with pytest.raises(aliases.ServiceListingFailed):
+                        aliases.sync('ws-example')

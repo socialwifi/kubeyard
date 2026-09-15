@@ -180,9 +180,21 @@ class UndeployCommand(base_command.InitialisedRepositoryCommand):
         return ', '.join('{}/{}'.format(kind, name) for kind, name in objects)
 
     def restore_aliases(self):
+        try:
+            shared_services = aliases.list_shared_services()
+        except aliases.ServiceListingFailed as e:
+            # The deletes have already happened, so the summary they earned is
+            # still worth printing - but the workspace is now left with neither
+            # a real Service nor an alias for the objects just removed, and
+            # that must not pass unmentioned.
+            logger.warning(
+                'Could not list the shared Services, so no aliases were restored: names this project owns '
+                'now resolve to nothing inside {}. Run "kubeyard workspace sync" once kubectl works '
+                'again. ({})'.format(self.namespace, e))
+            return
         names = [
             name for name in deploy.owned_service_names(self.definition_directories)
-            if name in aliases.list_shared_services()
+            if name in shared_services
         ]
         if names:
             aliases.apply(self.namespace, names)
