@@ -10,6 +10,7 @@ from kubeyard import workspace
 logger = logging.getLogger(__name__)
 
 ALIAS_LABEL = 'kubeyard.io/alias'
+KUBERNETES_API_SERVICE = 'kubernetes'
 
 Reconciliation = collections.namedtuple('Reconciliation', ['to_create', 'to_delete'])
 
@@ -55,8 +56,28 @@ def _service_names(namespace, selector=None):
     return set(output.split()) if output else set()
 
 
+def never_aliased_services() -> set:
+    """
+    Services that must never be aliased back to the shared namespace.
+
+    A workspace runs its own copy of every development requirement kubeyard
+    provisions, so an ExternalName alias of the same name would shadow it: the
+    workspace's own Postgres or RabbitMQ would become unreachable and
+    migrations, seeds and workers would silently address the shared instance
+    instead. The cluster's own API Service must never be shadowed either.
+
+    The requirement names are read from the requirement registry rather than
+    listed here, so adding a development requirement cannot leave this stale.
+    The import is deferred: kubeyard.commands.dev_requirements lives in the
+    commands package, whose __init__ imports commands.deploy, which imports
+    this module - a module-level import would close that loop.
+    """
+    from kubeyard.commands import dev_requirements
+    return dev_requirements.provided_service_names() | {KUBERNETES_API_SERVICE}
+
+
 def list_shared_services():
-    return _service_names(workspace.DEFAULT_NAMESPACE)
+    return _service_names(workspace.DEFAULT_NAMESPACE) - never_aliased_services()
 
 
 def list_services(namespace):

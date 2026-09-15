@@ -4,6 +4,7 @@ import time
 
 import sh
 
+from kubeyard import aliases
 from kubeyard import kubectl as kubectl_helper
 
 logger = logging.getLogger(__name__)
@@ -37,13 +38,38 @@ class KubernetesDependency:
 
     def _apply_definition(self):
         sh.kubectl('apply', *self.namespace_args, '--record', '-f', self.definition)
+        self._remove_shadowing_alias()
         try:
             sh.kubectl('expose', *self.namespace_args, '-f', self.definition)
         except sh.ErrorReturnCode_1 as e:
             if b'already exists' not in e.stderr:
                 raise e
             else:
-                logger.debug('Service for "{}" exists'.format(self.name))
+                self._report_existing_service()
+
+    def _remove_shadowing_alias(self):
+        """
+        Drop the workspace alias of this Service, if one is there, before exposing.
+
+        The Service of a development requirement is created by "kubectl expose",
+        not by a committed definition, so deploy.remove_shadowed_aliases never
+        sees it. Without this, expose collides with the alias, the workspace
+        keeps a Postgres pod with no Service of its own, and its name resolves
+        to the shared instance. aliases.delete only ever removes objects
+        carrying the alias label, so a real Service is never touched.
+        """
+        if self.namespace:
+            aliases.delete(self.namespace, [self.name])
+
+    def _report_existing_service(self):
+        if self.namespace:
+            logger.warning(
+                'Service "{}" already exists in namespace "{}" and was left as it is. If it is an alias to '
+                'the shared namespace, this workspace\'s own "{}" is unreachable; check with '
+                '"kubectl get service {} --namespace {} --output yaml".'.format(
+                    self.name, self.namespace, self.name, self.name, self.namespace))
+        else:
+            logger.debug('Service for "{}" exists'.format(self.name))
 
     def _wait_until_ready(self):
         logger.debug('Waiting for "{}" to start (possibly downloading image)...'.format(self.name))

@@ -1,8 +1,12 @@
 from unittest import mock
 
+import sh
+
 from kubepy import definition_manager
 
+from kubeyard import dependencies
 from kubeyard.commands import deploy
+from kubeyard.commands import dev_requirements
 
 
 class FakeDeployCommand(deploy.DeployCommand):
@@ -373,6 +377,85 @@ class TestRunDevRequirementsDeploy:
             result = command.run_dev_requirements_deploy()
 
         assert result is False
+
+
+class TestDevRequirementsDoNotInheritAnAlias:
+    """
+    The seam between deploy and dev_requirements, which each module passes on
+    its own: the Service of a development requirement is created by
+    "kubectl expose", never by a committed definition, so
+    remove_shadowed_aliases cannot see it. If the alias survives, expose
+    collides with it, the workspace keeps a Postgres pod with no Service of
+    its own, and "dev-postgres" inside the workspace resolves to the shared
+    database - so migrations and seeds run against it while the deploy
+    reports success.
+    """
+
+    def _kubectl_side_effect(self, started_log):
+        def side_effect(*args, **kwargs):
+            if args[0] == 'logs':
+                return [started_log]
+            return ''
+        return side_effect
+
+    def test_the_alias_is_deleted_before_the_service_is_exposed(self):
+        command = FakeDeployCommand(
+            dict(context(namespace='ws-example', dev_requirements=[{'kind': 'postgres'}]),
+                 KUBE_SERVICE_NAME='example'))
+        started_log = dev_requirements.PostgresDependency.started_log
+
+        with mock.patch.object(deploy.aliases, 'list_shared_services', return_value={'dev-postgres'}), \
+                mock.patch.object(deploy.aliases, 'list_aliases', return_value={'dev-postgres'}), \
+                mock.patch.object(dev_requirements.PostgresDependency, 'is_container_running',
+                                  side_effect=[False, True]), \
+                mock.patch.object(dependencies.aliases, 'delete') as alias_delete, \
+                mock.patch.object(dependencies.sh, 'kubectl',
+                                  side_effect=self._kubectl_side_effect(started_log)) as kubectl:
+            manager = mock.Mock()
+            manager.attach_mock(alias_delete, 'alias_delete')
+            manager.attach_mock(kubectl, 'kubectl')
+            command.run_dev_requirements_deploy()
+
+        verbs = [call.args[0] for call in kubectl.call_args_list]
+        assert 'expose' in verbs  # the requirement really did get as far as creating its Service
+        alias_delete.assert_any_call('ws-example', ['dev-postgres'])
+        names = [call[0] for call in manager.mock_calls]
+        expose_index = next(
+            index for index, call in enumerate(manager.mock_calls)
+            if call[0] == 'kubectl' and call.args[0] == 'expose')
+        assert names.index('alias_delete') < expose_index
+
+    def test_no_alias_work_is_attempted_outside_a_workspace(self):
+        command = FakeDeployCommand(
+            dict(context(dev_requirements=[{'kind': 'postgres'}]), KUBE_SERVICE_NAME='example'))
+        started_log = dev_requirements.PostgresDependency.started_log
+
+        with mock.patch.object(dev_requirements.PostgresDependency, 'is_container_running',
+                               side_effect=[False, True]), \
+                mock.patch.object(dependencies.aliases, 'delete') as alias_delete, \
+                mock.patch.object(dependencies.sh, 'kubectl',
+                                  side_effect=self._kubectl_side_effect(started_log)):
+            command.run_dev_requirements_deploy()
+
+        alias_delete.assert_not_called()
+
+    def test_an_existing_service_inside_a_workspace_is_reported_at_warning(self, caplog):
+        # The collision used to be swallowed at DEBUG, which is what made the
+        # whole failure invisible.
+        dependency = dev_requirements.PostgresDependency('ws-example')
+        already_exists = sh.ErrorReturnCode_1('kubectl', b'', b'services "dev-postgres" already exists')
+
+        def side_effect(*args, **kwargs):
+            if args[0] == 'expose':
+                raise already_exists
+            return ''
+
+        with mock.patch.object(dependencies.aliases, 'delete'):
+            with mock.patch.object(dependencies.sh, 'kubectl', side_effect=side_effect):
+                with caplog.at_level('WARNING'):
+                    dependency._apply_definition()
+
+        assert any('dev-postgres' in record.message for record in caplog.records)
 
 
 class TestRunDefaultSeeding:

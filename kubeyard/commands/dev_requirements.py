@@ -12,6 +12,7 @@ definitions_directory = pathlib.Path(__file__).parent.parent / 'definitions' / '
 
 class Requirement:
     valid_arguments = ()
+    dependency_class = None
 
     def __init__(self, context: dict):
         self.context = context
@@ -28,16 +29,6 @@ class Requirement:
 
     def run(self, arguments: dict):
         raise NotImplementedError
-
-
-class Postgres(Requirement):
-    valid_arguments = ('name')
-
-    def run(self, arguments: dict):
-        database_name = arguments.get('name') or self.context['KUBE_SERVICE_NAME']
-        dependency = PostgresDependency(self.namespace)
-        dependency.ensure_running()
-        return dependency.ensure_database_present(database_name)
 
 
 class PostgresDependency(dependencies.KubernetesDependency):
@@ -60,12 +51,13 @@ class PostgresDependency(dependencies.KubernetesDependency):
             return True
 
 
-class CockroachDB(Requirement):
-    valid_arguments = ('name',)
+class Postgres(Requirement):
+    valid_arguments = ('name')
+    dependency_class = PostgresDependency
 
     def run(self, arguments: dict):
         database_name = arguments.get('name') or self.context['KUBE_SERVICE_NAME']
-        dependency = CockroachDBDependency(self.namespace)
+        dependency = self.dependency_class(self.namespace)
         dependency.ensure_running()
         return dependency.ensure_database_present(database_name)
 
@@ -91,15 +83,15 @@ class CockroachDBDependency(dependencies.KubernetesDependency):
             return True
 
 
-class Elasticsearch(Requirement):
-    valid_arguments = ()
+class CockroachDB(Requirement):
+    valid_arguments = ('name',)
+    dependency_class = CockroachDBDependency
 
     def run(self, arguments: dict):
-        self.ensure_elastic_running()
-        return False
-
-    def ensure_elastic_running(self):
-        ElasticsearchDependency(self.namespace).ensure_running()
+        database_name = arguments.get('name') or self.context['KUBE_SERVICE_NAME']
+        dependency = self.dependency_class(self.namespace)
+        dependency.ensure_running()
+        return dependency.ensure_database_present(database_name)
 
 
 class ElasticsearchDependency(dependencies.KubernetesDependency):
@@ -108,21 +100,16 @@ class ElasticsearchDependency(dependencies.KubernetesDependency):
     started_log = '] started'
 
 
-class PubSubEmulator(Requirement):
-    valid_arguments = ('topic', 'subscription')
+class Elasticsearch(Requirement):
+    valid_arguments = ()
+    dependency_class = ElasticsearchDependency
 
     def run(self, arguments: dict):
-        topic_name = arguments.get('topic') or self.context['KUBE_SERVICE_NAME']
-        dependency = PubSubDependency(self.namespace)
-        dependency.ensure_running()
-        dependency.ensure_topic_present(topic_name)
-        try:
-            subscription_name = arguments['subscription']
-        except KeyError:
-            logger.debug("Subscription not specified, it won't be created")
-        else:
-            dependency.ensure_subscription_present(topic_name, subscription_name)
+        self.ensure_elastic_running()
         return False
+
+    def ensure_elastic_running(self):
+        self.dependency_class(self.namespace).ensure_running()
 
 
 class PubSubDependency(dependencies.KubernetesDependency):
@@ -155,12 +142,37 @@ class PubSubDependency(dependencies.KubernetesDependency):
             logger.debug('Subscription "{}" created'.format(subscription_name))
 
 
+class PubSubEmulator(Requirement):
+    valid_arguments = ('topic', 'subscription')
+    dependency_class = PubSubDependency
+
+    def run(self, arguments: dict):
+        topic_name = arguments.get('topic') or self.context['KUBE_SERVICE_NAME']
+        dependency = self.dependency_class(self.namespace)
+        dependency.ensure_running()
+        dependency.ensure_topic_present(topic_name)
+        try:
+            subscription_name = arguments['subscription']
+        except KeyError:
+            logger.debug("Subscription not specified, it won't be created")
+        else:
+            dependency.ensure_subscription_present(topic_name, subscription_name)
+        return False
+
+
+class RedisDependency(dependencies.KubernetesDependency):
+    name = 'dev-redis'
+    definition = definitions_directory / 'redis.yaml'
+    started_log = 'The server is now ready to accept connections'
+
+
 class Redis(Requirement):
     valid_arguments = ('name', )
+    dependency_class = RedisDependency
     secret_name = 'redis-urls'
 
     def run(self, arguments: dict):
-        dependency = RedisDependency(self.namespace)
+        dependency = self.dependency_class(self.namespace)
         dependency.ensure_running()
         secret_key = arguments.get('name') or self.context['KUBE_SERVICE_NAME']
         secrets_manipulator = kubernetes.get_global_secrets_manipulator(self.context, self.secret_name)
@@ -186,23 +198,6 @@ class Redis(Requirement):
         else:
             kubernetes.install_global_secrets(self.context)
             logger.debug('Secret key added to secret')
-
-
-class RedisDependency(dependencies.KubernetesDependency):
-    name = 'dev-redis'
-    definition = definitions_directory / 'redis.yaml'
-    started_log = 'The server is now ready to accept connections'
-
-
-class Cassandra(Requirement):
-    valid_arguments = ('keyspace')
-
-    def run(self, arguments: dict):
-        keyspace_name = arguments.get('keyspace') or self.context['KUBE_SERVICE_NAME']
-        dependency = CassandraDependency(self.namespace)
-        dependency.ensure_running()
-        dependency.ensure_database_present(keyspace_name)
-        return False
 
 
 class CassandraDependency(dependencies.KubernetesDependency):
@@ -232,12 +227,15 @@ class CassandraDependency(dependencies.KubernetesDependency):
         return cleaned
 
 
-class RabbitMQ(Requirement):
-    valid_arguments = ()
+class Cassandra(Requirement):
+    valid_arguments = ('keyspace')
+    dependency_class = CassandraDependency
 
     def run(self, arguments: dict):
-        dependency = RabbitMQDependency(self.namespace)
+        keyspace_name = arguments.get('keyspace') or self.context['KUBE_SERVICE_NAME']
+        dependency = self.dependency_class(self.namespace)
         dependency.ensure_running()
+        dependency.ensure_database_present(keyspace_name)
         return False
 
 
@@ -245,6 +243,16 @@ class RabbitMQDependency(dependencies.KubernetesDependency):
     name = 'dev-rabbitmq'
     definition = definitions_directory / 'rabbitmq.yaml'
     started_log = 'Starting RabbitMQ'
+
+
+class RabbitMQ(Requirement):
+    valid_arguments = ()
+    dependency_class = RabbitMQDependency
+
+    def run(self, arguments: dict):
+        dependency = self.dependency_class(self.namespace)
+        dependency.ensure_running()
+        return False
 
 
 class RequirementsDispatcher:
@@ -283,3 +291,18 @@ class RequirementsDispatcher:
             created_database = command(arguments)
             logger.info('Requirement of kind "{}" satisfied'.format(kind))
             return bool(created_database)
+
+
+def provided_service_names() -> set:
+    """
+    Names of the Services kubeyard provisions itself, once per namespace.
+
+    Derived from the requirement registry rather than listed literally, so a
+    requirement added to RequirementsDispatcher.commands cannot leave this
+    stale. Used by kubeyard.aliases to keep a workspace from aliasing away the
+    very dependencies it runs its own copies of.
+    """
+    return {
+        requirement_class.dependency_class.name
+        for requirement_class in RequirementsDispatcher.commands.values()
+    }

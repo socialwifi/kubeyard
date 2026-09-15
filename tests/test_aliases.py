@@ -3,6 +3,7 @@ import json
 from unittest import mock
 
 from kubeyard import aliases
+from kubeyard import dependencies
 
 
 class TestReconcile:
@@ -189,6 +190,45 @@ class TestListSharedServices:
 
         assert '--namespace' in kubectl.call_args[0]
         assert 'default' in kubectl.call_args[0]
+
+    def test_offers_ordinary_shared_services(self):
+        with mock.patch.object(aliases.sh, 'kubectl', return_value='accounts billing'):
+            assert aliases.list_shared_services() == {'accounts', 'billing'}
+
+    def test_never_offers_a_service_kubeyard_provisions_per_workspace(self):
+        # The workspace runs its own dev-postgres and dev-rabbitmq; aliasing
+        # those names would point migrations, seeds and workers at the shared
+        # instances while the workspace's own pods sat there unused.
+        with mock.patch.object(
+                aliases.sh, 'kubectl', return_value='accounts dev-postgres dev-rabbitmq dev-redis'):
+            assert aliases.list_shared_services() == {'accounts'}
+
+    def test_never_offers_the_cluster_api_service(self):
+        with mock.patch.object(aliases.sh, 'kubectl', return_value='accounts kubernetes'):
+            assert aliases.list_shared_services() == {'accounts'}
+
+
+class TestNeverAliasedServices:
+    def test_covers_the_requirements_kubeyard_ships(self):
+        assert {'dev-postgres', 'dev-rabbitmq', 'dev-redis'} <= aliases.never_aliased_services()
+
+    def test_covers_the_cluster_api_service(self):
+        assert aliases.KUBERNETES_API_SERVICE in aliases.never_aliased_services()
+
+    def test_a_newly_registered_requirement_is_covered_without_editing_a_list(self):
+        # The set is derived from the requirement registry, so it cannot drift
+        # when a requirement is added. A hardcoded list would fail this.
+        from kubeyard.commands import dev_requirements
+
+        class LaterDependency(dependencies.KubernetesDependency):
+            name = 'dev-later'
+
+        class Later(dev_requirements.Requirement):
+            dependency_class = LaterDependency
+
+        registry = dict(dev_requirements.RequirementsDispatcher.commands, later=Later)
+        with mock.patch.object(dev_requirements.RequirementsDispatcher, 'commands', registry):
+            assert 'dev-later' in aliases.never_aliased_services()
 
 
 class TestListRealServices:
