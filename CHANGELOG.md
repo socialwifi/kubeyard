@@ -1,7 +1,17 @@
 ## 1.2.4 (unreleased)
 ---------------------
 
-- Nothing changed yet.
+- Add workspaces: `kubeyard workspace create|destroy|show|list|sync` deploy a project into an
+  isolated `ws-<name>` namespace with its own development requirements, aliasing every other
+  service back to `default`.
+- Add `kubeyard undeploy` as the inverse of `deploy`.
+- Add `kubeyard seed`, driven by `dev_seed_command` and `dev_seed_pod` in `config/kubeyard.yml`.
+  `deploy` runs it automatically for a database it has just created, which is therefore empty;
+  a redeploy finds the database present and does not seed again.
+- Use the workspace name as an image tag suffix in development, so concurrent builds and tests
+  do not collide.
+- Require kubepy 1.21.0 for namespace support.
+- Add a test suite.
 
 
 ## 1.2.3 (2026-06-16)
