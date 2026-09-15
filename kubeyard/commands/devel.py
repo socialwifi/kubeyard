@@ -86,7 +86,11 @@ class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
     @property
     def default_tag(self):
         if self.is_development:
-            return 'dev'
+            workspace = self.context.get('KUBEYARD_WORKSPACE', '')
+            if workspace:
+                return 'dev-{}'.format(workspace)
+            else:
+                return 'dev'
         else:
             return 'latest'
 
