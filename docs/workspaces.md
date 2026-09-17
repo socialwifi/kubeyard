@@ -57,28 +57,60 @@ to yours. Service discovery stays ordinary DNS.
 ## Using it
 
 A workspace is tied to a directory, so the natural unit is a git worktree.
-Keeping it inside the repository is deliberate: kubeyard requires the project
-directory to live under `$HOME`, because that is all minikube mounts, and a
-worktree under the repository inherits that for free.
+`create` makes one for you:
 
 ```bash
-git worktree add .workspaces/alice -b ws-alice
-cd .workspaces/alice
 kubeyard workspace create alice
+cd .worktrees/alice          # the path it prints
 kubeyard build && kubeyard deploy
 ```
 
-Add `.workspaces/` to the repository's `.gitignore`, or git will offer to
-commit the worktree into the branch it was made from.
+That creates `.worktrees/alice` on a new branch `ws-alice`, and attaches the
+workspace to the worktree rather than to the checkout you ran it from. Run it
+again and it reuses whatever already exists - worktree, branch and namespace
+alike.
+
+Add `.worktrees/` to the repository's `.gitignore`, or git will offer to commit
+the worktree into the branch it was made from. `create` warns if you forget.
+
+Keeping the worktree inside the repository is deliberate: kubeyard requires the
+project directory to live under `$HOME`, because that is all minikube mounts,
+and a worktree under the repository inherits that for free. If you want them
+somewhere else, set a different root - it is still interpreted relative to the
+repository, so it cannot escape:
+
+```bash
+kubeyard workspace create alice --worktree-root trees
+```
+
+    # ~/.kubeyard/context.yml
+    KUBEYARD_WORKTREE_ROOT: trees
+
+Run `create` inside a worktree instead and it attaches that one, without nesting
+another - so making the worktree yourself still works:
+
+```bash
+git worktree add .worktrees/alice -b ws-alice
+cd .worktrees/alice
+kubeyard workspace create        # name defaults to the branch, minus the ws- prefix
+```
+
+To have your shell follow it, `--print-path` emits the path and nothing else:
+
+```bash
+kyws() { cd "$(kubeyard workspace create "$1" --print-path)"; }
+```
 
 `create` writes a `.kubeyard-workspace` file containing the name. Every later
 kubeyard command run from that directory picks it up, so there is no flag to
 remember and no way to deploy to the wrong place by forgetting one.
 
-Add the marker to your global git ignore once, so it is never committed:
+Both the marker and the worktree root belong in the repository's `.gitignore`,
+so that one person adding them settles it for everyone:
 
-```bash
-echo '.kubeyard-workspace' >> ~/.config/git/ignore
+```
+.kubeyard-workspace
+.worktrees/
 ```
 
 The rest of the commands:
@@ -121,7 +153,10 @@ against your data, not the team's.
 
 **Images and test containers.** In development the image tag becomes
 `dev-<workspace>`, so concurrent builds and test runs in different workspaces
-neither overwrite each other's images nor collide on container names.
+neither overwrite each other's images nor collide on container names. A new
+workspace therefore has nothing to deploy until `kubeyard build` has run once:
+without it the migration job cannot pull its image, and `deploy` waits on a pod
+that will never start.
 
 **Host entries.** Projects that declare `dev_domains` get workspace-scoped
 hostnames of the form `<domain>.<workspace>.ws.<dev_tld>`, written to
@@ -144,7 +179,8 @@ database it has just created - which is therefore empty - and not otherwise.
   specific to your setup.
 - **`destroy` deletes a namespace.** Everything in it, including the database,
   goes. `undeploy` is the smaller hammer: it removes one project and restores
-  its aliases.
+  its aliases. Neither touches the git worktree, which may hold work that exists
+  nowhere else - remove it yourself with `git worktree remove`.
 - **Without a marker file, nothing changes.** No namespace flag is emitted and
   every command behaves exactly as it did before workspaces existed. This is
   covered by tests, not just by intent.

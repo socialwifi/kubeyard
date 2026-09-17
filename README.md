@@ -39,14 +39,16 @@ A workspace is an isolated development environment: one Kubernetes namespace
 aliased back to `default`. This lets several coding agents, or several features
 in flight, run concurrently in separate git worktrees without colliding.
 
-    git worktree add .workspaces/example -b ws-example
-    cd .workspaces/example
     kubeyard workspace create example
+    cd .worktrees/example
     kubeyard build && kubeyard deploy
 
+`create` makes the git worktree too, on a branch `ws-<name>`, and prints the
+path to `cd` into, along with how to tear it down again.
+
 The workspace is recorded in a `.kubeyard-workspace` file in the worktree, so
-every later command picks it up automatically. Add that filename to
-`~/.config/git/ignore` once.
+every later command picks it up automatically. Add both that filename and
+`.worktrees/` to the repository's `.gitignore`.
 
     kubeyard workspace show       # what is deployed here versus aliased
     kubeyard undeploy             # put this service back on the shared instance

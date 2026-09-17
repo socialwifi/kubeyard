@@ -312,6 +312,11 @@ def workspace():
 @workspace.command(name='create', help=CreateWorkspaceCommand.__doc__)
 @apply_common_options(initialized_repository_options)
 @click.argument('name', required=False)
+@click.option('--worktree-root', default=None,
+              help='Directory the worktree is created in, relative to the repository. '
+                   'Defaults to KUBEYARD_WORKTREE_ROOT, then ".worktrees".')
+@click.option('--print-path', is_flag=True, default=False,
+              help='Print only the worktree path, so a shell function can cd into it.')
 def workspace_create(**kwargs):
     CreateWorkspaceCommand(**kwargs).run()
 

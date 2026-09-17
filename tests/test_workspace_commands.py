@@ -64,7 +64,8 @@ class BypassInitMixin:
 
 
 class FakeCreateWorkspaceCommand(BypassInitMixin, workspace_commands.CreateWorkspaceCommand):
-    pass
+    worktree_root = None
+    print_path = False
 
 
 class FakeDestroyWorkspaceCommand(BypassInitMixin, workspace_commands.DestroyWorkspaceCommand):
@@ -291,6 +292,7 @@ class TestCreateWorkspaceCommandRun:
             return ''
 
         with mock.patch.object(workspace_commands.preconditions, 'check_all') as check_all, \
+                mock.patch.object(workspace_commands.worktree, 'is_main_checkout', return_value=False), \
                 mock.patch.object(workspace_commands, 'current_branch', return_value=branch), \
                 mock.patch.object(workspace_commands.sh, 'kubectl', side_effect=kubectl_side_effect) as kubectl, \
                 mock.patch.object(workspace_module, 'write_marker') as write_marker, \
@@ -321,7 +323,8 @@ class TestCreateWorkspaceCommandRun:
 
     def test_detached_head_without_explicit_name_is_refused_before_any_mutation(self):
         command = FakeCreateWorkspaceCommand(context(), name=None)
-        with mock.patch.object(workspace_commands.preconditions, 'check_all'):
+        with mock.patch.object(workspace_commands.preconditions, 'check_all'), \
+                mock.patch.object(workspace_commands.worktree, 'is_main_checkout', return_value=False):
             with mock.patch.object(workspace_commands, 'current_branch', return_value=''):
                 with mock.patch.object(workspace_commands.sh, 'kubectl') as kubectl:
                     with mock.patch.object(workspace_module, 'write_marker') as write_marker:
@@ -363,7 +366,8 @@ class TestCreateWorkspaceCommandRun:
                 raise error
             return ''
 
-        with mock.patch.object(workspace_commands.preconditions, 'check_all'):
+        with mock.patch.object(workspace_commands.preconditions, 'check_all'), \
+                mock.patch.object(workspace_commands.worktree, 'is_main_checkout', return_value=False):
             with mock.patch.object(workspace_commands.sh, 'kubectl', side_effect=kubectl_side_effect) as kubectl:
                 with mock.patch.object(workspace_module, 'write_marker') as write_marker:
                     with pytest.raises(sh.ErrorReturnCode):
@@ -407,7 +411,8 @@ class TestCreateWorkspaceCommandRun:
 
     def test_warns_when_marker_file_is_not_gitignored(self, caplog):
         command = FakeCreateWorkspaceCommand(context(), name='example')
-        with mock.patch.object(workspace_commands.preconditions, 'check_all'):
+        with mock.patch.object(workspace_commands.preconditions, 'check_all'), \
+                mock.patch.object(workspace_commands.worktree, 'is_main_checkout', return_value=False):
             with mock.patch.object(workspace_commands.sh, 'kubectl', return_value=''):
                 with mock.patch.object(workspace_module, 'write_marker'):
                     with mock.patch.object(workspace_commands.kubernetes, 'setup_cluster_context'):
@@ -612,3 +617,134 @@ class TestCliWiring:
         assert result.exit_code == 0
         for subcommand in ('create', 'destroy', 'show', 'list', 'sync'):
             assert subcommand in result.output
+
+
+class TestCreateWorkspaceMakesAWorktree:
+    """
+    Run from the main checkout, create is responsible for the git side too, so a
+    workspace is one command rather than three.
+    """
+
+    def _run(self, name='alice', main_checkout=True, worktree_root=None, print_path=False,
+             ctx=None, branch='master', project_dir=None):
+        project_dir = project_dir or PROJECT_DIR
+        command = FakeCreateWorkspaceCommand(
+            ctx if ctx is not None else context(), project_dir=project_dir,
+            name=name, worktree_root=worktree_root, print_path=print_path)
+
+        with mock.patch.object(workspace_commands.preconditions, 'check_all'), \
+                mock.patch.object(workspace_commands.worktree, 'is_main_checkout', return_value=main_checkout), \
+                mock.patch.object(workspace_commands.worktree, 'ensure', return_value=True) as ensure, \
+                mock.patch.object(workspace_commands, 'current_branch', return_value=branch), \
+                mock.patch.object(workspace_commands.sh, 'kubectl', return_value=''), \
+                mock.patch.object(workspace_module, 'write_marker') as write_marker, \
+                mock.patch.object(workspace_commands.kubernetes, 'setup_cluster_context'), \
+                mock.patch.object(workspace_commands.kubernetes, 'install_global_secrets'), \
+                mock.patch.object(workspace_commands.aliases, 'sync') as sync, \
+                mock.patch.object(workspace_commands.sh, 'git'):
+            sync.return_value = mock.Mock(to_create=[], to_delete=[])
+            command.run()
+        return dict(ensure=ensure, write_marker=write_marker)
+
+    def test_creates_the_worktree_under_dot_worktrees_by_default(self):
+        calls = self._run()
+
+        project_dir, path, branch = calls['ensure'].call_args.args
+        assert path == PROJECT_DIR / '.worktrees' / 'alice'
+        assert branch == 'ws-alice'
+
+    def test_the_marker_is_written_in_the_worktree_not_the_main_checkout(self):
+        calls = self._run()
+
+        assert calls['write_marker'].call_args.args == (PROJECT_DIR / '.worktrees' / 'alice', 'alice')
+
+    def test_a_linked_worktree_is_attached_where_it_stands(self):
+        calls = self._run(main_checkout=False)
+
+        calls['ensure'].assert_not_called()
+        assert calls['write_marker'].call_args.args == (PROJECT_DIR, 'alice')
+
+    def test_the_root_can_be_configured_globally(self):
+        ctx = context()
+        ctx['KUBEYARD_WORKTREE_ROOT'] = 'trees'
+
+        calls = self._run(ctx=ctx)
+
+        assert calls['ensure'].call_args.args[1] == PROJECT_DIR / 'trees' / 'alice'
+
+    def test_the_flag_wins_over_the_global_setting(self):
+        ctx = context()
+        ctx['KUBEYARD_WORKTREE_ROOT'] = 'trees'
+
+        calls = self._run(ctx=ctx, worktree_root='elsewhere')
+
+        assert calls['ensure'].call_args.args[1] == PROJECT_DIR / 'elsewhere' / 'alice'
+
+    def test_a_name_is_required_in_the_main_checkout(self):
+        """The branch fallback would name the workspace after master, which is never wanted."""
+        with pytest.raises(workspace_commands.NoWorkspaceSelected):
+            self._run(name=None)
+
+    def test_the_branch_fallback_still_works_inside_a_worktree(self):
+        calls = self._run(name=None, main_checkout=False)
+
+        assert calls['write_marker'].call_args.args == (PROJECT_DIR, 'master')
+
+    def test_the_branch_fallback_does_not_re_prefix_a_worktree_branch(self):
+        """create makes branch ws-alice, so a bare create in it must mean alice, not ws-alice."""
+        calls = self._run(name=None, main_checkout=False, branch='ws-alice')
+
+        assert calls['write_marker'].call_args.args == (PROJECT_DIR, 'alice')
+
+    def test_warns_when_the_worktree_root_is_not_gitignored(self, caplog):
+        """An unignored root means git offers to commit the worktree into its parent branch."""
+        command = FakeCreateWorkspaceCommand(context(), name='alice')
+        git_error = sh.ErrorReturnCode('git', b'', b'')
+
+        with mock.patch.object(workspace_commands.preconditions, 'check_all'), \
+                mock.patch.object(workspace_commands.worktree, 'is_main_checkout', return_value=True), \
+                mock.patch.object(workspace_commands.worktree, 'ensure', return_value=True), \
+                mock.patch.object(workspace_commands.sh, 'kubectl', return_value=''), \
+                mock.patch.object(workspace_module, 'write_marker'), \
+                mock.patch.object(workspace_commands.kubernetes, 'setup_cluster_context'), \
+                mock.patch.object(workspace_commands.kubernetes, 'install_global_secrets'), \
+                mock.patch.object(workspace_commands.aliases, 'sync') as sync, \
+                mock.patch.object(workspace_commands.sh, 'git', side_effect=git_error):
+            sync.return_value = mock.Mock(to_create=[], to_delete=[])
+            with caplog.at_level('WARNING'):
+                command.run()
+
+        assert any('.worktrees' in record.message for record in caplog.records)
+
+    def test_print_path_emits_only_the_path_on_stdout(self, capsys):
+        """So that: kyws() { cd "$(kubeyard workspace create "$1" --print-path)"; }"""
+        self._run(print_path=True)
+
+        assert capsys.readouterr().out.strip() == str(PROJECT_DIR / '.worktrees' / 'alice')
+
+    def test_otherwise_it_prints_the_whole_next_steps_block(self, capsys):
+        """The closing block is the feature's quick start: what to do now, and how to undo it."""
+        self._run()
+
+        out = capsys.readouterr().out
+        path = str(pathlib.Path('.worktrees') / 'alice')
+        assert "Workspace 'alice' is ready" in out
+        assert 'cd {}'.format(path) in out
+        # build is not optional: a new workspace tags its image dev-<workspace>,
+        # so nothing exists to deploy until it has been built once.
+        assert 'kubeyard build && kubeyard deploy' in out
+        assert 'kubeyard workspace destroy' in out
+        assert 'git worktree remove {}'.format(path) in out
+
+    def test_the_block_is_set_off_by_a_blank_line_from_the_log_output(self, capsys):
+        self._run()
+
+        assert capsys.readouterr().out.startswith('\n')
+
+    def test_print_path_suppresses_the_block_entirely(self, capsys):
+        """Otherwise $(...) would capture the prose as well as the path."""
+        self._run(print_path=True)
+
+        out = capsys.readouterr().out
+        assert out.strip() == str(PROJECT_DIR / '.worktrees' / 'alice')
+        assert 'kubeyard build' not in out

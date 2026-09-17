@@ -27,3 +27,4 @@ __pycache__
 
 .superpowers/
 docs/superpowers/
+.worktrees/
