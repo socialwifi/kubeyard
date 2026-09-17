@@ -1,7 +1,9 @@
 import contextlib
 import logging
+import pathlib
 import sys
 
+import click
 import sh
 
 from cached_property import cached_property
@@ -11,6 +13,7 @@ from kubeyard import base_command
 from kubeyard import kubernetes
 from kubeyard import preconditions
 from kubeyard import workspace as workspace_module
+from kubeyard import worktree
 
 logger = logging.getLogger(__name__)
 
@@ -64,27 +67,88 @@ class BaseWorkspaceCommand(base_command.InitialisedRepositoryCommand):
 
 class CreateWorkspaceCommand(BaseWorkspaceCommand):
     """
-    Creates a workspace namespace, attaches this repository to it and configures its domains.
+    Creates a workspace namespace, attaches a working copy to it and configures its domains.
 
-    The workspace name defaults to the current git branch. On a detached HEAD the name is required.
+    Run in the main checkout it also creates the git worktree to work in, so the name is
+    required there. Run inside a worktree it attaches that one, and the name defaults to
+    the current branch.
     """
 
-    def __init__(self, *, name, **kwargs):
+    def __init__(self, *, name, worktree_root=None, print_path=False, **kwargs):
         super().__init__(**kwargs)
         self.name = name
+        self.worktree_root = worktree_root
+        self.print_path = print_path
 
     def run(self):
         super().run()
         self.check_preconditions()
-        name = resolve_create_name(self.name, current_branch(self.project_dir))
+        in_main_checkout = worktree.is_main_checkout(self.project_dir)
+        name = self.resolve_name(in_main_checkout)
         namespace = workspace_module.namespace_for(name)
+        attached_to = self.prepare_worktree(name) if in_main_checkout else self.project_dir
         self.ensure_namespace(name, namespace)
-        workspace_module.write_marker(self.project_dir, name)
-        logger.info('Workspace "{}" attached to {}'.format(name, self.project_dir))
+        workspace_module.write_marker(attached_to, name)
+        logger.info('Workspace "{}" attached to {}'.format(name, attached_to))
         self.bootstrap(namespace)
         result = aliases.sync(namespace)
         logger.info('Aliases: {} created, {} removed'.format(len(result.to_create), len(result.to_delete)))
         self.warn_if_not_gitignored()
+        self.report(name, attached_to, in_main_checkout)
+
+    def resolve_name(self, in_main_checkout):
+        if in_main_checkout and not self.name:
+            raise NoWorkspaceSelected(
+                'A workspace name is required here, because this is the main checkout and its branch '
+                'names the shared environment rather than a workspace: kubeyard workspace create <name>')
+        return resolve_create_name(self.name, worktree.name_from_branch(current_branch(self.project_dir)))
+
+    def prepare_worktree(self, name):
+        root = worktree.resolve_root(self.worktree_root, self.context)
+        path = worktree.path_for(self.project_dir, root, name)
+        branch = worktree.branch_for(name)
+        if worktree.ensure(self.project_dir, path, branch):
+            logger.info('Created worktree {} on branch "{}"'.format(path, branch))
+        else:
+            logger.info('Reusing existing worktree {}'.format(path))
+        self.warn_if_root_not_gitignored(root)
+        return path
+
+    def warn_if_root_not_gitignored(self, root):
+        try:
+            sh.git('-C', str(self.project_dir), 'check-ignore', '-q', root)
+        except sh.ErrorReturnCode:
+            logger.warning(
+                '{} is not gitignored, so git will offer to commit the worktree into the branch '
+                'it was made from. Add it to the repository .gitignore.'.format(root))
+
+    def report(self, name, attached_to, in_main_checkout):
+        if self.print_path:
+            print(attached_to)
+        elif in_main_checkout:
+            self.print_next_steps(name, self.displayable(attached_to))
+
+    def print_next_steps(self, name, path):
+        """
+        Set off from the log lines above it, because this is the one part of the
+        output the developer has to act on.
+        """
+        click.echo()
+        click.secho('Workspace {!r} is ready:'.format(name), bold=True)
+        click.echo()
+        click.echo('    cd {}'.format(path))
+        click.echo('    kubeyard build && kubeyard deploy')
+        click.echo()
+        click.echo('When you are finished with it:')
+        click.echo()
+        click.echo('    kubeyard workspace destroy')
+        click.echo('    git worktree remove {}'.format(path))
+
+    def displayable(self, path):
+        try:
+            return path.relative_to(pathlib.Path(self.project_dir).resolve())
+        except ValueError:
+            return path
 
     def ensure_namespace(self, name, namespace):
         try:
@@ -110,13 +174,16 @@ class CreateWorkspaceCommand(BaseWorkspaceCommand):
             sh.git('-C', str(self.project_dir), 'check-ignore', '-q', workspace_module.MARKER_FILENAME)
         except sh.ErrorReturnCode:
             logger.warning(
-                '{} is not gitignored. Add it to ~/.config/git/ignore so it is never '
-                'committed.'.format(workspace_module.MARKER_FILENAME))
+                '{} is not gitignored. Add it to the repository .gitignore, so everyone '
+                'working on it benefits.'.format(workspace_module.MARKER_FILENAME))
 
 
 class DestroyWorkspaceCommand(BaseWorkspaceCommand):
     """
     Deletes a workspace namespace, its /etc/hosts entries and the local marker file.
+
+    The git worktree is left alone: it may hold work that exists nowhere else. Remove it
+    yourself with "git worktree remove" once you are sure.
     """
 
     def __init__(self, *, name, **kwargs):
@@ -135,7 +202,8 @@ class DestroyWorkspaceCommand(BaseWorkspaceCommand):
             self.delete_namespace(namespace)
         finally:
             self.detach_locally(name)
-        logger.info('Workspace "{}" destroyed'.format(name))
+        logger.info('Workspace "{}" destroyed. The worktree is untouched; remove it with '
+                    '"git worktree remove" when you no longer need it.'.format(name))
 
     def detach_locally(self, name):
         from kubeyard.commands.deploy import DomainConfigurator

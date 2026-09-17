@@ -1,7 +1,11 @@
 ## 1.3.1 (unreleased)
 ---------------------
 
-- Nothing changed yet.
+- `kubeyard workspace create` now creates the git worktree it attaches to, on a branch
+  `ws-<name>` under `.worktrees/`, and prints the path. Run inside a worktree it attaches
+  that one as before. The directory is configurable with `--worktree-root` or
+  `KUBEYARD_WORKTREE_ROOT`, and `--print-path` prints the path alone so a shell function
+  can `cd` into it. `workspace destroy` leaves the worktree alone.
 
 
 ## 1.3.0 (2026-09-17)
