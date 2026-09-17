@@ -25,8 +25,8 @@ project's own GitHub URL and maintainer address; those are fine and stay.
 
 ## Core Technologies
 
-- **Language:** Python 3.9–3.12 (see `setup.py` classifiers and `tox.ini`). Do
-  not use syntax newer than 3.9.
+- **Language:** Python 3.10–3.14 (see `setup.py` classifiers and `tox.ini`). Do
+  not use syntax newer than 3.10.
 - **CLI:** `click`, with commands registered in `kubeyard/entrypoints/kubeyard.py`.
   Executables in a project's `scripts/` directory are also exposed as
   subcommands by `CustomCommandsLoader`.
@@ -65,7 +65,7 @@ tox run -e lint,py     # linters plus tests on the current interpreter
 pytest tests/ -q       # tests only
 ```
 
-`tox -e py` uses whichever interpreter is active; CI runs the full 3.9–3.12
+`tox -e py` uses whichever interpreter is active; CI runs the full 3.10–3.14
 matrix on push.
 
 Prefer extracting pure functions over data and testing those. Anything that

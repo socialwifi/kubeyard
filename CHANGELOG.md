@@ -12,6 +12,8 @@
   do not collide.
 - Require kubepy 1.21.0 for namespace support.
 - Add a test suite.
+- Drop Python 3.9, which is end of life, and add 3.13 and 3.14. Supported range is now
+  3.10-3.14, enforced by `python_requires`.
 
 
 ## 1.2.3 (2026-06-16)
