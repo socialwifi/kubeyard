@@ -1,4 +1,4 @@
-## 1.2.4 (unreleased)
+## 1.3.0 (2026-09-17)
 ---------------------
 
 - Add workspaces: `kubeyard workspace create|destroy|show|list|sync` deploy a project into an
