@@ -36,10 +36,11 @@ echo '. $HOME/kubeyard-venv/bin/activate' >> $HOME/.bashrc
 
 A workspace is an isolated development environment: one Kubernetes namespace
 (`ws-<name>`) holding the services you are changing, with every other service
-aliased back to `default`. This lets several people or agents work concurrently
-in separate git worktrees without colliding.
+aliased back to `default`. This lets several coding agents, or several features
+in flight, run concurrently in separate git worktrees without colliding.
 
-    cd ~/work/example-ws/example/frontend
+    git worktree add .workspaces/example -b ws-example
+    cd .workspaces/example
     kubeyard workspace create example
     kubeyard build && kubeyard deploy
 
@@ -69,3 +70,6 @@ redeploy finds the database present and leaves it alone.
 
 Without a `.kubeyard-workspace` file, kubeyard behaves exactly as it always has
 and targets the shared environment.
+
+See [docs/workspaces.md](docs/workspaces.md) for why workspaces exist, how the
+alias overlay works, and the limits worth knowing before relying on them.
