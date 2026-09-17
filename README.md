@@ -31,3 +31,45 @@ virtualenv -p python3 $HOME/kubeyard-venv
 pip install kubeyard
 echo '. $HOME/kubeyard-venv/bin/activate' >> $HOME/.bashrc
 ```
+
+## Workspaces
+
+A workspace is an isolated development environment: one Kubernetes namespace
+(`ws-<name>`) holding the services you are changing, with every other service
+aliased back to `default`. This lets several coding agents, or several features
+in flight, run concurrently in separate git worktrees without colliding.
+
+    git worktree add .workspaces/example -b ws-example
+    cd .workspaces/example
+    kubeyard workspace create example
+    kubeyard build && kubeyard deploy
+
+The workspace is recorded in a `.kubeyard-workspace` file in the worktree, so
+every later command picks it up automatically. Add that filename to
+`~/.config/git/ignore` once.
+
+    kubeyard workspace show       # what is deployed here versus aliased
+    kubeyard undeploy             # put this service back on the shared instance
+    kubeyard workspace destroy    # remove the whole workspace
+
+### Seeding development data
+
+A project can declare how to load its development data:
+
+```yaml
+dev_seed_command: python -m tests.demo
+dev_seed_pod: api            # optional; defaults to the shortest running pod name
+```
+
+`kubeyard seed` then runs that command inside the deployed pod, in the namespace
+kubeyard already knows - so from a workspace it seeds that workspace's database.
+
+`deploy` runs it for you when it has just created the database - so a new workspace,
+or a new checkout of the shared environment, comes up with data already in it. A
+redeploy finds the database present and leaves it alone.
+
+Without a `.kubeyard-workspace` file, kubeyard behaves exactly as it always has
+and targets the shared environment.
+
+See [docs/workspaces.md](docs/workspaces.md) for why workspaces exist, how the
+alias overlay works, and the limits worth knowing before relying on them.

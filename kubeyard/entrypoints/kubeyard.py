@@ -6,16 +6,23 @@ import click
 from kubeyard import logging as kubeyard_logging
 from kubeyard import settings
 from kubeyard.commands import BuildCommand
+from kubeyard.commands import CreateWorkspaceCommand
 from kubeyard.commands import DebugCommand
 from kubeyard.commands import DeployCommand
+from kubeyard.commands import DestroyWorkspaceCommand
 from kubeyard.commands import FixCodeStyleCommand
 from kubeyard.commands import InitCommand
 from kubeyard.commands import InstallCompletion
 from kubeyard.commands import InstallGlobalSecretsCommand
+from kubeyard.commands import ListWorkspacesCommand
 from kubeyard.commands import PushCommand
+from kubeyard.commands import SeedCommand
 from kubeyard.commands import SetupCommand
 from kubeyard.commands import ShellCommand
+from kubeyard.commands import ShowWorkspaceCommand
+from kubeyard.commands import SyncWorkspaceCommand
 from kubeyard.commands import TestCommand
+from kubeyard.commands import UndeployCommand
 from kubeyard.commands import UpdateRequirementsCommand
 from kubeyard.commands.init import PythonPackageInitType
 from kubeyard.commands.init import all_templates
@@ -189,6 +196,12 @@ def deploy(**kwargs):
     DeployCommand(**kwargs).run()
 
 
+@cli.command(help=SeedCommand.__doc__)
+@apply_common_options(initialized_repository_options)
+def seed(**kwargs):
+    SeedCommand(**kwargs).run()
+
+
 @cli.command(help=DebugCommand.__doc__)
 @apply_common_options(initialized_repository_options)
 @click.argument(
@@ -276,6 +289,55 @@ def init(*, template_name, **kwargs):
 )
 def shell(**kwargs):
     ShellCommand(**kwargs).run()
+
+
+@cli.command(help=UndeployCommand.__doc__)
+@apply_common_options(initialized_repository_options)
+@click.option(
+    "--yes",
+    "-y",
+    is_flag=True,
+    help="Skip the confirmation prompt when undeploying from the shared environment.",
+)
+def undeploy(**kwargs):
+    UndeployCommand(**kwargs).run()
+
+
+@cli.group()
+def workspace():
+    """Manage isolated development workspaces (one Kubernetes namespace each)."""
+    pass
+
+
+@workspace.command(name='create', help=CreateWorkspaceCommand.__doc__)
+@apply_common_options(initialized_repository_options)
+@click.argument('name', required=False)
+def workspace_create(**kwargs):
+    CreateWorkspaceCommand(**kwargs).run()
+
+
+@workspace.command(name='destroy', help=DestroyWorkspaceCommand.__doc__)
+@apply_common_options(initialized_repository_options)
+@click.argument('name', required=False)
+def workspace_destroy(**kwargs):
+    DestroyWorkspaceCommand(**kwargs).run()
+
+
+@workspace.command(name='show', help=ShowWorkspaceCommand.__doc__)
+@apply_common_options(initialized_repository_options)
+def workspace_show(**kwargs):
+    ShowWorkspaceCommand(**kwargs).run()
+
+
+@workspace.command(name='list', help=ListWorkspacesCommand.__doc__)
+def workspace_list():
+    ListWorkspacesCommand().run()
+
+
+@workspace.command(name='sync', help=SyncWorkspaceCommand.__doc__)
+@apply_common_options(initialized_repository_options)
+def workspace_sync(**kwargs):
+    SyncWorkspaceCommand(**kwargs).run()
 
 
 custom_commands = CustomCommandsLoader(cli, help="Collection of all custom commands")

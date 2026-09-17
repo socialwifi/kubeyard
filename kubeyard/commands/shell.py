@@ -4,6 +4,7 @@ import sh
 
 from cached_property import cached_property
 
+from kubeyard import kubectl as kubectl_helper
 from kubeyard.base_command import CommandException
 from kubeyard.commands.devel import BaseDevelCommand
 
@@ -24,11 +25,16 @@ class ShellCommand(BaseDevelCommand):
         self.container = container
         self.root = root
 
+    @property
+    def namespace_args(self):
+        return kubectl_helper.namespace_args(self.context.get('KUBEYARD_NAMESPACE', ''))
+
     def run_default(self):
         try:
             sh.kubectl.exec(
                 "-it",
                 self.pod_name,
+                *self.namespace_args,
                 "-c", self.container_name,
                 '--',
                 self.shell,
@@ -42,6 +48,7 @@ class ShellCommand(BaseDevelCommand):
             if self.after_command:
                 sh.kubectl.exec(
                     self.pod_name,
+                    *self.namespace_args,
                     "-c", self.container_name,
                     "--",
                     self.shell,
@@ -51,7 +58,8 @@ class ShellCommand(BaseDevelCommand):
     @cached_property
     def pod_name(self) -> str:
         if self.pod:
-            all_pods = sh.kubectl.get.pods('-o', 'jsonpath={.items[*].metadata.name}').split()
+            all_pods = sh.kubectl.get.pods(
+                *self.namespace_args, '-o', 'jsonpath={.items[*].metadata.name}').split()
             # Exact match
             if self.pod in all_pods:
                 return self.pod
@@ -64,7 +72,7 @@ class ShellCommand(BaseDevelCommand):
                 logger.warning(f"Found more than one pod. Using '{pods[0]}'")
             return pods[0]
         else:
-            for pod in sh.kubectl.get.pods(_iter='out'):
+            for pod in sh.kubectl.get.pods(*self.namespace_args, _iter='out'):
                 if self.image_name in pod:
                     return pod.split()[0]
         raise CommandException("Container not found, please specify container or fix project setup.")

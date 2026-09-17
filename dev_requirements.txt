@@ -1,3 +1,4 @@
 flake8
 flake8-commas
 isort>=5
+pytest

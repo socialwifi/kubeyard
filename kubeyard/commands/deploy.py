@@ -1,15 +1,19 @@
-import getpass
 import logging
+import os
 import sys
+import tempfile
 
 import kubepy.appliers
 import sh
 
 from cached_property import cached_property
 from kubepy import appliers_options
+from kubepy import definition_manager
 
+from kubeyard import aliases
 from kubeyard import base_command
 from kubeyard import kubernetes
+from kubeyard import node_ports
 from kubeyard import settings
 from kubeyard.commands.devel import MAX_JOB_RETRIES
 from kubeyard.commands.devel import BaseDevelCommand
@@ -58,12 +62,31 @@ class DeployCommand(BaseDevelCommand):
     def run_default(self):
         if self.should_deploy_statics:
             self.run_statics_deploy()
+        database_created = False
         if self.definition_directories:
             if self.dev_requirements and self.is_development:
-                self.run_dev_requirements_deploy()
+                database_created = self.run_dev_requirements_deploy()
             self.run_kubernetes_deploy()
         if self.is_development:
             DomainConfigurator(self.context).configure()
+        if self.should_seed(database_created):
+            from kubeyard.commands.seed import SeedRunner
+            SeedRunner(self.context).wait_and_seed(self.deployment_names)
+
+    def should_seed(self, database_created) -> bool:
+        """
+        database_created comes from createdb succeeding, so it is never true for a
+        database that already holds data.
+        """
+        return bool(database_created and self.context.get('DEV_SEED_COMMAND'))
+
+    @property
+    def namespace(self):
+        return self.context.get('KUBEYARD_NAMESPACE', '')
+
+    @property
+    def deployment_names(self):
+        return [name for kind, name in owned_objects(self.definition_directories) if kind == 'Deployment']
 
     @property
     def should_deploy_statics(self):
@@ -93,22 +116,44 @@ class DeployCommand(BaseDevelCommand):
         options = appliers_options.Options(
             build_tag=self.tag, replace=self.is_development, host_volumes=self.host_volumes,
             max_job_retries=MAX_JOB_RETRIES, pod_annotations=pod_annotations,
+            namespace=self.namespace,
         )
         kubernetes.install_secrets(self.context)
+        if self.namespace:
+            self.remove_shadowed_aliases()
         logger.info('Applying Kubernetes definitions from YAML files...')
-        kubepy.appliers.DirectoriesApplier(self.definition_directories, options).apply_all()
+        applier = kubepy.appliers.DirectoriesApplier(self.definition_directories, options)
+        self.report_skipped(applier)
+        applier.apply_all(skip=self.skip_predicate)
         logger.info('Kubernetes definitions applied')
+
+    def report_skipped(self, applier):
+        """Warn, with the reason, about each definition that will be skipped."""
+        if not self.skip_predicate:
+            return
+        allocated = self._allocated_node_ports
+        for definition in applier.definitions_to_skip(self.skip_predicate):
+            logger.warning(node_ports.skip_reason(definition, allocated, self.namespace))
+
+    def remove_shadowed_aliases(self):
+        """Remove only the aliases this deploy replaces: a Service it skips shadows nothing."""
+        names = owned_service_names(self.definition_directories, skip=self.skip_predicate)
+        if names:
+            aliases.delete(self.namespace, names)
+
+    @cached_property
+    def _allocated_node_ports(self):
+        return node_ports.allocated_node_ports()
+
+    @cached_property
+    def skip_predicate(self):
+        if not self.namespace:
+            return None
+        return node_ports.skip_predicate(self._allocated_node_ports, self.namespace)
 
     @property
     def definition_directories(self):
-        kubernetes_dir = self.project_dir / settings.DEFAULT_KUBERNETES_DEPLOY_DIR
-        overrides_dir = self.project_dir / settings.DEFAULT_KUBERNETES_DEV_DEPLOY_OVERRIDES_DIR
-        definition_directories = []
-        if kubernetes_dir.exists():
-            definition_directories.append(kubernetes_dir)
-        if self.is_development and overrides_dir.exists():
-            definition_directories.append(overrides_dir)
-        return definition_directories
+        return definition_directories(self.project_dir, include_dev_overrides=self.is_development)
 
     @property
     def host_volumes(self):
@@ -125,18 +170,62 @@ class DeployCommand(BaseDevelCommand):
         logger.info('Checking development requirements...')
         from kubeyard.commands.dev_requirements import RequirementsDispatcher
         dispatcher = RequirementsDispatcher(self.context)
-        dispatcher.dispatch_all(self.dev_requirements)
+        database_created = dispatcher.dispatch_all(self.dev_requirements)
         logger.info('Development requirements are satisfied')
+        return database_created
 
     @property
     def dev_requirements(self):
         return self.context.get('DEV_REQUIREMENTS')
 
 
+def definition_directories(project_dir, *, include_dev_overrides):
+    """Shared by deploy and undeploy, so the two cannot drift on which directories are in scope."""
+    kubernetes_dir = project_dir / settings.DEFAULT_KUBERNETES_DEPLOY_DIR
+    overrides_dir = project_dir / settings.DEFAULT_KUBERNETES_DEV_DEPLOY_OVERRIDES_DIR
+    directories = []
+    if kubernetes_dir.exists():
+        directories.append(kubernetes_dir)
+    if include_dev_overrides and overrides_dir.exists():
+        directories.append(overrides_dir)
+    return directories
+
+
+def _merged_definitions(directories):
+    """
+    kubepy's own manager does the merging, because undeploy must remove exactly what
+    deploy created and an override is usually a fragment with no kind or name of its own.
+    """
+    manager = definition_manager.OverridenDefinitionManager(
+        *(definition_manager.DefinitionManager(directory) for directory in directories),
+    )
+    return dict(manager)
+
+
+def owned_objects(directories, skip=None):
+    """List (kind, name) pairs this project owns, in definition-name order, minus any the predicate skips."""
+    definitions = _merged_definitions(directories)
+    owned = []
+    for name in sorted(definitions):
+        definition = definitions[name] or {}
+        if skip is not None and skip(definition):
+            continue
+        kind = definition.get('kind')
+        object_name = definition.get('metadata', {}).get('name')
+        if kind and object_name:
+            owned.append((kind, object_name))
+    return owned
+
+
+def owned_service_names(directories, skip=None):
+    return [name for kind, name in owned_objects(directories, skip) if kind == 'Service']
+
+
 class DomainConfigurator:
     hosts_watermark = '# The following line is added by kubeyard\n'
     host_format = '{minikube_ip}\t{domain}\n'
     hosts_filename = '/etc/hosts'
+    WORKSPACE_DOMAIN_SEGMENT = 'ws'
 
     def __init__(self, context: dict):
         self.context = context
@@ -153,13 +242,12 @@ class DomainConfigurator:
             logger.info('All domains already configured, no action required.')
 
     def run_update_hosts(self):
+        with open(self.hosts_filename) as hosts_file:
+            content = hosts_file.read()
         for domain in self.custom_domains_to_be_configured:
             hosts_entry = self.host_format.format(minikube_ip=self.minikube_ip, domain=domain)
-            sh.sudo(
-                '-S',
-                'tee', '--append', self.hosts_filename,
-                _in=self._sudo_password + self.hosts_watermark + hosts_entry,
-            )
+            content += self.hosts_watermark + hosts_entry
+        self.replace_hosts_file(content)
 
     @cached_property
     def minikube_ip(self) -> str:
@@ -167,20 +255,61 @@ class DomainConfigurator:
             '-l', 'minikube.k8s.io/name=minikube',
             '-o', 'jsonpath={.items[*].status.addresses[?(@.type=="InternalIP")].address}').strip()
 
-    @cached_property
-    def _sudo_password(self):
-        prompt = f"[sudo] password for {getpass.getuser()}: "
-        return getpass.getpass(prompt=prompt) + "\n"
+    def domains_for(self, workspace_name) -> list:
+        top_level_domain = self.context['DEV_TLD']
+        if workspace_name:
+            suffix = '{}.{}.{}'.format(workspace_name, self.WORKSPACE_DOMAIN_SEGMENT, top_level_domain)
+        else:
+            suffix = top_level_domain
+        return ['{}.{}'.format(domain, suffix) for domain in self.context['DEV_DOMAINS']]
+
+    @property
+    def all_domains(self) -> list:
+        return self.domains_for(self.context.get('KUBEYARD_WORKSPACE', ''))
 
     @cached_property
     def custom_domains_to_be_configured(self) -> [str]:
-        result = []
-        top_level_domain = self.context['DEV_TLD']
-        for domain in self.context['DEV_DOMAINS']:
-            domain = f'{domain}.{top_level_domain}'
-            if not self.domain_exists_in_hosts(domain):
-                result.append(domain)
-        return result
+        return [domain for domain in self.all_domains if not self.domain_exists_in_hosts(domain)]
+
+    def remove(self, workspace_name):
+        if not workspace_name:
+            raise ValueError(
+                'workspace_name must not be empty: an empty name would resolve to the plain, '
+                'non-workspace domains and strip the shared /etc/hosts entries.')
+        domains = set(self.domains_for(workspace_name))
+        if not domains:
+            return
+        with open(self.hosts_filename) as hosts_file:
+            lines = hosts_file.readlines()
+        kept = []
+        removed_entries = 0
+        index = 0
+        while index < len(lines):
+            line = lines[index]
+            is_watermark = line == self.hosts_watermark
+            next_line = lines[index + 1] if index + 1 < len(lines) else ''
+            if is_watermark and any(domain in next_line.split() for domain in domains):
+                index += 2
+                removed_entries += 1
+                continue
+            if any(domain in line.split() for domain in domains):
+                index += 1
+                removed_entries += 1
+                continue
+            kept.append(line)
+            index += 1
+        if removed_entries:
+            logger.info('Removing {} host entries for workspace "{}"...'.format(
+                removed_entries, workspace_name))
+            self.replace_hosts_file(''.join(kept))
+
+    def replace_hosts_file(self, content):
+        with tempfile.NamedTemporaryFile('w', prefix='kubeyard-hosts-', delete=False) as new_hosts:
+            new_hosts.write(content)
+        try:
+            sh.sudo('cp', new_hosts.name, self.hosts_filename, _fg=True)
+        finally:
+            os.unlink(new_hosts.name)
 
     def domain_exists_in_hosts(self, domain: str) -> bool:
         previous_line = ''

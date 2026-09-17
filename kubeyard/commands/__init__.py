@@ -8,9 +8,16 @@ from kubeyard.commands.global_commands import InstallGlobalSecretsCommand
 from kubeyard.commands.global_commands import SetupCommand
 from kubeyard.commands.init import InitCommand
 from kubeyard.commands.push import PushCommand
+from kubeyard.commands.seed import SeedCommand
 from kubeyard.commands.shell import ShellCommand
 from kubeyard.commands.test import TestCommand
+from kubeyard.commands.undeploy import UndeployCommand
 from kubeyard.commands.update_requirements import UpdateRequirementsCommand
+from kubeyard.commands.workspace import CreateWorkspaceCommand
+from kubeyard.commands.workspace import DestroyWorkspaceCommand
+from kubeyard.commands.workspace import ListWorkspacesCommand
+from kubeyard.commands.workspace import ShowWorkspaceCommand
+from kubeyard.commands.workspace import SyncWorkspaceCommand
 
 __all__ = [
     InstallCompletion,
@@ -19,6 +26,7 @@ __all__ = [
     BuildCommand,
     DeployCommand,
     PushCommand,
+    SeedCommand,
     UpdateRequirementsCommand,
     FixCodeStyleCommand,
     InstallGlobalSecretsCommand,
@@ -26,4 +34,10 @@ __all__ = [
     InitCommand,
     TestCommand,
     ShellCommand,
+    UndeployCommand,
+    CreateWorkspaceCommand,
+    DestroyWorkspaceCommand,
+    ListWorkspacesCommand,
+    ShowWorkspaceCommand,
+    SyncWorkspaceCommand,
 ]
