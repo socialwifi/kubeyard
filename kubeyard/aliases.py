@@ -17,22 +17,12 @@ Reconciliation = collections.namedtuple('Reconciliation', ['to_create', 'to_dele
 
 class ServiceListingFailed(Exception):
     """
-    kubectl could not list Services, so their absence cannot be inferred.
-
-    Reconciliation reads "not in the shared namespace" as "retired, delete the
-    alias", so a listing that silently came back empty because the call failed
-    would delete a workspace's entire DNS overlay and report it as the
-    intended reconciliation.
+    Reconciliation reads "absent from the shared namespace" as "retired, delete the
+    alias", so a failed listing must never be mistaken for an empty one.
     """
 
 
 def reconcile(shared_services, real_services, existing_aliases) -> Reconciliation:
-    """
-    Decide which aliases to create and which to remove.
-
-    Only names already present in existing_aliases can ever be deleted, which
-    is what guarantees a real deployment is never removed by alias housekeeping.
-    """
     wanted = set(shared_services) - set(real_services)
     to_create = wanted - set(existing_aliases)
     to_delete = set(existing_aliases) - wanted
@@ -71,20 +61,11 @@ def _service_names(namespace, selector=None):
 
 def never_aliased_services() -> set:
     """
-    Services that must never be aliased back to the shared namespace.
-
-    A workspace runs its own copy of every development requirement kubeyard
-    provisions, so an ExternalName alias of the same name would shadow it: the
-    workspace's own Postgres or RabbitMQ would become unreachable and
-    migrations, seeds and workers would silently address the shared instance
-    instead. The cluster's own API Service must never be shadowed either.
-
-    The requirement names are read from the requirement registry rather than
-    listed here, so adding a development requirement cannot leave this stale.
-    The import is deferred: kubeyard.commands.dev_requirements lives in the
-    commands package, whose __init__ imports commands.deploy, which imports
-    this module - a module-level import would close that loop.
+    Aliasing these would shadow the workspace's own copy, so its Postgres or RabbitMQ
+    would become unreachable and migrations and seeds would silently address the
+    shared instance instead.
     """
+    # Deferred: commands/__init__ imports deploy, which imports this module.
     from kubeyard.commands import dev_requirements
     return dev_requirements.provided_service_names() | {KUBERNETES_API_SERVICE}
 
@@ -108,9 +89,8 @@ def list_real_services(namespace):
 def apply(namespace, names):
     for name in names:
         definition = alias_definition(name, namespace)
-        # The namespace is in the definition already; passing it as an argument
-        # too is what makes a disagreement between the two an error kubectl
-        # reports rather than one it silently resolves in favour of the body.
+        # Passing the namespace as well as setting it in the body makes any
+        # disagreement between them an error rather than a silent resolution.
         sh.kubectl(sh.echo(json.dumps(definition)), 'apply',
                    *kubectl_helper.namespace_args(namespace), '-f', '-')
         logger.debug('Alias created for "{}" in "{}"'.format(name, namespace))
@@ -118,11 +98,8 @@ def apply(namespace, names):
 
 def delete(namespace, names):
     """
-    Delete alias Services by name.
-
-    kubectl refuses to combine a resource name with --selector, so the label
-    guard is applied here: only names that are currently labelled as aliases in
-    this namespace are deleted. A real Service passed in by mistake is ignored.
+    kubectl refuses to combine a resource name with --selector, so the label guard
+    is applied here instead: a real Service passed in by mistake is left alone.
     """
     deletable = set(names) & list_aliases(namespace)
     for name in sorted(deletable):
@@ -135,11 +112,8 @@ def delete(namespace, names):
 
 def sync(namespace):
     """
-    Reconcile the alias overlay, or do nothing at all.
-
-    Every listing is taken before the first write, so a ServiceListingFailed
-    from any of them aborts the whole reconciliation rather than deleting
-    aliases that only look retired because kubectl could not answer.
+    Every listing happens before the first write, so a ServiceListingFailed aborts
+    the whole reconciliation rather than deleting aliases mid-way.
     """
     shared_services = list_shared_services()
     real_services = list_real_services(namespace)

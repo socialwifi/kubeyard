@@ -30,11 +30,7 @@ def confirmation_required(context) -> bool:
 
 
 def is_uninstalled_resource_type(stderr: bytes) -> bool:
-    """
-    A kind the API server does not know cannot have any objects, so there is nothing
-    to delete rather than a delete that failed. kubepy skips the same custom resources
-    when applying them, so a cluster without them deploys and undeploys alike.
-    """
+    """A kind the API server does not know can have no objects, so there is nothing to delete."""
     return b"server doesn't have a resource type" in stderr
 
 
@@ -66,10 +62,8 @@ class UndeployCommand(base_command.InitialisedRepositoryCommand):
 
     @property
     def definition_directories(self):
-        # Always includes the development-overrides directory: check_allowed
-        # already refuses to run outside development mode at all, so there is
-        # no "is this a dev run" distinction left to make here, unlike
-        # deploy.DeployCommand (which can run in production too).
+        # check_allowed already refuses to run outside development mode, so unlike
+        # deploy there is no "is this a dev run" distinction left to make.
         return deploy.definition_directories(self.project_dir, include_dev_overrides=True)
 
     @property
@@ -85,11 +79,8 @@ class UndeployCommand(base_command.InitialisedRepositoryCommand):
     def run(self):
         super().run()
         check_allowed(self.context)
-        # Checked unconditionally, before anything else - including the
-        # workspace-active branch, which would otherwise issue a namespaced
-        # delete against whatever cluster kubectl happens to be pointed at.
-        # KUBEYARD_MODE is a machine-level setting with no relationship to
-        # the active kubectl context, so it cannot stand in for this check.
+        # KUBEYARD_MODE is a machine-level setting that says nothing about which
+        # cluster kubectl points at, so it cannot stand in for this check.
         preconditions.check_kubectl_context(self.current_kubectl_context)
         targets = self.targets
         if not targets:
@@ -120,11 +111,8 @@ class UndeployCommand(base_command.InitialisedRepositoryCommand):
 
     def delete_targets(self, targets):
         """
-        Delete every target, collecting failures instead of aborting on the
-        first one. A delete that fails partway through must not leave the
-        workspace with neither a real Service nor a restored alias, so the
-        alias restoration in run() always happens after this returns,
-        whether or not every delete succeeded.
+        Failures are collected rather than raised, so that run() still restores the
+        aliases: a half-finished undeploy must not leave a name resolving to nothing.
         """
         failures = []
         skipped = []
@@ -149,13 +137,8 @@ class UndeployCommand(base_command.InitialisedRepositoryCommand):
 
     def report_result(self, targets, failures, skipped):
         """
-        Summarise the run, and fail the command when nothing at all was deleted.
-
-        A partial failure is deliberately not fatal: the objects that did go
-        away really are gone, and the summary says which ones are left. Deleting
-        nothing is different - exiting 0 would tell a script that the undeploy
-        succeeded. Objects whose resource type is missing never counted towards
-        either total: there was nothing there to remove.
+        A partial failure is deliberately not fatal; deleting nothing is, because
+        exiting 0 would tell a script the undeploy succeeded.
         """
         succeeded = len(targets) - len(failures) - len(skipped)
         if skipped:
@@ -183,10 +166,8 @@ class UndeployCommand(base_command.InitialisedRepositoryCommand):
         try:
             shared_services = aliases.list_shared_services()
         except aliases.ServiceListingFailed as e:
-            # The deletes have already happened, so the summary they earned is
-            # still worth printing - but the workspace is now left with neither
-            # a real Service nor an alias for the objects just removed, and
-            # that must not pass unmentioned.
+            # The deletes already happened, so the names just removed now resolve
+            # to nothing. That must not pass unmentioned.
             logger.warning(
                 'Could not list the shared Services, so no aliases were restored: names this project owns '
                 'now resolve to nothing inside {}. Run "kubeyard workspace sync" once kubectl works '

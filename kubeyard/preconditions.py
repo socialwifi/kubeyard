@@ -40,6 +40,11 @@ def current_kubectl_context() -> str:
     return str(sh.kubectl('config', 'current-context')).strip()
 
 
+def check_cluster_is_the_expected_one():
+    """For commands that only read, and so depend on no other precondition."""
+    check_kubectl_context(current_kubectl_context())
+
+
 def check_all(context, project_dir):
     check_development_mode(context)
     check_kubectl_context(current_kubectl_context())

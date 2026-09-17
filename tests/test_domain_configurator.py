@@ -205,11 +205,8 @@ class TestRemove:
         assert 'localhost' in written
 
     def test_never_passes_a_password_to_sudo(self, tmp_path):
-        # cp truncates the hosts file in place, so anything piped into it
-        # that sudo does not consume - and sudo consumes nothing once its
-        # credentials are cached, or with NOPASSWD - lands in /etc/hosts as
-        # its first line, world-readable. Pinned directly: no `_in=` kwarg,
-        # ever, on any sudo call.
+        # sudo consumes nothing on stdin once its credentials are cached, so a piped
+        # password would land in the world-readable file itself.
         configurator = self._configurator_with_a_removable_entry(tmp_path)
 
         with capturing_sudo() as staged:
@@ -243,11 +240,8 @@ class TestRemove:
         getpass_mock.assert_not_called()
 
     def test_writes_directly_onto_the_hosts_file_with_a_single_sudo_call(self, tmp_path):
-        # cp onto an existing file truncates it in place instead of
-        # replacing the inode, which is what keeps /etc/hosts's permissions
-        # and SELinux context intact without a staging path, an mv, a
-        # chmod, or a restorecon step - so there must be exactly one sudo
-        # call per write, and it must be the cp itself.
+        # cp truncates in place rather than replacing the inode, which preserves
+        # permissions and SELinux context without a staging path or restorecon.
         hosts_path = tmp_path / 'hosts'
         configurator = self._configurator_with_a_removable_entry(tmp_path)
 

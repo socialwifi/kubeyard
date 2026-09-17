@@ -217,11 +217,8 @@ class TestDestroyWorkspaceCommandRun:
         assert not any('finaliz' in record.message for record in caplog.records)
 
     def _run_with_failing_delete(self, command):
-        # kubectl delete --wait=true either succeeds (namespace is gone) or
-        # blocks on finalizers and exits non-zero: there is no third state
-        # where it returns successfully with the namespace still around, so
-        # the failure path is only reachable by making the delete itself
-        # raise.
+        # delete --wait=true either succeeds or exits non-zero, so the failure path
+        # is only reachable by making the delete itself raise.
         delete_error = sh.ErrorReturnCode('kubectl', b'', b'timed out waiting for the condition')
 
         def kubectl_side_effect(*args, **kwargs):
@@ -537,14 +534,8 @@ class TestListWorkspacesCommand:
         prefix = 'custom-columns=NAME:.metadata.labels.'
         assert output_value.startswith(prefix)
         jsonpath_key = output_value[len(prefix):]
-        # jsonpath treats an unescaped "." as a path separator, so any
-        # literal dot in the label key must be escaped; "/" is not a
-        # separator and must stay literal. Reversing the escaping must
-        # reconstruct the exact label, or kubectl silently resolves to the
-        # wrong (nonexistent) field and prints nothing for every workspace.
-        # This is the assertion that would have caught
-        # WORKSPACE_LABEL.replace('/', '\\.'): that mutation strips the "/"
-        # entirely, so the round trip below fails.
+        # Only "." is a jsonpath separator, so "/" must stay literal. Round-tripping
+        # the escaping is what catches escaping the wrong character.
         assert jsonpath_key.replace('\\.', '.') == workspace_commands.WORKSPACE_LABEL
         assert '\\.' in jsonpath_key  # a dot really was escaped
         assert '/' in jsonpath_key  # the slash really was left alone

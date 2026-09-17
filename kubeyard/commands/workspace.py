@@ -21,6 +21,11 @@ class NoWorkspaceSelected(Exception):
     pass
 
 
+def label_column(label) -> str:
+    """jsonpath reads "." as a path separator, so a dot inside a label key must be escaped."""
+    return 'custom-columns=NAME:.metadata.labels.{}'.format(label.replace('.', '\\.'))
+
+
 def resolve_target_name(explicit_name, active):
     if explicit_name:
         return workspace_module.validate_name(explicit_name)
@@ -124,12 +129,8 @@ class DestroyWorkspaceCommand(BaseWorkspaceCommand):
         name = resolve_target_name(self.name, self.active_workspace)
         namespace = workspace_module.namespace_for(name)
         logger.info('Deleting namespace {}...'.format(namespace))
-        # The namespace delete may not have finished (it can be blocked on
-        # finalizers), but the user asked for the workspace to be gone: stale
-        # /etc/hosts entries and a marker pointing at a dying namespace are
-        # never useful, so local cleanup always runs - hence the finally.
-        # destroy is idempotent, so re-running once the namespace actually
-        # disappears is safe.
+        # Deletion can hang on finalizers, but a marker pointing at a dying
+        # namespace helps nobody, and destroy is idempotent.
         try:
             self.delete_namespace(namespace)
         finally:
@@ -173,11 +174,7 @@ class ShowWorkspaceCommand(BaseWorkspaceCommand):
         if not name:
             print('No workspace active in {}. Using the shared environment.'.format(self.project_dir))
             return
-        # Read-only, but from here on it queries the cluster, so it gets the
-        # same check ListWorkspacesCommand makes: listing the Services of
-        # whatever cluster kubectl happens to point at, under the heading of a
-        # local workspace name, is worse than refusing.
-        preconditions.check_kubectl_context(preconditions.current_kubectl_context())
+        preconditions.check_cluster_is_the_expected_one()
         namespace = workspace_module.namespace_for(name)
         real = sorted(aliases.list_real_services(namespace))
         aliased = sorted(aliases.list_aliases(namespace))
@@ -195,18 +192,10 @@ class ListWorkspacesCommand(base_command.BaseCommand):
     """Lists all workspace namespaces in the cluster."""
 
     def run(self):
-        # Read-only and not tied to a project directory, so check_all's other
-        # preconditions don't apply; but a plain kubectl-context check keeps
-        # this from being run against production without any safety property
-        # actually depending on it.
-        preconditions.check_kubectl_context(preconditions.current_kubectl_context())
-        # jsonpath treats an unescaped "." as a path separator, so a literal
-        # dot in the label key must be escaped; "/" is not a separator and
-        # must stay literal, or kubectl silently resolves to a nonexistent
-        # field and prints nothing for every workspace.
+        preconditions.check_cluster_is_the_expected_one()
         output = str(sh.kubectl(
             'get', 'namespaces', '--selector', WORKSPACE_LABEL,
-            '--output', 'custom-columns=NAME:.metadata.labels.{}'.format(WORKSPACE_LABEL.replace('.', '\\.')),
+            '--output', label_column(WORKSPACE_LABEL),
             '--no-headers',
         )).strip()
         print(output or 'No workspaces.')

@@ -49,14 +49,9 @@ class KubernetesDependency:
 
     def _remove_shadowing_alias(self):
         """
-        Drop the workspace alias of this Service, if one is there, before exposing.
-
-        The Service of a development requirement is created by "kubectl expose",
-        not by a committed definition, so deploy.remove_shadowed_aliases never
-        sees it. Without this, expose collides with the alias, the workspace
-        keeps a Postgres pod with no Service of its own, and its name resolves
-        to the shared instance. aliases.delete only ever removes objects
-        carrying the alias label, so a real Service is never touched.
+        A requirement's Service comes from "kubectl expose", not a committed definition,
+        so deploy.remove_shadowed_aliases never sees it. Left in place, the alias
+        collides with expose and the requirement's own name resolves to the shared one.
         """
         if self.namespace:
             aliases.delete(self.namespace, [self.name])

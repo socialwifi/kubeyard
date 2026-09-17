@@ -270,11 +270,8 @@ class TestApply:
         }
 
     def test_passes_the_namespace_as_an_argument_as_well_as_in_the_body(self):
-        # kubectl accepts the redundancy while the two agree and errors loudly
-        # when they do not, instead of quietly applying into the body's
-        # namespace. Every other kubectl call in the package routes its
-        # namespace through kubectl.namespace_args; this one used to be the
-        # exception.
+        # kubectl accepts the redundancy while the two agree, and errors loudly
+        # when they do not, rather than silently using the body's namespace.
         with mock.patch.object(aliases.sh, 'kubectl') as kubectl:
             with mock.patch.object(aliases.sh, 'echo'):
                 aliases.apply('ws-example', ['accounts'])

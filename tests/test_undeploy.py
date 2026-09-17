@@ -29,12 +29,7 @@ def _restore_kubeyard_logger_level():
 
 @pytest.fixture
 def kubectl_context_ok():
-    """
-    Bypasses the kubectl-context precondition (see TestRunKubectlContextGuard,
-    which pins that precondition itself) so tests unrelated to it can reach
-    the behaviour they actually target without shelling out to a real
-    `kubectl config current-context`.
-    """
+    """Bypasses the kubectl-context precondition, which TestRunKubectlContextGuard pins instead."""
     with mock.patch.object(undeploy.preconditions, 'current_kubectl_context', return_value='minikube'):
         yield
 
@@ -162,12 +157,7 @@ class TestTargets:
         assert command.targets == [('Deployment', 'web'), ('Service', 'api'), ('Secret', 'web')]
 
     def test_a_deployment_kept_only_in_the_base_file_is_still_a_target(self, tmp_path):
-        """
-        Real development_overrides files are fragments: they carry the keys
-        they change and nothing else. Treating one as a replacement drops the
-        kind and name, and the object silently stops being undeployed - which
-        is exactly what left Deployments behind in the acceptance run.
-        """
+        """An override is usually a fragment; treated as a replacement it loses kind and name."""
         deploy_dir = tmp_path / 'config' / 'kubernetes' / 'deploy'
         overrides_dir = tmp_path / 'config' / 'kubernetes' / 'development_overrides'
         deploy_dir.mkdir(parents=True)
@@ -206,13 +196,8 @@ class TestTargets:
 
 class TestTargetsSourceIsOnlyTheRepoOwnDirectories:
     """
-    Behavioural pin on "never touches dev_requirements infrastructure and
-    never drops databases": targets is derived from exactly one call to
-    deploy.owned_objects(self.definition_directories), plus the Secret, and
-    nothing else - no dev_requirements/dependencies state can inject an
-    additional target. (A source-text grep for "dev_requirements" was tried
-    first and rejected: it is fooled by an indirection and false-fails on a
-    docstring, so it is replaced with this behavioural equivalent instead.)
+    Pins "never touches development requirements, never drops databases": targets
+    comes from owned_objects plus the Secret, and nothing else can inject into it.
     """
 
     def test_targets_equals_owned_objects_plus_the_secret_and_nothing_else(self, tmp_path):
@@ -308,12 +293,8 @@ class TestConfirm:
 
 class TestConfirmReportsTheTrueBlastRadius:
     """
-    Critical 2: the confirmation listing must report where the deletion is
-    actually going, not assert a fixed claim ("the shared environment") that
-    nothing on screen could contradict. These deliberately mock
-    preconditions.current_kubectl_context directly (not via kubectl_context_ok,
-    which always returns 'minikube') so the test can prove the message is
-    genuinely dynamic - not merely a differently-worded hardcoded string.
+    The prompt must name where the deletion is actually going. The context is mocked
+    directly rather than via kubectl_context_ok, so a hardcoded string would fail.
     """
 
     def test_header_names_the_actual_resolved_context(self, capsys):
@@ -432,12 +413,8 @@ class TestRunProductionRefusal:
     """
 
     def test_run_raises_and_calls_kubectl_zero_times(self, tmp_path, kubectl_context_ok):
-        # A workspace is active, so confirmation_required is False, and the
-        # kubectl context is mocked to a valid one: the only possible source
-        # of the raise is check_allowed itself, isolated from both confirm()'s
-        # own (unrelated) non-TTY refusal and the kubectl-context guard.
-        # Without this isolation, disabling check_allowed entirely would
-        # still pass this test by accident, via one of those other guards.
+        # A workspace is active and the context is valid, so check_allowed is the
+        # only possible source of the raise - otherwise removing it would still pass.
         deploy_dir = tmp_path / 'config' / 'kubernetes' / 'deploy'
         deploy_dir.mkdir(parents=True)
         (deploy_dir / '01_service.yml').write_text('kind: Service\nmetadata:\n  name: api\n')
@@ -465,10 +442,8 @@ class TestRunProductionRefusal:
 
 class TestRunKubectlContextGuard:
     """
-    Critical 1: KUBEYARD_MODE is a machine-level setting with no relationship
-    to which cluster kubectl currently points at. undeploy must independently
-    verify the kubectl context before touching anything, in BOTH branches -
-    including the workspace-active one, which previously had no guard at all.
+    KUBEYARD_MODE says nothing about which cluster kubectl points at, so the context
+    must be checked before anything is touched - in both branches.
     """
 
     def test_refuses_on_wrong_context_without_a_workspace(self, tmp_path):
@@ -606,11 +581,8 @@ class TestRunSharedEnvironment:
         kubectl.assert_called_once()
 
     def test_aliases_are_never_restored_without_a_workspace(self, tmp_path, kubectl_context_ok):
-        # Owns a Service that WOULD be restored as an alias if restore_aliases
-        # ran - if run() called restore_aliases unconditionally instead of
-        # gating it on self.namespace, this would catch it (an empty-repo
-        # version of this test would not, since restore_aliases would be a
-        # no-op either way).
+        # Owns a Service that WOULD be aliased, so an ungated restore_aliases is
+        # caught here where an empty repo would not catch it.
         deploy_dir = tmp_path / 'config' / 'kubernetes' / 'deploy'
         deploy_dir.mkdir(parents=True)
         (deploy_dir / '01_service.yml').write_text('kind: Service\nmetadata:\n  name: api\n')
@@ -641,13 +613,8 @@ class TestRunNothingToUndeploy:
 
 class TestDeleteTargetsPartialFailure:
     """
-    Important: a delete that fails partway through must not abort the whole
-    run, leave the workspace with neither a real Service nor a restored
-    alias, or fail silently about which object is stuck.
-    Compare DestroyWorkspaceCommand.delete_namespace, which has the same
-    shape of fix for the same underlying problem (see
-    tests/test_workspace_commands.py::TestDestroyWorkspaceCommandRun's
-    "delete_failure" tests).
+    A delete that fails partway must not abort the run, skip alias restoration, or
+    leave the stuck object unnamed.
     """
 
     def _kubectl_side_effect(self, failing_args, error):
@@ -751,13 +718,7 @@ class TestDeleteTargetsPartialFailure:
 
 
 class TestDeleteNothingIsNotSuccess:
-    """
-    Important: these commands exist so agents can script them, and an exit
-    status of 0 after deleting nothing is the one outcome automation cannot
-    recover from. Compare
-    tests/test_workspace_commands.py::TestDestroyWorkspaceCommandRun, which
-    pins the same decision for "workspace destroy".
-    """
+    """Exiting 0 after deleting nothing is the one outcome a script cannot recover from."""
 
     def test_every_delete_failing_fails_the_command(self, tmp_path, kubectl_context_ok):
         command = FakeUndeployCommand(context(namespace='ws-example', service_name='web'), project_dir=tmp_path)
@@ -793,12 +754,8 @@ class TestDeleteNothingIsNotSuccess:
 
 class TestUninstalledResourceTypeIsNotAFailure:
     """
-    Found by the acceptance run, not by these tests: a cluster without the
-    Prometheus operator has no PodMonitor or PrometheusRule resource type, so
-    every such delete failed and the summary reported them as objects left
-    behind. Nothing was left behind - the type does not exist, so neither can
-    the objects. kubepy already skips the same custom resources when applying
-    them, so such a cluster must undeploy as cleanly as it deploys.
+    A cluster without the Prometheus operator has no PodMonitor type at all, so those
+    deletes must not be reported as objects left behind.
     """
 
     MISSING_TYPE = b'error: the server doesn\'t have a resource type "podmonitor"\n'

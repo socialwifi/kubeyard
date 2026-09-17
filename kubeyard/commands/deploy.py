@@ -75,12 +75,8 @@ class DeployCommand(BaseDevelCommand):
 
     def should_seed(self, database_created) -> bool:
         """
-        Seed only a database this deploy has just created, which is therefore empty.
-
         database_created comes from createdb succeeding, so it is never true for a
-        database that already holds data - a redeploy finds the database present and
-        leaves it alone. Production never reaches here: dev requirements, and so the
-        databases they create, exist only in development mode.
+        database that already holds data.
         """
         return bool(database_created and self.context.get('DEV_SEED_COMMAND'))
 
@@ -184,15 +180,7 @@ class DeployCommand(BaseDevelCommand):
 
 
 def definition_directories(project_dir, *, include_dev_overrides):
-    """
-    List the definition directories a project owns: the committed deploy
-    directory, plus the development-overrides directory when it applies.
-
-    Shared by DeployCommand and UndeployCommand so the two never drift on
-    which directories are in scope - deploy only merges dev overrides when
-    actually running in development mode, and undeploy (which refuses to run
-    outside development mode at all) always includes them.
-    """
+    """Shared by deploy and undeploy, so the two cannot drift on which directories are in scope."""
     kubernetes_dir = project_dir / settings.DEFAULT_KUBERNETES_DEPLOY_DIR
     overrides_dir = project_dir / settings.DEFAULT_KUBERNETES_DEV_DEPLOY_OVERRIDES_DIR
     directories = []
@@ -205,12 +193,8 @@ def definition_directories(project_dir, *, include_dev_overrides):
 
 def _merged_definitions(directories):
     """
-    Map definition name (filename without suffix) to its definition, merged the way
-    kubepy merges it at apply time.
-
-    kubepy's own manager does the merging because undeploy must remove exactly what
-    deploy created, and a development override is normally a fragment carrying only
-    the keys it changes - kind and metadata.name stay in the base file.
+    kubepy's own manager does the merging, because undeploy must remove exactly what
+    deploy created and an override is usually a fragment with no kind or name of its own.
     """
     manager = definition_manager.OverridenDefinitionManager(
         *(definition_manager.DefinitionManager(directory) for directory in directories),
