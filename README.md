@@ -32,6 +32,22 @@ pip install kubeyard
 echo '. $HOME/kubeyard-venv/bin/activate' >> $HOME/.bashrc
 ```
 
+## Configuration
+
+Settings come from three layers, each overriding the one before:
+
+1. defaults built into kubeyard
+2. the project's `config/kubeyard.yml`
+3. your `~/.kubeyard/context.yml`
+
+Your own file wins over everything, so keep it to machine-wide settings such as
+`KUBEYARD_MODE` or `KUBEYARD_VM_DRIVER`. A project-level key placed there applies
+to every project on the machine, and no project can override it: if one of them
+needs a different value, it has no way to ask for one.
+
+Every context key is exported as an environment variable to custom scripts and
+to Docker builds.
+
 ## Workspaces
 
 A workspace is an isolated development environment: one Kubernetes namespace
