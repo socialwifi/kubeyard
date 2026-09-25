@@ -1,7 +1,10 @@
 ## 1.3.2 (unreleased)
 ---------------------
 
-- Nothing changed yet.
+- The `global` ConfigMap's `base-domain` now follows the project's `dev_tld` instead of a
+  hardcoded `testing`, and inside a workspace it is qualified with the workspace name
+  (`<workspace>.ws.<dev_tld>`). `dev_tld` defaults to `testing`, so a project that has not
+  set it is unaffected.
 
 
 ## 1.3.1 (2026-09-17)

@@ -15,6 +15,7 @@ from kubeyard import base_command
 from kubeyard import kubernetes
 from kubeyard import node_ports
 from kubeyard import settings
+from kubeyard import workspace
 from kubeyard.commands.devel import MAX_JOB_RETRIES
 from kubeyard.commands.devel import BaseDevelCommand
 from kubeyard.commands.devel import DockerRunner
@@ -225,7 +226,6 @@ class DomainConfigurator:
     hosts_watermark = '# The following line is added by kubeyard\n'
     host_format = '{minikube_ip}\t{domain}\n'
     hosts_filename = '/etc/hosts'
-    WORKSPACE_DOMAIN_SEGMENT = 'ws'
 
     def __init__(self, context: dict):
         self.context = context
@@ -258,7 +258,7 @@ class DomainConfigurator:
     def domains_for(self, workspace_name) -> list:
         top_level_domain = self.context['DEV_TLD']
         if workspace_name:
-            suffix = '{}.{}.{}'.format(workspace_name, self.WORKSPACE_DOMAIN_SEGMENT, top_level_domain)
+            suffix = '{}.{}.{}'.format(workspace_name, workspace.DOMAIN_SEGMENT, top_level_domain)
         else:
             suffix = top_level_domain
         return ['{}.{}'.format(domain, suffix) for domain in self.context['DEV_DOMAINS']]
