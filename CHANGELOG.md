@@ -1,4 +1,4 @@
-## 1.3.2 (unreleased)
+## 1.3.2 (2026-09-25)
 ---------------------
 
 - The `global` ConfigMap's `base-domain` now follows the project's `dev_tld` instead of a
