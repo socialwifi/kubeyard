@@ -82,3 +82,17 @@ class TestWorkspaceInContext:
 
         assert context['KUBEYARD_WORKSPACE'] == ''
         assert context['KUBEYARD_NAMESPACE'] == ''
+
+
+def test_project_dev_tld_survives_the_global_layer(project_dir, isolated_home, monkeypatch):
+    """The global context is applied after the project one, so a default there would override it."""
+    monkeypatch.delenv('KUBEYARD_WORKSPACE', raising=False)
+    (project_dir / 'config' / 'kubeyard.yml').write_text(yaml.dump({
+        'docker_image_name': 'web',
+        'kube_service_name': 'web',
+        'dev_tld': 'example.test',
+    }))
+
+    context = build_context(project_dir)
+
+    assert context['DEV_TLD'] == 'example.test'

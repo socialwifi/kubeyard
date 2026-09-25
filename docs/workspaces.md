@@ -163,6 +163,12 @@ hostnames of the form `<domain>.<workspace>.ws.<dev_tld>`, written to
 `/etc/hosts`. This is the one step that needs `sudo`, and it prompts on your
 terminal.
 
+**The `global` ConfigMap.** Every namespace gets one, carrying `base-domain`,
+`alternative-domain`, `debug` and `monolith-host`. `base-domain` is your
+`dev_tld`, qualified with the workspace name inside a workspace, so a service
+that composes sibling URLs from it addresses the workspace's own copies rather
+than the shared ones.
+
 **Seeding.** `dev_seed_command` in `config/kubeyard.yml` tells kubeyard how to
 load development data. Because kubeyard already knows the namespace, seeding
 targets the workspace's pod and database. `deploy` runs it automatically for a

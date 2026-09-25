@@ -1,6 +1,9 @@
 from unittest import mock
 
+import pytest
+
 from kubeyard import kubernetes
+from kubeyard import settings
 
 
 def context(namespace=''):
@@ -73,3 +76,41 @@ class TestContextSetupNamespace:
 
         create_call = [call for call in kubectl.call_args_list if call[0][0] == 'create'][0]
         assert '--namespace' not in create_call[0]
+
+
+class FakeCluster:
+    pass
+
+
+class FakeClusterFactory:
+    def get(self, context):
+        return FakeCluster()
+
+
+@pytest.fixture
+def development_context(monkeypatch):
+    monkeypatch.setattr(kubernetes.minikube, 'ClusterFactory', lambda: FakeClusterFactory())
+    return kubernetes.DevelopmentKubernetesContext
+
+
+class TestBaseDomain:
+    def test_base_domain_defaults_to_the_dev_tld(self, development_context):
+        context = development_context({'DEV_TLD': 'testing'})
+        assert context.base_domain == 'testing'
+
+    def test_base_domain_follows_a_configured_dev_tld(self, development_context):
+        context = development_context({'DEV_TLD': 'example.test'})
+        assert context.base_domain == 'example.test'
+
+    def test_base_domain_is_qualified_inside_a_workspace(self, development_context):
+        context = development_context({'DEV_TLD': 'example.test'}, namespace='ws-chosen')
+        assert context.base_domain == 'chosen.ws.example.test'
+
+    def test_base_domain_ignores_a_namespace_that_is_not_a_workspace(self, development_context):
+        context = development_context({'DEV_TLD': 'example.test'}, namespace='default')
+        assert context.base_domain == 'example.test'
+
+    def test_base_domain_falls_back_when_the_context_has_no_dev_tld(self, development_context):
+        """`kubeyard setup` builds this from the global context, which carries no DEV_TLD."""
+        context = development_context({})
+        assert context.base_domain == settings.DEFAULT_DEV_TLD

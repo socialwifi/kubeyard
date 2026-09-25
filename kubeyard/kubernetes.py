@@ -10,6 +10,7 @@ import yaml
 from kubeyard import kubectl as kubectl_helper
 from kubeyard import minikube
 from kubeyard import settings
+from kubeyard import workspace
 
 logger = logging.getLogger(__name__)
 
@@ -89,17 +90,25 @@ class BaseKubernetesContext:
 
 
 class DevelopmentKubernetesContext(BaseKubernetesContext):
-    base_domain = 'testing'
     alternative_domain = 'pl-testing'
     debug = 'True'
 
     def __init__(self, context, namespace=''):
         super().__init__(namespace)
+        self.context = context
         self.cluster = minikube.ClusterFactory().get(context)
 
     def setup(self):
         self.cluster.ensure_started()
         super().setup()
+
+    @property
+    def base_domain(self):
+        top_level_domain = self.context.get('DEV_TLD', settings.DEFAULT_DEV_TLD)
+        if self.namespace.startswith(workspace.NAMESPACE_PREFIX):
+            name = self.namespace[len(workspace.NAMESPACE_PREFIX):]
+            return '{}.{}.{}'.format(name, workspace.DOMAIN_SEGMENT, top_level_domain)
+        return top_level_domain
 
     @property
     def monolith_host(self):

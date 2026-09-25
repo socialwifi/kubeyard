@@ -33,10 +33,15 @@ project's own GitHub URL and maintainer address; those are fine and stay.
 - **Subprocesses:** the `sh` library, pinned `<2`. Keep the existing call style
   (`sh.kubectl(...)`, `sh.kubectl.get.pods(...)`).
 - **Kubernetes:** `kubepy` does the applying. Local source lives at `../kubepy`.
-- **Config:** a project's `config/kubeyard.yml`, layered over
-  `~/.kubeyard/context.yml` and defaults in `kubeyard/settings.py`, assembled by
-  `kubeyard/context_factories.py`. Every context key is exported as an
-  environment variable to custom scripts and to Docker.
+- **Config:** three layers assembled by `kubeyard/context_factories.py`, applied
+  in this order so each overrides the one before: defaults in
+  `kubeyard/settings.py`, then a project's `config/kubeyard.yml`, then
+  `~/.kubeyard/context.yml`. **The user file wins over everything**, so it is for
+  machine-wide settings only: a project-level key placed there applies to every
+  project and no project can override it. Put a default for such a key in
+  `project_context`, never in `GlobalContextFactory.base_user_context`. Every
+  context key is exported as an environment variable to custom scripts and to
+  Docker.
 
 ## Project Structure
 
