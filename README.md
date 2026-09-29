@@ -8,6 +8,29 @@
 
 A utility to develop, test and deploy Kubernetes microservices.
 
+## What it does
+
+kubeyard gives a microservice repository one set of commands that behave the
+same for everyone who runs them:
+
+    kubeyard build      # build the image
+    kubeyard test       # run the suite inside it
+    kubeyard deploy     # apply the project's Kubernetes definitions
+    kubeyard shell      # exec into the running pod
+
+In development it drives a local minikube cluster: it provisions the
+dependencies the project declares (PostgreSQL, RabbitMQ, Redis and so on),
+creates the databases they need, and mounts your working copy into the pod, so
+edits take effect without rebuilding the image. In production the same
+definitions are applied to the real cluster through
+[kubepy](https://github.com/socialwifi/kubepy).
+
+A project describes itself in `config/kubeyard.yml` and keeps its Kubernetes
+definitions in `config/kubernetes/`, where `development_overrides/` is merged on
+top of `deploy/` in development only. Any command can be replaced by an
+executable of the same name in the project's `scripts/` directory, which is how
+a project adds a step without forking the tool.
+
 ## Requirements
 
 - bash
@@ -91,3 +114,19 @@ and targets the shared environment.
 
 See [docs/workspaces.md](docs/workspaces.md) for why workspaces exist, how the
 alias overlay works, and the limits worth knowing before relying on them.
+
+## Claude Code
+
+This repository is also a Claude Code plugin marketplace. The plugin teaches
+Claude to reach for a workspace rather than a bare `git worktree add`, and
+documents the command surface in one place instead of in every project's
+`CLAUDE.md`, where nothing updates it when kubeyard changes.
+
+    /plugin marketplace add socialwifi/kubeyard
+    /plugin install kubeyard@kubeyard
+
+It adds two skills, `kubeyard:workspaces` and `kubeyard:usage`, and a hook that
+warns when `git worktree add` is run in a kubeyard project. `jq` is required.
+
+See [plugins/kubeyard/README.md](plugins/kubeyard/README.md) for what each part
+does and how to make the hook block rather than warn.

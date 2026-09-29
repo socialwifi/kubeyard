@@ -1,0 +1,9 @@
+{
+  "name": "kubeyard",
+  "description": "Teaches Claude to use kubeyard workspaces instead of bare git worktrees, and documents the command surface and the constraints that bite.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Social WiFi",
+    "url": "https://github.com/socialwifi/kubeyard"
+  }
+}
