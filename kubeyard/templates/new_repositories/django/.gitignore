@@ -1,0 +1,3 @@
+# kubeyard workspaces
+.worktrees/
+.kubeyard-workspace
