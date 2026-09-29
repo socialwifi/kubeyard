@@ -1,13 +1,8 @@
 ## 1.5.0 (unreleased)
 ---------------------
 
-The `global` ConfigMap now carries only `base-domain` and `debug`. `monolith-host` and
-`alternative-domain` are gone, along with the monolith they were named for.
-
-**Check before upgrading.** A `configMapKeyRef` to a key that no longer exists stops the
-pod starting, so anything still reading them has to be changed first:
-
-    grep -rn -B3 'key: monolith-host\|key: alternative-domain' config/kubernetes/
+- The `global` ConfigMap now carries only `base-domain` and `debug`. `monolith-host` and
+`alternative-domain` are gone.
 
 
 ## 1.4.0 (2026-09-29)
