@@ -84,8 +84,49 @@ class TestWorkspaceInContext:
         assert context['KUBEYARD_NAMESPACE'] == ''
 
 
-def test_project_dev_tld_survives_the_global_layer(project_dir, isolated_home, monkeypatch):
+def test_project_domains_suffix_survives_the_global_layer(project_dir, isolated_home, monkeypatch):
     """The global context is applied after the project one, so a default there would override it."""
+    monkeypatch.delenv('KUBEYARD_WORKSPACE', raising=False)
+    (project_dir / 'config' / 'kubeyard.yml').write_text(yaml.dump({
+        'docker_image_name': 'web',
+        'kube_service_name': 'web',
+        'dev_domains_suffix': 'example.test',
+    }))
+
+    context = build_context(project_dir)
+
+    assert context['DEV_DOMAINS_SUFFIX'] == 'example.test'
+
+
+def test_base_domain_in_a_project_is_rejected(project_dir, isolated_home, monkeypatch):
+    """One ConfigMap serves every service in the namespace, so no project may name it."""
+    monkeypatch.delenv('KUBEYARD_WORKSPACE', raising=False)
+    (project_dir / 'config' / 'kubeyard.yml').write_text(yaml.dump({
+        'docker_image_name': 'web',
+        'kube_service_name': 'web',
+        'base_domain': 'example.test',
+    }))
+
+    with pytest.raises(context_factories.ConfigurationError, match='base_domain'):
+        build_context(project_dir)
+
+
+def test_project_scoped_key_in_the_user_file_is_rejected(project_dir, isolated_home, monkeypatch):
+    """It would apply to every project, and no project could ask for a different value."""
+    monkeypatch.delenv('KUBEYARD_WORKSPACE', raising=False)
+    (project_dir / 'config' / 'kubeyard.yml').write_text(yaml.dump({
+        'docker_image_name': 'web',
+        'kube_service_name': 'web',
+    }))
+    user_context = isolated_home / '.kubeyard' / 'context.yml'
+    user_context.parent.mkdir(parents=True, exist_ok=True)
+    user_context.write_text(yaml.dump({'dev_domains_suffix': 'example.test'}))
+
+    with pytest.raises(context_factories.ConfigurationError, match='dev_domains_suffix'):
+        build_context(project_dir)
+
+
+def test_renamed_key_says_what_it_became(project_dir, isolated_home, monkeypatch):
     monkeypatch.delenv('KUBEYARD_WORKSPACE', raising=False)
     (project_dir / 'config' / 'kubeyard.yml').write_text(yaml.dump({
         'docker_image_name': 'web',
@@ -93,6 +134,5 @@ def test_project_dev_tld_survives_the_global_layer(project_dir, isolated_home, m
         'dev_tld': 'example.test',
     }))
 
-    context = build_context(project_dir)
-
-    assert context['DEV_TLD'] == 'example.test'
+    with pytest.raises(context_factories.ConfigurationError, match='dev_domains_suffix'):
+        build_context(project_dir)

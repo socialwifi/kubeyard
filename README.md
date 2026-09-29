@@ -71,6 +71,34 @@ needs a different value, it has no way to ask for one.
 Every context key is exported as an environment variable to custom scripts and
 to Docker builds.
 
+Keys kubeyard defines belong to exactly one of those layers, and putting one in
+the wrong file is an error rather than a surprise:
+
+- `base_domain` is machine-wide, so it can only be set in `~/.kubeyard/context.yml`.
+  One `global` ConfigMap serves every service in a namespace, so no single project
+  can own its value.
+- everything else describes a project, so only `config/kubeyard.yml` may set it.
+  The user file would apply it to every project on the machine, with no way for
+  any of them to ask for a different value.
+
+Keys kubeyard does not define are yours, and can be set in either file.
+
+### base_domain
+
+`base_domain` is the domain this environment serves. It goes into the `global`
+ConfigMap and reaches every container as `BASE_DOMAIN`, so services can build
+their own URLs without hardcoding an environment into their code. Inside a
+workspace it is qualified with the workspace name.
+
+It has no default. `kubeyard setup` asks for it and writes it to your user
+context, or pass `--base-domain`:
+
+    kubeyard setup --development --base-domain example.test
+
+In production `kubeyard setup` will not replace a `global` ConfigMap that
+already exists; it reports what is there and what it would have written. Pass
+`--replace-global-configmap` if you really want it overwritten.
+
 ## Workspaces
 
 A workspace is an isolated development environment: one Kubernetes namespace

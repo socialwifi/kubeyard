@@ -43,7 +43,7 @@ def capturing_sudo():
 def context(workspace=''):
     return {
         'KUBEYARD_WORKSPACE': workspace,
-        'DEV_TLD': 'example.test',
+        'DEV_DOMAINS_SUFFIX': 'example.test',
         'DEV_DOMAINS': ['frontend', 'api'],
     }
 
@@ -72,7 +72,7 @@ class TestDomainsFor:
 
     def test_empty_dev_domains_yields_nothing(self):
         configurator = deploy.DomainConfigurator({
-            'KUBEYARD_WORKSPACE': 'example', 'DEV_TLD': 'example.test', 'DEV_DOMAINS': []})
+            'KUBEYARD_WORKSPACE': 'example', 'DEV_DOMAINS_SUFFIX': 'example.test', 'DEV_DOMAINS': []})
 
         assert configurator.domains_for('example') == []
 
@@ -134,7 +134,7 @@ class TestRemove:
 
     def test_no_domains_does_not_touch_hosts_file(self, tmp_path):
         configurator = deploy.DomainConfigurator({
-            'KUBEYARD_WORKSPACE': '', 'DEV_TLD': 'example.test', 'DEV_DOMAINS': []})
+            'KUBEYARD_WORKSPACE': '', 'DEV_DOMAINS_SUFFIX': 'example.test', 'DEV_DOMAINS': []})
         configurator.hosts_filename = str(tmp_path / 'hosts')
 
         with mock.patch.object(deploy.sh, 'sudo') as sudo:

@@ -240,6 +240,16 @@ def install_global_secrets():
     "mode",
     flag_value="production",
 )
+@click.option(
+    "--base-domain",
+    help="Domain this environment serves. Published to every service in the namespace as BASE_DOMAIN. "
+         "Asked for interactively when it is not set yet.",
+)
+@click.option(
+    "--replace-global-configmap",
+    is_flag=True,
+    help="Overwrite the global ConfigMap if it already exists. Production leaves it alone by default.",
+)
 def setup(**kwargs):
     SetupCommand(**kwargs).run()
 

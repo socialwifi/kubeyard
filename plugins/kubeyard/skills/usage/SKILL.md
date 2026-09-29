@@ -74,10 +74,18 @@ Three layers, each overriding the previous:
 2. the project's `config/kubeyard.yml`
 3. `~/.kubeyard/context.yml`
 
-**The user file wins over everything.** A project-level key placed there applies
-to every project on the machine and no project can override it, which is almost
-never what you want. Defaults for project-level keys belong in the project
-context. `kubeyard variables` prints the result.
+The user file wins, but for keys kubeyard defines the order rarely matters,
+because each one belongs to exactly one layer and putting it in the wrong file is
+an error:
+
+- `base_domain` is machine-wide, so only `~/.kubeyard/context.yml` may set it. It
+  is the domain this environment serves, it reaches every container as
+  `BASE_DOMAIN`, and one `global` ConfigMap serves the whole namespace, so no
+  single project can own it. It has no default; `kubeyard setup` asks for it.
+- everything else describes a project, so only `config/kubeyard.yml` may set it.
+
+Keys kubeyard does not define are unconstrained and can go in either file.
+`kubeyard variables` prints the assembled result.
 
 Every context key is also exported as an environment variable to custom scripts
 and into the container.

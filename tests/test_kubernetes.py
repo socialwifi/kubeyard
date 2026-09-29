@@ -2,8 +2,8 @@ from unittest import mock
 
 import pytest
 
+from kubeyard import context_factories
 from kubeyard import kubernetes
-from kubeyard import settings
 
 
 def context(namespace=''):
@@ -69,17 +69,52 @@ class TestIsKeyPresentNamespace:
 
 class TestContextSetupNamespace:
     def test_configmap_created_without_namespace_when_inactive(self):
-        setup = kubernetes.ProductionKubernetesContext()
+        setup = kubernetes.ProductionKubernetesContext({'BASE_DOMAIN': 'example.com'})
 
-        with mock.patch.object(kubernetes.sh, 'kubectl') as kubectl:
+        with mock.patch.object(kubernetes, 'sh') as sh:
+            sh.kubectl.get.configmap.side_effect = FakeErrorReturnCode()
+            sh.ErrorReturnCode = FakeErrorReturnCode
             setup.setup()
 
-        create_call = [call for call in kubectl.call_args_list if call[0][0] == 'create'][0]
+        create_call = [call for call in sh.kubectl.call_args_list if call[0][0] == 'create'][0]
         assert '--namespace' not in create_call[0]
 
 
-class FakeCluster:
+class FakeErrorReturnCode(Exception):
     pass
+
+
+class TestProductionConfigMapIsNotOverwritten:
+    def production(self):
+        return kubernetes.ProductionKubernetesContext({'BASE_DOMAIN': 'example.com'})
+
+    def test_existing_configmap_is_left_alone(self):
+        with mock.patch.object(kubernetes, 'sh') as sh:
+            sh.kubectl.get.configmap.return_value = '{"data": {"base-domain": "example.com"}}'
+            self.production().setup()
+
+        assert not [call for call in sh.kubectl.call_args_list if call[0][0] == 'create']
+
+    def test_replace_flag_overwrites_it(self):
+        with mock.patch.object(kubernetes, 'sh') as sh:
+            sh.kubectl.get.configmap.return_value = '{"data": {"base-domain": "example.com"}}'
+            self.production().setup(replace_configmap=True)
+
+        assert [call for call in sh.kubectl.call_args_list if call[0][0] == 'create']
+
+    def test_development_always_rewrites_it(self, development_context):
+        context = development_context({'BASE_DOMAIN': 'example.test'})
+
+        with mock.patch.object(kubernetes, 'sh') as sh:
+            sh.kubectl.get.configmap.return_value = '{"data": {"base-domain": "stale"}}'
+            context.setup()
+
+        assert [call for call in sh.kubectl.call_args_list if call[0][0] == 'create']
+
+
+class FakeCluster:
+    def ensure_started(self):
+        pass
 
 
 class FakeClusterFactory:
@@ -94,23 +129,21 @@ def development_context(monkeypatch):
 
 
 class TestBaseDomain:
-    def test_base_domain_defaults_to_the_dev_tld(self, development_context):
-        context = development_context({'DEV_TLD': 'testing'})
-        assert context.base_domain == 'testing'
-
-    def test_base_domain_follows_a_configured_dev_tld(self, development_context):
-        context = development_context({'DEV_TLD': 'example.test'})
+    def test_base_domain_is_the_configured_one(self, development_context):
+        context = development_context({'BASE_DOMAIN': 'example.test'})
         assert context.base_domain == 'example.test'
 
     def test_base_domain_is_qualified_inside_a_workspace(self, development_context):
-        context = development_context({'DEV_TLD': 'example.test'}, namespace='ws-chosen')
+        context = development_context({'BASE_DOMAIN': 'example.test'}, namespace='ws-chosen')
         assert context.base_domain == 'chosen.ws.example.test'
 
     def test_base_domain_ignores_a_namespace_that_is_not_a_workspace(self, development_context):
-        context = development_context({'DEV_TLD': 'example.test'}, namespace='default')
+        context = development_context({'BASE_DOMAIN': 'example.test'}, namespace='default')
         assert context.base_domain == 'example.test'
 
-    def test_base_domain_falls_back_when_the_context_has_no_dev_tld(self, development_context):
-        """`kubeyard setup` builds this from the global context, which carries no DEV_TLD."""
-        context = development_context({})
-        assert context.base_domain == settings.DEFAULT_DEV_TLD
+    def test_unset_base_domain_is_an_error_rather_than_an_invented_domain(self, development_context):
+        with pytest.raises(context_factories.ConfigurationError):
+            development_context({}).base_domain
+
+    def test_production_base_domain_is_configured_not_hardcoded(self):
+        assert kubernetes.ProductionKubernetesContext({'BASE_DOMAIN': 'example.com'}).base_domain == 'example.com'
