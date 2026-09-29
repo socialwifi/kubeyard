@@ -1,4 +1,4 @@
-## 1.5.0 (unreleased)
+## 1.5.0 (2026-09-29)
 ---------------------
 
 - The `global` ConfigMap now carries only `base-domain` and `debug`. `monolith-host` and
