@@ -1,4 +1,4 @@
-## 1.4.0 (unreleased)
+## 1.4.0 (2026-09-29)
 ---------------------
 
 **kubeyard will refuse to run until you do this:**
