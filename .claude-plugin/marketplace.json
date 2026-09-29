@@ -1,0 +1,14 @@
+{
+  "name": "kubeyard",
+  "description": "Claude Code plugins for working in kubeyard-managed repositories.",
+  "owner": {
+    "name": "Social WiFi",
+    "url": "https://github.com/socialwifi/kubeyard"
+  },
+  "plugins": [
+    {
+      "name": "kubeyard",
+      "source": "./plugins/kubeyard"
+    }
+  ]
+}
