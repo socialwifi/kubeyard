@@ -1,7 +1,8 @@
-## 1.4.1 (unreleased)
+## 1.5.0 (unreleased)
 ---------------------
 
-- Nothing changed yet.
+- The `global` ConfigMap now carries only `base-domain` and `debug`. `monolith-host` and
+`alternative-domain` are gone.
 
 
 ## 1.4.0 (2026-09-29)

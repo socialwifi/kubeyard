@@ -4,7 +4,6 @@ import itertools
 import json
 import logging
 import pathlib
-import socket
 
 import sh
 import yaml
@@ -83,9 +82,7 @@ class BaseKubernetesContext:
     @property
     def configmap_data(self):
         return {
-            'monolith-host': self.monolith_host,
             'base-domain': self.base_domain,
-            'alternative-domain': self.alternative_domain,
             'debug': self.debug,
         }
 
@@ -113,15 +110,7 @@ class BaseKubernetesContext:
                 logger.warning('  %s: %r -> %r', key, was, would_be)
 
     @property
-    def monolith_host(self):
-        raise NotImplementedError
-
-    @property
     def base_domain(self):
-        raise NotImplementedError
-
-    @property
-    def alternative_domain(self):
         raise NotImplementedError
 
     @property
@@ -130,7 +119,6 @@ class BaseKubernetesContext:
 
 
 class DevelopmentKubernetesContext(BaseKubernetesContext):
-    alternative_domain = 'pl-testing'
     debug = 'True'
 
     def __init__(self, context, namespace=''):
@@ -150,17 +138,9 @@ class DevelopmentKubernetesContext(BaseKubernetesContext):
             return '{}.{}.{}'.format(name, workspace.DOMAIN_SEGMENT, configured)
         return configured
 
-    @property
-    def monolith_host(self):
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        return s.getsockname()[0]
-
 
 class ProductionKubernetesContext(BaseKubernetesContext):
     debug = 'False'
-    alternative_domain = 'socialwifi.pl'
-    monolith_host = 'socialwifi.com'
     keeps_existing_configmap = True
 
     def __init__(self, context, namespace=''):

@@ -147,3 +147,7 @@ class TestBaseDomain:
 
     def test_production_base_domain_is_configured_not_hardcoded(self):
         assert kubernetes.ProductionKubernetesContext({'BASE_DOMAIN': 'example.com'}).base_domain == 'example.com'
+
+    def test_configmap_carries_only_base_domain_and_debug(self, development_context):
+        context = development_context({'BASE_DOMAIN': 'example.test'})
+        assert set(context.configmap_data) == {'base-domain', 'debug'}

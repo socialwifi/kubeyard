@@ -164,8 +164,8 @@ hostnames of the form `<domain>.<workspace>.ws.<base_domain>`, written to
 terminal. A project whose hosts entries should not follow the environment's
 domain can override the suffix with `dev_domains_suffix`.
 
-**The `global` ConfigMap.** Every namespace gets one, carrying `base-domain`,
-`alternative-domain`, `debug` and `monolith-host`. `base-domain` is your
+**The `global` ConfigMap.** Every namespace gets one, carrying `base-domain`
+and `debug`. `base-domain` is your
 `base_domain`, qualified with the workspace name inside a workspace, so a
 service that composes sibling URLs from it addresses the workspace's own copies
 rather than the shared ones. Because one ConfigMap serves every service in the
