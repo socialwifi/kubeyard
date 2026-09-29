@@ -1,7 +1,30 @@
-## 1.3.3 (unreleased)
+## 1.4.0 (unreleased)
 ---------------------
 
-- Nothing changed yet.
+**kubeyard will refuse to run until you do this:**
+
+    kubeyard setup
+
+It asks for `base_domain`, the domain this environment serves, and writes it to
+`~/.kubeyard/context.yml`. Pass `--base-domain <domain>` to skip the question.
+
+Then in each project's `config/kubeyard.yml`, delete `dev_tld`. Keep it only where the
+`/etc/hosts` entries must differ from `base_domain`, renamed:
+
+    dev_tld: example.test      ->      dev_domains_suffix: example.test
+
+- `base_domain` replaces the project's `dev_tld` as the source of `base-domain` in the
+  `global` ConfigMap. It is machine-wide and has no default, because one ConfigMap serves
+  every service in a namespace, so no single project can own its value.
+- `dev_domains_suffix` is what `dev_tld` always was: the suffix appended to each
+  `dev_domains` entry. It defaults to `base_domain`.
+- Each key kubeyard defines now belongs to exactly one file, and putting one in the wrong
+  file is an error. Keys kubeyard does not define can still be set in either.
+- Production no longer has a hardcoded base domain, and `kubeyard setup` no longer replaces
+  an existing `global` ConfigMap there. `--replace-global-configmap` overwrites it.
+
+Upgrade kubeyard everywhere before renaming, because an older kubeyard ignores
+`dev_domains_suffix` and falls back to `testing`.
 
 
 ## 1.3.2 (2026-09-25)

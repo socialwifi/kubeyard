@@ -12,6 +12,7 @@ from kubepy import definition_manager
 
 from kubeyard import aliases
 from kubeyard import base_command
+from kubeyard import context_factories
 from kubeyard import kubernetes
 from kubeyard import node_ports
 from kubeyard import settings
@@ -256,12 +257,15 @@ class DomainConfigurator:
             '-o', 'jsonpath={.items[*].status.addresses[?(@.type=="InternalIP")].address}').strip()
 
     def domains_for(self, workspace_name) -> list:
-        top_level_domain = self.context['DEV_TLD']
+        domains = self.context['DEV_DOMAINS']
+        if not domains:
+            return []
+        configured = self.context.get('DEV_DOMAINS_SUFFIX') or context_factories.require_base_domain(self.context)
         if workspace_name:
-            suffix = '{}.{}.{}'.format(workspace_name, workspace.DOMAIN_SEGMENT, top_level_domain)
+            suffix = '{}.{}.{}'.format(workspace_name, workspace.DOMAIN_SEGMENT, configured)
         else:
-            suffix = top_level_domain
-        return ['{}.{}'.format(domain, suffix) for domain in self.context['DEV_DOMAINS']]
+            suffix = configured
+        return ['{}.{}'.format(domain, suffix) for domain in domains]
 
     @property
     def all_domains(self) -> list:

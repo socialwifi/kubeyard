@@ -1,6 +1,7 @@
 import contextlib
 import logging
 import pathlib
+import sys
 
 import yaml
 
@@ -8,6 +9,7 @@ from kubeyard import ascii_art
 from kubeyard import base_command
 from kubeyard import context_factories
 from kubeyard import dependencies
+from kubeyard import io_utils
 from kubeyard import kubernetes
 from kubeyard import settings
 
@@ -29,8 +31,10 @@ class SetupCommand(GlobalCommand):
     ~/kubernetes_secrets/.
     """
 
-    def __init__(self, *, mode):
+    def __init__(self, *, mode, base_domain=None, replace_global_configmap=False):
         self.mode = mode
+        self.base_domain = base_domain
+        self.replace_global_configmap = replace_global_configmap
 
     def run(self):
         user_context = self.get_current_user_context()
@@ -42,11 +46,28 @@ class SetupCommand(GlobalCommand):
             user_context['KUBEYARD_VM_DRIVER'] = settings.DEFAULT_KUBEYARD_VM_DRIVER
         kubeyard_mode = self.get_kubeyard_mode()
         user_context['KUBEYARD_MODE'] = kubeyard_mode
+        user_context['BASE_DOMAIN'] = self.resolve_base_domain(user_context, kubeyard_mode)
         self.print_info(kubeyard_mode)
         with self.user_context_filepath.open('w') as context_file:
             yaml.dump(dict(user_context), stream=context_file, default_flow_style=False)
         new_context = dict(self.context, **user_context)
-        kubernetes.setup_cluster_context(new_context)
+        kubernetes.setup_cluster_context(new_context, replace_configmap=self.replace_global_configmap)
+
+    def resolve_base_domain(self, user_context, kubeyard_mode):
+        if self.base_domain:
+            return self.base_domain
+        if 'BASE_DOMAIN' in user_context:
+            return user_context['BASE_DOMAIN']
+        if not sys.stdin.isatty():
+            raise context_factories.ConfigurationError(
+                'base_domain is not set and there is no terminal to ask on. Pass --base-domain '
+                '<domain>. It is the domain this environment serves, and it is published to every '
+                'service in the namespace through the global ConfigMap.',
+            )
+        prompt = 'Domain this environment serves, published to services as BASE_DOMAIN'
+        if kubeyard_mode == 'development':
+            return io_utils.default_input(prompt, settings.DEFAULT_DEVELOPMENT_BASE_DOMAIN)
+        return io_utils.required_input(prompt)
 
     def get_current_user_context(self):
         return context_factories.GlobalContextFactory().user_context

@@ -4,6 +4,7 @@ import os
 import pathlib
 import re
 
+import click
 import yaml
 
 from cached_property import cached_property
@@ -24,6 +25,73 @@ class Context(dict):
                 yield key, yaml.dump(value)
 
 
+class ConfigurationError(click.ClickException):
+    pass
+
+
+USER_CONTEXT_DEFAULTS = {
+    'KUBEYARD_MODE': 'production',
+    'DEV_POSTGRES_NAME': settings.DEFAULT_DEV_POSTGRES_NAME,
+    'DEV_PUBSUB_NAME': settings.DEFAULT_DEV_PUBSUB_NAME,
+    'DEFAULT_DEV_ELASTIC_NAME': settings.DEFAULT_DEV_ELASTIC_NAME,
+    'DEV_REDIS_NAME': settings.DEFAULT_DEV_REDIS_NAME,
+    'DEV_CASSANDRA_NAME': settings.DEFAULT_DEV_CASSANDRA_NAME,
+}
+
+PROJECT_CONTEXT_DEFAULTS = {
+    'KUBEYARD_SCRIPTS_DIR': settings.DEFAULT_KUBEYARD_SCRIPTS_DIR,
+    'KUBERNETES_DEV_SECRETS_DIR': settings.DEFAULT_KUBERNETES_DEV_SECRETS_DIR,
+    'DEV_DOMAINS': settings.DEFAULT_DEV_DOMAINS,
+    'TEST_DATABASE_IMAGE': settings.DEFAULT_TEST_DATABASE_IMAGE,
+    'TEST_DATABASE_NAME': settings.DEFAULT_TEST_DATABASE_NAME,
+    'TEST_MIGRATION_COMMAND': settings.DEFAULT_TEST_MIGRATION_COMMAND,
+    'TEST_COMMAND': settings.DEFAULT_TEST_COMMAND,
+}
+
+# Keys kubeyard defines but gives no default, so they are not in the dictionaries above.
+USER_SCOPED_KEYS = frozenset(USER_CONTEXT_DEFAULTS) | {'BASE_DOMAIN'}
+PROJECT_SCOPED_KEYS = frozenset(PROJECT_CONTEXT_DEFAULTS) | {'DEV_DOMAINS_SUFFIX'}
+
+RENAMED_KEYS = {
+    'DEV_TLD': 'dev_domains_suffix',
+}
+
+
+def reject_misplaced_keys(context, forbidden, path, correct_place):
+    """
+    A key kubeyard defines belongs to exactly one layer. base_domain describes the cluster, so a
+    project cannot set it; the rest describe a project, so the user file cannot, because it would
+    then apply to every project with no way for any of them to disagree.
+    """
+    renamed = sorted(key for key in context if key in RENAMED_KEYS)
+    if renamed:
+        raise ConfigurationError('{} in {} has been renamed. Use {} instead.'.format(
+            ', '.join(key.lower() for key in renamed),
+            path,
+            ', '.join(RENAMED_KEYS[key] for key in renamed),
+        ))
+    misplaced = sorted(key for key in context if key in forbidden)
+    if misplaced:
+        raise ConfigurationError('{} cannot be set in {}. Set it in {} instead.'.format(
+            ', '.join(key.lower() for key in misplaced),
+            path,
+            correct_place,
+        ))
+
+
+def require_base_domain(context):
+    try:
+        return context['BASE_DOMAIN']
+    except KeyError:
+        raise ConfigurationError(
+            'base_domain is not set. It is the domain this environment serves, and every service in '
+            'the namespace is told about it through the global ConfigMap. Set it once per machine '
+            'with "kubeyard setup --base-domain <domain>", or add base_domain to {}.'.format(
+                get_user_context_path(),
+            ),
+        )
+
+
 class GlobalContextFactory:
     def __init__(self):
         self.user_context_path = get_user_context_path()
@@ -36,20 +104,17 @@ class GlobalContextFactory:
 
     @cached_property
     def base_user_context(self):
-        return Context({
-            'KUBEYARD_USER_CONTEXT_FILEPATH': str(self.user_context_path),
-            'KUBEYARD_MODE': 'production',
-            'DEV_POSTGRES_NAME': settings.DEFAULT_DEV_POSTGRES_NAME,
-            'DEV_PUBSUB_NAME': settings.DEFAULT_DEV_PUBSUB_NAME,
-            'DEFAULT_DEV_ELASTIC_NAME': settings.DEFAULT_DEV_ELASTIC_NAME,
-            'DEV_REDIS_NAME': settings.DEFAULT_DEV_REDIS_NAME,
-            'DEV_CASSANDRA_NAME': settings.DEFAULT_DEV_CASSANDRA_NAME,
-        })
+        return Context(
+            KUBEYARD_USER_CONTEXT_FILEPATH=str(self.user_context_path),
+            **USER_CONTEXT_DEFAULTS,
+        )
 
     @cached_property
     def user_context(self):
         if self.user_context_path.exists():
-            return load_context(self.user_context_path)
+            context = load_context(self.user_context_path)
+            reject_misplaced_keys(context, PROJECT_SCOPED_KEYS, self.user_context_path, 'config/kubeyard.yml')
+            return context
         else:
             return Context()
 
@@ -153,21 +218,16 @@ class InitialisedRepoContextFactory(BaseRepoContextFactory):
         context = Context({
             'PROJECT_DIR': str(self.project_dir),
             'KUBEYARD_CONTEXT_FILEPATH': self.context_filepath,
-            'KUBEYARD_SCRIPTS_DIR': settings.DEFAULT_KUBEYARD_SCRIPTS_DIR,
-            'KUBERNETES_DEV_SECRETS_DIR': settings.DEFAULT_KUBERNETES_DEV_SECRETS_DIR,
-            'DEV_TLD': settings.DEFAULT_DEV_TLD,
-            'DEV_DOMAINS': settings.DEFAULT_DEV_DOMAINS,
-            'TEST_DATABASE_IMAGE': settings.DEFAULT_TEST_DATABASE_IMAGE,
-            'TEST_DATABASE_NAME': settings.DEFAULT_TEST_DATABASE_NAME,
-            'TEST_MIGRATION_COMMAND': settings.DEFAULT_TEST_MIGRATION_COMMAND,
-            'TEST_COMMAND': settings.DEFAULT_TEST_COMMAND,
+            **PROJECT_CONTEXT_DEFAULTS,
         })
         context.update(self.saved_context)
         return context
 
     @cached_property
     def saved_context(self):
-        return load_context(self.filename)
+        context = load_context(self.filename)
+        reject_misplaced_keys(context, USER_SCOPED_KEYS, self.filename, str(get_user_context_path()))
+        return context
 
 
 def load_context(path):
