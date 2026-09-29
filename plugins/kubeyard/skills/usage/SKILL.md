@@ -34,6 +34,23 @@ this as the tool-level reference behind it.
 worth checking when something here does not match what the installed version
 does.
 
+`shell` also takes a command on stdin, as in
+`echo "check_code_style" | kubeyard shell`. **This works non-interactively**,
+which is where agents run. `kubectl exec` prints
+
+```
+Unable to use a TTY - input is not a terminal or the right kind of file
+```
+
+and then runs the command anyway, with stdin still forwarded. That line is a
+warning, not a failure, and is not a reason to retry or to fall back to
+something else.
+
+When the command itself exits non-zero, kubeyard surfaces it as a Python
+traceback ending in `sh.ErrorReturnCode_N`. The real error is in the output
+*above* the traceback; the traceback only reports that the container exited
+non-zero.
+
 ## Custom scripts override built-ins
 
 An executable in the repository's `scripts/` directory shadows the kubeyard
