@@ -57,6 +57,22 @@ An executable in the repository's `scripts/` directory shadows the kubeyard
 command of the same name. `kubeyard <command> --default` runs the built-in one,
 which is how those scripts delegate after doing their own work.
 
+A script is given the command line its command was invoked with, so hand it back
+when delegating, or the built-in runs as if nothing had been passed:
+
+```bash
+exec kubeyard deploy --default "$@"
+```
+
+`scripts/test` is the exception: its arguments are the test runner's, because
+that is what `kubeyard test -k my_test` means. Runner arguments that clash with a
+kubeyard option go after `--`, which is the only way to reach the runner with
+`-v` or `--tag`:
+
+```bash
+kubeyard test --tag 61 -- -v -k my_test
+```
+
 Scripts receive the whole context as environment variables, including
 `KUBEYARD_MODE` (`development` or `production`), `KUBEYARD_NAMESPACE`,
 `KUBEYARD_WORKSPACE` and `PROJECT_DIR`. A script that should only act in
