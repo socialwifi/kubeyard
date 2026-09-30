@@ -19,10 +19,23 @@ logger = logging.getLogger(__name__)
 class Context(dict):
     def as_environment(self):
         for key, value in self.items():
-            if isinstance(value, str):
-                yield key, value
-            else:
-                yield key, yaml.dump(value)
+            yield key, environment_value(value)
+
+
+def environment_value(value) -> str:
+    """
+    A scalar becomes what a shell would expect, so an option that was not given is empty rather
+    than the string "null". Lists and dictionaries stay YAML, which is the only form they have.
+    """
+    if isinstance(value, str):
+        return value
+    if value is None:
+        return ''
+    if isinstance(value, bool):
+        return 'true' if value else 'false'
+    if isinstance(value, (int, float)):
+        return str(value)
+    return yaml.dump(value)
 
 
 class ConfigurationError(click.ClickException):
