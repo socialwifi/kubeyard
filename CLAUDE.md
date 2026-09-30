@@ -23,6 +23,17 @@ internal hostnames are not allowed. Use generic names — `web`, `api`,
 The existing `socialwifi` references in `README.md` and `setup.py` are the
 project's own GitHub URL and maintainer address; those are fine and stay.
 
+This covers everything on the project's public surfaces, not only tracked files:
+commit messages, PR titles and descriptions, review replies, issues and release
+notes. A service name is exactly as public in a PR description as in the code.
+
+Describe the constraint, not the caller. "a service that issues tokens every
+other service verifies" tells a reader what they need to know; naming it adds
+nothing for them.
+
+Check before publishing rather than after: grep the text you are about to push
+or post for internal names.
+
 ## Core Technologies
 
 - **Language:** Python 3.10–3.14 (see `setup.py` classifiers and `tox.ini`). Do
