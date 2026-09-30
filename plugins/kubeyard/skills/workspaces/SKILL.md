@@ -52,10 +52,21 @@ creating the same namespace.
 Deploy only what you are changing. Everything else is aliased back to the
 shared namespace and keeps working.
 
-Some services must not be workspaced at all, typically ones holding state that
-every other service validates against. Read the service's own `CLAUDE.md` and
-`scripts/deploy` before deploying it into a workspace: one that should stay
-shared usually says so, and may refuse or warn interactively.
+Some services must not be workspaced at all. Two kinds come up:
+
+- **Cluster singletons**, such as an ingress whose Service claims fixed node
+  ports. Node ports are cluster-wide rather than per-namespace, so a second copy
+  fails to create its Service. These usually need no workspace anyway: an ingress
+  that derives the namespace from the hostname already routes into yours. A
+  change to one lands on the shared instance and affects everyone.
+- **Services holding state every other service validates against**, such as one
+  issuing opaque tokens that others verify by calling back to it. A workspaced
+  copy starts with an empty database, so it rejects what the shared services
+  accept and they reject what it issues.
+
+Read the service's own `CLAUDE.md` and `scripts/deploy` before deploying it into
+a workspace: one that should stay shared usually says so, and may refuse or warn
+interactively.
 
 ## Finishing
 
