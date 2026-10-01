@@ -1,4 +1,4 @@
-## 1.6.0 (unreleased)
+## 1.6.0 (2026-10-01)
 ---------------------
 
 - A custom script in `scripts/` is now given the command line its command was invoked with, so it
