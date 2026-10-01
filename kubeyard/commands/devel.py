@@ -46,7 +46,7 @@ class BaseDevelCommand(base_command.InitialisedRepositoryCommand):
 
     @property
     def args(self) -> list:
-        return []
+        return sys.argv[2:]
 
     def run(self):
         super().run()

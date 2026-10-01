@@ -49,6 +49,12 @@ class TestCommand(BaseDevelCommand):
     test_database_image: postgres:10.3
     test_database_name: test
 
+    \b
+    Remaining arguments are passed to the test runner. Put them after `--` when one of them is
+    also a kubeyard option, which is the only way to reach the runner with e.g. -v:
+
+        kubeyard test --tag 61 -- -v -k my_test
+
     """
     custom_script_name = 'test'
     context_vars = ["force_recreate_database", "force_migrate_database"]

@@ -136,3 +136,19 @@ def test_renamed_key_says_what_it_became(project_dir, isolated_home, monkeypatch
 
     with pytest.raises(context_factories.ConfigurationError, match='dev_domains_suffix'):
         build_context(project_dir)
+
+
+class TestEnvironmentValue:
+    def test_missing_option_is_empty_rather_than_the_string_null(self):
+        assert dict(context_factories.Context({'BUILD_URL': None}).as_environment()) == {'BUILD_URL': ''}
+
+    def test_flags_read_as_shell_expects(self):
+        flags = context_factories.Context({'ON': True, 'OFF': False})
+        assert dict(flags.as_environment()) == {'ON': 'true', 'OFF': 'false'}
+
+    def test_numbers_lose_the_yaml_document_marker(self):
+        assert dict(context_factories.Context({'PORT': 80}).as_environment()) == {'PORT': '80'}
+
+    def test_lists_stay_yaml_because_they_have_no_plainer_form(self):
+        listed = context_factories.Context({'DEV_DOMAINS': ['panel', 'api']})
+        assert dict(listed.as_environment()) == {'DEV_DOMAINS': '- panel\n- api\n'}

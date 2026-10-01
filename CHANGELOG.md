@@ -1,7 +1,21 @@
-## 1.5.1 (unreleased)
+## 1.6.0 (unreleased)
 ---------------------
 
-- Nothing changed yet.
+- A custom script in `scripts/` is now given the command line its command was invoked with, so it
+  can hand it back:
+
+      exec kubeyard deploy --default "$@"
+
+  Without this, a script calling `kubeyard <command> --default` started a fresh process that had
+  lost it and silently deployed the default tag. `scripts/test` is unchanged: its arguments are
+  the test runner's, and kubeyard's own options are in the environment.
+
+- `kubeyard test --help` now documents `--`, which already worked: arguments after it go to the
+  test runner, and it is the only way to pass one that is also a kubeyard option, such as `-v`.
+
+- Context values reach scripts as a shell expects. An option that was not given used to arrive as
+  `null\n...\n` and a flag as `false\n...\n`; they are now empty and `false`. Lists and
+  dictionaries are still YAML.
 
 
 ## 1.5.0 (2026-09-29)
